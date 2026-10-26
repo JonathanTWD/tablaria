@@ -1,0 +1,72 @@
+{
+  "brand": "WiseData",
+  "homeLink": "Ir a la página de inicio de WiseData",
+  "theme": {
+    "label": "Tema",
+    "light": "Claro",
+    "dark": "Oscuro",
+    "system": "Sistema"
+  },
+  "errors": {
+    "network": "No se pudo conectar con el servidor. Comprueba tu conexión e inténtalo de nuevo.",
+    "unexpected": "Algo ha fallado en el servidor. Inténtalo de nuevo en unos minutos.",
+    "tooManyRequests": "Has hecho demasiados intentos. Espera un minuto antes de volver a intentarlo."
+  },
+  "validation": {
+    "email": "Introduce un email válido, como nombre@empresa.com.",
+    "passwordMin": "Usa al menos 8 caracteres.",
+    "passwordMax": "Usa como máximo 128 caracteres.",
+    "passwordRequired": "Introduce tu contraseña."
+  },
+  "notFound": {
+    "title": "Esta página no existe",
+    "description": "Puede que el enlace esté mal escrito o que la página se haya movido.",
+    "action": "Volver al inicio"
+  },
+  "loading": "Cargando…",
+  "preview": {
+    "title": "Tus tablas, tus columnas",
+    "description": "Crea columnas de texto, número, fecha, selección o precio, y encuentra cualquier dato en segundos.",
+    "caption": "Ejemplo de tabla de inventario",
+    "columns": {
+      "product": "Producto",
+      "category": "Categoría",
+      "stock": "Stock",
+      "price": "Precio"
+    },
+    "outOfStock": "Sin stock",
+    "rows": [
+      {
+        "product": "Tornillo hexagonal M8",
+        "category": "Ferretería",
+        "stock": 1240,
+        "price": 0.12
+      },
+      {
+        "product": "Cinta de embalar 48 mm",
+        "category": "Embalaje",
+        "stock": 86,
+        "price": 2.35
+      },
+      {
+        "product": "Guantes de nitrilo, talla M",
+        "category": "Protección",
+        "stock": 12,
+        "price": 8.9
+      },
+      {
+        "product": "Etiquetas térmicas 100 × 150",
+        "category": "Envíos",
+        "stock": 0,
+        "price": 14.5
+      }
+    ],
+    "currency": "EUR"
+  },
+  "serverUnavailable": {
+    "title": "No podemos conectar con WiseData",
+    "description": "Comprueba tu conexión a internet. Si funciona, puede que el servicio esté reiniciándose: vuelve a intentarlo en unos segundos.",
+    "retry": "Reintentar"
+  },
+  "close": "Cerrar"
+}
