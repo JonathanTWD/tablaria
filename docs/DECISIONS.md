@@ -20,6 +20,29 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 - **Decisión**: usar la utilidad estándar de shadcn (`clsx` + `tailwind-merge`) en `src/lib/utils.ts`.
 - **Consecuencias**: los componentes de shadcn se comportan como espera su documentación.
 
+## ADR-004: Docker Compose solo para servicios en desarrollo
+
+- **Contexto**: el prompt del MVP proponía front y back con hot reload dentro de Docker. En Windows, los bind mounts son lentos para el watch mode y los `node_modules` nativos chocan entre host y contenedor.
+- **Decisión**: `docker-compose.yml` levanta solo PostgreSQL 16 y Mailpit; las apps corren en el host con `pnpm dev`. Postgres se expone en el puerto **5433** para no chocar con instalaciones locales. Los Dockerfiles multi-stage y el compose de producción llegan en la fase 6.
+- **Consecuencias**: arranque y recarga rápidos. Hay que tener Node y pnpm instalados en el host.
+
+## ADR-005: Prisma 7 con driver adapter y cliente generado en `src/`
+
+- **Contexto**: Prisma 7 elimina el motor binario y requiere un driver adapter; el generador `prisma-client` escribe el cliente como código TypeScript del proyecto.
+- **Decisión**: `@prisma/adapter-pg`, generador `prisma-client` con `moduleFormat = "cjs"` en `src/generated/prisma` (ignorado por Git y regenerado en `postinstall` y `build`). La URL de la base de datos se define en `prisma.config.ts`. Versiones fijadas sin `^` porque el cliente, el adapter y el CLI deben coincidir.
+- **Consecuencias**: el cliente carga su compilador de consultas WASM con `import()` dinámico, así que todos los tests de Jest se ejecutan con `--experimental-vm-modules`. `prisma.config.ts` lee `DATABASE_URL` sin el helper `env()` para que `prisma generate` funcione sin base de datos (CI, builds de Docker). Un test unitario comprueba que el enum `ColumnType` de Prisma coincide con `COLUMN_TYPES` de `shared`.
+
+## ADR-006: Formato único de error y filtro global
+
+- **Contexto**: AGENTS.md exige errores consistentes y no exponer stack traces ni errores SQL.
+- **Decisión**: un `AllExceptionsFilter` global convierte todo a `ApiErrorBody` (`statusCode`, `error`, `message`, `details?`), tipo definido en `@wisedata/shared`. Los errores de Prisma P2002 pasan a 409 y P2025 a 404; cualquier otro error pasa a un 500 genérico y se registra en el log.
+- **Consecuencias**: el frontend puede tratar todos los errores con un único tipo. Los errores de validación del `ZodValidationPipe` llegan como 400 con `details` por campo.
+
+## ADR-007: Configuración validada con zod y seguridad HTTP base
+
+- **Decisión**: `@nestjs/config` (línea 4.x, CommonJS, compatible con Nest 11; la 12 es solo ESM y está pensada para Nest 12) con `validate` basado en un esquema zod. La app no arranca si falta o es inválida alguna variable. `helmet`, CORS con lista blanca (`CORS_ORIGINS`) y `credentials: true`, prefijo global `/api` y `@nestjs/throttler` global (100 peticiones/min; los límites estrictos de auth llegan en la fase 2). `/api/health` comprueba la base de datos y no está sujeto a throttling. `TRUST_PROXY_HOPS` configura `trust proxy` de Express para que el rate limiter use la IP real del cliente detrás del rewrite de producción; en local es 0.
+- **Consecuencias**: la configuración HTTP vive en `configureApp()` (`src/app.setup.ts`) y la comparten `main.ts` y los tests e2e.
+
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
 Todas están especificadas en [MVP_PROMPT.md](MVP_PROMPT.md):
