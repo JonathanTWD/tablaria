@@ -1,0 +1,15 @@
+{
+  "name": "wise-data",
+  "private": true,
+  "packageManager": "pnpm@10.28.1",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "build": "pnpm --filter @wisedata/shared build && pnpm --filter wise-data-backend --filter wise-data-frontend build",
+    "dev": "pnpm --filter @wisedata/shared build && pnpm --parallel --filter wise-data-backend --filter wise-data-frontend --filter @wisedata/shared dev",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test"
+  }
+}
