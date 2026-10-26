@@ -99,9 +99,10 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
   - Sin `next-themes`.
   - Paleta: tinta marina, papel frío e índigo de marca, verificada para WCAG AA (bordes de inputs a 3:1).
 - **Diseño**:
-  - App limpia tipo SaaS.
-  - El elemento distintivo es `InventoryPreview`, una tabla de inventario real y accesible que aparece en la landing y en el panel de auth.
-  - La landing conserva Lightfall, que respeta `prefers-reduced-motion`.
+  - App limpia tipo SaaS. El panel de auth muestra `InventoryPreview`, una tabla de inventario estática y accesible.
+  - **Landing (rediseño)**: el protagonista es el producto. El hero incluye `DemoInventoryTable`, una tabla de inventario que funciona sin cuenta (TanStack Table en cliente: búsqueda, filtro por categoría, orden y edición del stock, con teclado y anuncios accesibles).
+  - La misma tabla se reutiliza en "Casos de uso" con cuatro inventarios definidos en `landing.json`, cada uno con columnas de tipos distintos. Será la base de la tabla real de la fase 5.
+  - Se eliminó Lightfall (`ogl`): era un efecto genérico que no decía nada del producto. La landing usa la paleta de la app, con modo oscuro y una cuadrícula de hoja de cálculo muy tenue como único recurso decorativo.
 - **Logout**: lleva a `/login`. Navegar a la landing antes de vaciar la sesión no es fiable, porque React Router aplica la navegación como transición y el guard redirige antes.
 
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
