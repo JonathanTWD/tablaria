@@ -52,8 +52,21 @@ export class AuthService {
     const passwordHash = await this.passwords.hash(password);
     const existing = await this.users.findByEmail(email);
 
+    if (existing?.emailVerifiedAt) {
+      await this.mailer.send({
+        to: existing.email,
+        ...accountExistsEmail(`${this.appUrl}/login`),
+      });
+      return;
+    }
+
     if (existing) {
-      await this.notifyExistingAccount(existing);
+      // An unverified account proves nothing about who registered it. The latest
+      // registrant's password wins and older sessions end, so whoever controls the
+      // mailbox (and clicks the link) owns the password, preventing pre-hijacking.
+      await this.users.updatePassword(existing.id, passwordHash);
+      await this.sessions.endAllForUser(existing.id);
+      await this.sendVerificationEmail(existing);
       return;
     }
 
@@ -153,17 +166,6 @@ export class AuthService {
     }
     // A new password must log out every existing session.
     await this.sessions.endAllForUser(userId);
-  }
-
-  private async notifyExistingAccount(user: User): Promise<void> {
-    if (!user.emailVerifiedAt) {
-      await this.sendVerificationEmail(user);
-      return;
-    }
-    await this.mailer.send({
-      to: user.email,
-      ...accountExistsEmail(`${this.appUrl}/login`),
-    });
   }
 
   private async sendVerificationEmail(user: User): Promise<void> {

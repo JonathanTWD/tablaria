@@ -108,6 +108,26 @@ describe('Auth (e2e)', () => {
       await login(client, email).expect(200);
     });
 
+    it('prevents pre-hijacking: the last registrant of an unverified email sets the password', async () => {
+      const email = uniqueEmail();
+      const attacker = createClient(app);
+      await attacker
+        .post('/api/auth/register')
+        .send({ email, password: 'attacker password' })
+        .expect(202);
+
+      const victim = createClient(app);
+      await victim
+        .post('/api/auth/register')
+        .send({ email, password: PASSWORD })
+        .expect(202);
+      const token = extractToken(await latestEmail(email));
+      await victim.post('/api/auth/verify-email').send({ token }).expect(200);
+
+      await login(attacker, email, 'attacker password').expect(401);
+      await login(victim, email).expect(200);
+    });
+
     it('rejects reused, unknown and malformed verification tokens', async () => {
       const client = createClient(app);
       const email = uniqueEmail();
