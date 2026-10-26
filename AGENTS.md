@@ -480,6 +480,14 @@ Tests should verify behavior rather than implementation details.
 - `main` is reserved for deployments. It is only updated by merging `develop` into `main` when a release is explicitly requested.
 - Never commit directly to `main` or open feature pull requests against it.
 
+## Reviews Before Opening a Pull Request
+
+- Every pull request: run `/code-review` and fix confirmed findings.
+- Pull requests touching the backend, authentication, authorization or data access: also run `/security-review`.
+- Pull requests adding or changing UI: also run an accessibility check (WCAG 2.2) on the affected components.
+- Before merging `develop` into `main`: run a full security audit (OWASP Top 10) of the project.
+- Mention in the pull request description which reviews were run and what was fixed.
+
 ## Commits
 
 Use small, focused commits.
