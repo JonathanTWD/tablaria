@@ -104,11 +104,11 @@ export function DemoInventoryTable({ dataset, className }: DemoInventoryTablePro
   return (
     <div
       className={cn(
-        "@container overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-[0_1px_0_rgb(21_22_58/0.04),0_24px_48px_-24px_rgb(21_22_58/0.25)]",
+        "@container flex flex-col overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-[0_1px_0_rgb(21_22_58/0.04),0_24px_48px_-24px_rgb(21_22_58/0.25)]",
         className,
       )}
     >
-      <div className="flex flex-col gap-3 border-b border-border px-4 py-3 @2xl:flex-row @2xl:items-center">
+      <div className="flex shrink-0 flex-col gap-3 border-b border-border px-4 py-3 @2xl:flex-row @2xl:items-center">
         <p className="flex items-center gap-2 font-semibold tracking-tight">
           <Table2 aria-hidden="true" className="size-4 text-primary" />
           {dataset.name}
@@ -136,7 +136,7 @@ export function DemoInventoryTable({ dataset, className }: DemoInventoryTablePro
         <div
           role="group"
           aria-label={t("demo.filterBy", { column: filterColumn.label })}
-          className="flex gap-1.5 overflow-x-auto border-b border-border px-4 py-2.5"
+          className="flex shrink-0 gap-1.5 overflow-x-auto border-b border-border px-4 py-2.5"
         >
           {[null, ...filterOptions].map((option) => {
             const pressed = (activeFilter ?? null) === option;
@@ -160,11 +160,12 @@ export function DemoInventoryTable({ dataset, className }: DemoInventoryTablePro
         </div>
       )}
 
-      <div className="overflow-x-auto">
+      {/* Scrolls on its own when the card is height-constrained (auth panel). */}
+      <div className="min-h-0 flex-1 overflow-auto">
       <table className="w-full border-collapse text-sm">
         <caption className="sr-only">{t("demo.label", { name: dataset.name })}</caption>
-        <thead>
-          <tr className="border-b border-border bg-muted/50 text-left">
+        <thead className="sticky top-0 z-10">
+          <tr className="border-b border-border bg-muted text-left">
             {table.getHeaderGroups()[0].headers.map((header) => {
               const column = dataset.columns.find((item) => item.id === header.column.id);
               const type = column ? columnType(column) : "text";
@@ -266,7 +267,7 @@ export function DemoInventoryTable({ dataset, className }: DemoInventoryTablePro
         </p>
       )}
 
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border bg-muted/40 px-4 py-2.5 text-xs text-muted-foreground">
+      <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 border-t border-border bg-muted/40 px-4 py-2.5 text-xs text-muted-foreground">
         <p aria-live="polite" className="tabular-nums">
           {t("demo.results", { count: visibleRows.length, total: rows.length })}
         </p>
