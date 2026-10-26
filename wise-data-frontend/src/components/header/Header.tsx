@@ -1,4 +1,5 @@
 import { Atom } from "lucide-react";
+import { Link } from "react-router";
 
 const Header = () => {
   return (
@@ -7,14 +8,14 @@ const Header = () => {
         aria-label="Main navigation"
         className="mx-auto flex h-14 max-w-7xl items-center justify-between rounded-2xl border border-white/15 bg-[#10106d]/40 px-4 shadow-lg shadow-black/20 backdrop-blur-md sm:h-[60px] sm:px-5"
       >
-        <a
-          href="/"
+        <Link
+          to="/"
           aria-label="WiseData home"
           className="flex items-center gap-2 text-lg font-medium tracking-tight text-white transition-opacity hover:opacity-80"
         >
           <Atom aria-hidden="true" className="size-7 stroke-[1.8]" />
           <span>WiseData</span>
-        </a>
+        </Link>
 
         <div className="flex items-center gap-3 text-xs font-medium text-white/60 sm:gap-8 sm:text-sm">
           <a className="transition-colors hover:text-white" href="#features">
