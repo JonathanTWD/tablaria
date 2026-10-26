@@ -1,7 +1,6 @@
 import { LogOut } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useLogout, useSession } from "@/features/auth/session";
@@ -43,7 +42,6 @@ export default function SettingsPage() {
   const { data: user } = useSession();
   const { theme, setTheme } = useTheme();
   const logout = useLogout();
-  const navigate = useNavigate();
 
   if (!user) {
     return null;
@@ -109,10 +107,7 @@ export default function SettingsPage() {
           className="h-10 px-4"
           disabled={logout.isPending}
           onClick={() =>
-            logout.mutate(undefined, {
-              onSuccess: () => navigate("/", { replace: true }),
-              onError: () => toast.error(t("logoutError")),
-            })
+            logout.mutate(undefined, { onError: () => toast.error(t("logoutError")) })
           }
         >
           <LogOut aria-hidden="true" />

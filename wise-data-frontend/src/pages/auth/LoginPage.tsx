@@ -18,7 +18,7 @@ import { SubmitButton } from "@/features/auth/components/SubmitButton";
 import { emailErrorMessage, passwordErrorMessage } from "@/features/auth/field-errors";
 import { useStartSession } from "@/features/auth/session";
 import { ApiError } from "@/lib/api-client";
-import { genericErrorMessage } from "@/lib/error-message";
+import { apiErrorMessage, genericErrorMessage } from "@/lib/error-message";
 
 type LoginForm = z.input<typeof loginSchema>;
 
@@ -38,7 +38,7 @@ export default function LoginPage() {
   const resend = useMutation({
     mutationFn: authApi.resendVerification,
     onSuccess: () => toast.success(t("resend.sent")),
-    onError: (error) => toast.error(genericErrorMessage(error) ?? t("resend.sent")),
+    onError: (error) => toast.error(apiErrorMessage(error)),
   });
 
   const notVerified = login.error instanceof ApiError && login.error.status === 403;

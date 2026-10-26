@@ -3,7 +3,7 @@ import { MailCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { genericErrorMessage } from "@/lib/error-message";
+import { apiErrorMessage } from "@/lib/error-message";
 import { authApi } from "../api";
 import { AuthHeading } from "./AuthHeading";
 
@@ -13,7 +13,7 @@ export function CheckEmail({ email, onUseAnother }: { email: string; onUseAnothe
   const resend = useMutation({
     mutationFn: authApi.resendVerification,
     onSuccess: () => toast.success(t("resend.sent")),
-    onError: (error) => toast.error(genericErrorMessage(error) ?? t("resend.sent")),
+    onError: (error) => toast.error(apiErrorMessage(error)),
   });
 
   return (

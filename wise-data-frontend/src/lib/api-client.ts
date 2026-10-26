@@ -7,12 +7,15 @@ const API_BASE = "/api";
 export class ApiError extends Error {
   readonly status: number;
   readonly body: ApiErrorBody | null;
+  /** True when a protected request stayed 401 after trying to refresh: the session is gone. */
+  readonly sessionExpired: boolean;
 
-  constructor(status: number, body: ApiErrorBody | null) {
+  constructor(status: number, body: ApiErrorBody | null, sessionExpired = false) {
     super(body?.message ?? `Request failed with status ${status}`);
     this.name = "ApiError";
     this.status = status;
     this.body = body;
+    this.sessionExpired = sessionExpired;
   }
 }
 
@@ -67,7 +70,8 @@ export async function apiRequest<T>(
   }
 
   if (!response.ok) {
-    throw new ApiError(response.status, await readErrorBody(response));
+    const sessionExpired = response.status === 401 && !skipRefresh;
+    throw new ApiError(response.status, await readErrorBody(response), sessionExpired);
   }
   if (response.status === 204) {
     return undefined as T;

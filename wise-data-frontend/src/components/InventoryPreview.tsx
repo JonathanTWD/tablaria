@@ -28,7 +28,7 @@ const COLUMNS: {
  */
 export function InventoryPreview({ className }: { className?: string }) {
   const { t, i18n } = useTranslation();
-  const rows = t("preview.rows", { returnObjects: true }) as PreviewRow[];
+  const rows: readonly PreviewRow[] = t("preview.rows", { returnObjects: true });
   const price = new Intl.NumberFormat(i18n.language, {
     style: "currency",
     currency: t("preview.currency"),

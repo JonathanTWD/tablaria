@@ -23,10 +23,7 @@ export function UserMenu() {
   }
 
   const signOut = () =>
-    logout.mutate(undefined, {
-      onSuccess: () => navigate("/", { replace: true }),
-      onError: () => toast.error(t("logoutError")),
-    });
+    logout.mutate(undefined, { onError: () => toast.error(t("logoutError")) });
 
   return (
     <DropdownMenu>

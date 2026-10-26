@@ -1,4 +1,5 @@
 import {
+  type QueryClient,
   queryOptions,
   useMutation,
   useQuery,
@@ -31,20 +32,39 @@ export function useSession() {
   return useQuery(sessionQuery);
 }
 
+/**
+ * Drops every cached resource except the session itself. `queryClient.clear()`
+ * would also drop the session query, detaching the guards that observe it.
+ */
+function removeUserData(queryClient: QueryClient) {
+  queryClient.removeQueries({
+    predicate: (query) => query.queryKey[0] !== sessionQueryKey[0],
+  });
+}
+
 /** Stores the user returned by login/verification so guards see the new session at once. */
 export function useStartSession() {
   const queryClient = useQueryClient();
-  return (user: AuthUser) => queryClient.setQueryData(sessionQueryKey, user);
+  return (user: AuthUser) => {
+    // Another account's cached data must never be shown to this user.
+    if (queryClient.getQueryData(sessionQuery.queryKey)?.id !== user.id) {
+      removeUserData(queryClient);
+    }
+    queryClient.setQueryData(sessionQuery.queryKey, user);
+  };
 }
 
-export function useLogout() {
+/** Forgets the session and every cached resource that belonged to it. */
+export function useEndSession() {
   const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: authApi.logout,
-    onSuccess: () => {
-      // Drop every cached resource of the previous user, then mark the session as empty.
-      queryClient.clear();
-      queryClient.setQueryData(sessionQueryKey, null);
-    },
-  });
+  return () => {
+    removeUserData(queryClient);
+    queryClient.setQueryData(sessionQuery.queryKey, null);
+  };
+}
+
+/** On success the session becomes empty and RequireAuth sends the user to /login. */
+export function useLogout() {
+  const endSession = useEndSession();
+  return useMutation({ mutationFn: authApi.logout, onSuccess: endSession });
 }

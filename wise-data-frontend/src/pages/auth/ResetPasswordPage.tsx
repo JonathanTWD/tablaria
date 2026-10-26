@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { resetPasswordSchema } from "@wisedata/shared";
 import { CircleCheck } from "lucide-react";
 import { useForm } from "react-hook-form";
@@ -16,7 +16,7 @@ import { FormField } from "@/features/auth/components/FormField";
 import { PasswordInput } from "@/features/auth/components/PasswordInput";
 import { SubmitButton } from "@/features/auth/components/SubmitButton";
 import { passwordErrorMessage } from "@/features/auth/field-errors";
-import { sessionQueryKey } from "@/features/auth/session";
+import { useEndSession } from "@/features/auth/session";
 import { ApiError } from "@/lib/api-client";
 import { apiErrorMessage } from "@/lib/error-message";
 import { cn } from "@/lib/utils";
@@ -27,7 +27,7 @@ type PasswordForm = z.input<typeof passwordOnlySchema>;
 export default function ResetPasswordPage() {
   const { t } = useTranslation("auth");
   const token = useSearchParams()[0].get("token");
-  const queryClient = useQueryClient();
+  const endSession = useEndSession();
   const form = useForm<PasswordForm, unknown, z.output<typeof passwordOnlySchema>>({
     resolver: zodResolver(passwordOnlySchema),
     mode: "onTouched",
@@ -37,7 +37,7 @@ export default function ResetPasswordPage() {
   const reset = useMutation({
     mutationFn: authApi.resetPassword,
     // The API ended every session, including this browser's if it had one.
-    onSuccess: () => queryClient.setQueryData(sessionQueryKey, null),
+    onSuccess: endSession,
   });
 
   const linkInvalid = !token || (reset.error instanceof ApiError && reset.error.status === 400);

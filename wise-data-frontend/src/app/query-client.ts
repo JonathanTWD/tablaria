@@ -2,9 +2,12 @@ import { MutationCache, QueryCache, QueryClient } from "@tanstack/react-query";
 import { sessionQueryKey } from "@/features/auth/session";
 import { ApiError } from "@/lib/api-client";
 
-/** A 401 that survived the automatic refresh means the session is gone. */
+/**
+ * A protected request that is still 401 after the automatic refresh means the
+ * session is gone. Public auth calls (e.g. a wrong password) are not affected.
+ */
 function endSessionOnUnauthorized(error: Error) {
-  if (error instanceof ApiError && error.status === 401) {
+  if (error instanceof ApiError && error.sessionExpired) {
     queryClient.setQueryData(sessionQueryKey, null);
   }
 }
