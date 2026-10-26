@@ -18,7 +18,7 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 
 - **Contexto**: se usaba el paquete npm `cn`, que no resuelve conflictos entre clases de Tailwind.
 - **Decisión**: usar la utilidad estándar de shadcn (`clsx` + `tailwind-merge`) en `src/lib/utils.ts`.
-- **Consecuencias**: los componentes de shadcn se comportan como espera su documentación.
+- **Consecuencias**: los componentes de shadcn se comportan como espera su documentación. El registro `base-nova` vuelve a importar `cn` desde el paquete `cn` (y a añadir `next-themes`) en cada `shadcn add`: después de añadir componentes hay que cambiar el import a `@/lib/utils` y quitar esas dependencias.
 
 ## ADR-004: Docker Compose solo para servicios en desarrollo
 
@@ -75,6 +75,34 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
   - **Ejecución en serie**: los tests corren en un solo worker.
   - **Rate limiting**: cada cliente de test usa su propia IP vía `X-Forwarded-For` (`TRUST_PROXY_HOPS=1`), así los límites no se mezclan entre tests y se prueba la configuración de proxy.
 - **Consecuencias**: ejecutar los e2e nunca toca los datos de desarrollo.
+
+## ADR-010: Arquitectura del frontend
+
+- **Rutas**:
+  - React Router en modo declarativo, con páginas cargadas en diferido (la landing con WebGL no entra en el bundle de la app).
+  - Layouts anidados (`AuthLayout` y `AppLayout`) y guards `RequireAuth` / `GuestOnly`, que son solo UX: la API autoriza.
+  - La redirección tras el login solo acepta rutas internas (`safeRedirect`).
+- **Estado del servidor**:
+  - TanStack Query. La sesión es la query `["auth", "session"]` (usuario o `null`).
+  - Al cambiar o cerrar la sesión se eliminan las demás queries, sin borrar la de sesión, a la que siguen suscritos los guards.
+  - Un 401 que sobrevive al refresh automático marca la sesión como cerrada.
+- **Cliente API**:
+  - Siempre rutas relativas `/api`.
+  - Ante un 401 hace un único refresh compartido por todas las peticiones concurrentes, y trata el 409 ("otra pestaña ya renovó") como éxito.
+  - Los endpoints públicos de auth no disparan el refresh (`skipRefresh`).
+- **Formularios**:
+  - react-hook-form con los esquemas zod de `@wisedata/shared` y validación al salir del campo (`onTouched`).
+  - Mensajes propios por campo en español; zod usa su locale `es` como respaldo.
+- **i18n**: react-i18next con un JSON por namespace (`common`, `landing`, `auth`, `app`) y claves tipadas. Para añadir inglés basta con una carpeta `en` con los mismos archivos.
+- **Tema**:
+  - `ThemeProvider` propio (claro, oscuro o sistema) guardado en `localStorage`, con un script inline en `index.html` que evita el parpadeo.
+  - Sin `next-themes`.
+  - Paleta: tinta marina, papel frío e índigo de marca, verificada para WCAG AA (bordes de inputs a 3:1).
+- **Diseño**:
+  - App limpia tipo SaaS.
+  - El elemento distintivo es `InventoryPreview`, una tabla de inventario real y accesible que aparece en la landing y en el panel de auth.
+  - La landing conserva Lightfall, que respeta `prefers-reduced-motion`.
+- **Logout**: lleva a `/login`. Navegar a la landing antes de vaciar la sesión no es fiable, porque React Router aplica la navegación como transición y el guard redirige antes.
 
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 

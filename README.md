@@ -43,6 +43,19 @@ pnpm dev
 
 El frontend llama siempre a rutas relativas `/api/...`; en desarrollo Vite las redirige al backend (`API_PROXY_TARGET`, ver `wise-data-frontend/.env.example`).
 
+### Frontend
+
+| Ruta | Pantalla |
+|---|---|
+| `/` | Landing |
+| `/login`, `/register`, `/forgot-password` | Acceso (redirigen a `/app` si ya hay sesión) |
+| `/verify-email?token=…` | Confirmar la cuenta: se elige la contraseña y se entra |
+| `/reset-password?token=…` | Elegir una contraseña nueva |
+| `/app`, `/app/settings` | Área privada: inicio y ajustes |
+
+- **Textos:** en `wise-data-frontend/src/i18n/locales/es/*.json`; ningún texto de interfaz va escrito directamente en los componentes.
+- **Tema:** claro, oscuro o el del sistema, elegible en Ajustes o desde el botón de tema.
+
 ### Base de datos
 
 | Comando | Descripción |
