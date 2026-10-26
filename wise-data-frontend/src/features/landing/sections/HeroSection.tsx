@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
+import { GridBackdrop } from "@/components/GridBackdrop";
 import { buttonVariants } from "@/components/ui/button-variants";
 import { cn } from "@/lib/utils";
 import { DemoInventoryTable } from "../DemoInventoryTable";
@@ -11,11 +12,7 @@ export function HeroSection() {
 
   return (
     <section aria-labelledby="hero-title" className="relative isolate overflow-hidden">
-      {/* Faint spreadsheet grid: the product's own material, fading out below the copy. */}
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 -z-10 bg-[linear-gradient(to_right,var(--border)_1px,transparent_1px),linear-gradient(to_bottom,var(--border)_1px,transparent_1px)] bg-[size:3.5rem_2.25rem] [mask-image:radial-gradient(ellipse_70%_60%_at_30%_0%,black,transparent_75%)]"
-      />
+      <GridBackdrop />
 
       <div className="mx-auto grid max-w-7xl gap-14 px-4 pt-14 pb-20 sm:px-6 sm:pt-20 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-center lg:gap-12 lg:pt-16 lg:pb-24">
         <div className="max-w-2xl">

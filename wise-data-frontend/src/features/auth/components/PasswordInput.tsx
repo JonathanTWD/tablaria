@@ -13,14 +13,14 @@ export function PasswordInput({ className, ...props }: ComponentProps<"input">) 
       <Input
         {...props}
         type={visible ? "text" : "password"}
-        className={cn("h-10 pr-11", className)}
+        className={cn("h-11 pr-11", className)}
       />
       <button
         type="button"
         onClick={() => setVisible((current) => !current)}
         aria-label={visible ? t("fields.hidePassword") : t("fields.showPassword")}
         aria-pressed={visible}
-        className="absolute inset-y-0 right-0 flex w-10 items-center justify-center rounded-r-lg text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+        className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-lg text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
       >
         {visible ? (
           <EyeOff aria-hidden="true" className="size-4" />
