@@ -1,0 +1,49 @@
+{
+  "nav": {
+    "label": "Navegación principal",
+    "features": "Funciones",
+    "about": "Sobre WiseData",
+    "login": "Iniciar sesión",
+    "signup": "Crear cuenta",
+    "openApp": "Ir a mi cuenta"
+  },
+  "hero": {
+    "titleLine1": "Todo tu inventario.",
+    "titleLine2": "Una forma más sencilla de gestionarlo.",
+    "description": "Organiza tus productos, controla tus datos y toma mejores decisiones desde un solo lugar.",
+    "primary": "Crear cuenta",
+    "secondary": "Ver funciones"
+  },
+  "features": {
+    "title": "Una tabla para cada cosa que gestionas",
+    "description": "Diseña tus tablas como en una hoja de cálculo, pero con datos que se mantienen ordenados.",
+    "items": {
+      "tables": {
+        "title": "Tablas a tu medida",
+        "description": "Crea una tabla por almacén, proveedor o lo que necesites, y añade las columnas que encajen con tu negocio."
+      },
+      "types": {
+        "title": "Columnas con tipo",
+        "description": "Texto, números, fechas, casillas, listas de opciones y precios. Cada celda acepta solo lo que le corresponde."
+      },
+      "search": {
+        "title": "Encuentra cualquier dato",
+        "description": "Busca, filtra y ordena miles de registros sin perder tiempo desplazándote."
+      },
+      "editing": {
+        "title": "Edita sin salir de la tabla",
+        "description": "Cambia un valor directamente en la celda o abre el registro completo cuando necesites más detalle."
+      }
+    }
+  },
+  "about": {
+    "title": "Pensado para inventarios reales",
+    "body": "WiseData nace para tiendas, talleres y almacenes que se han quedado pequeños con la hoja de cálculo pero no necesitan un ERP. Tus datos son solo tuyos: cada cuenta ve únicamente sus propias tablas."
+  },
+  "cta": {
+    "title": "Empieza a ordenar tu inventario hoy",
+    "description": "Crear una cuenta lleva menos de un minuto.",
+    "action": "Crear cuenta"
+  },
+  "footer": "© {{year}} WiseData"
+}
