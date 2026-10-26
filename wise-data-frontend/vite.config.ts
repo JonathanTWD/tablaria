@@ -30,6 +30,7 @@ export default defineConfig(({ mode }) => {
         "/api": {
           target: API_PROXY_TARGET,
           changeOrigin: true,
+          xfwd: true,
         },
       },
     },

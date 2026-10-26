@@ -30,7 +30,7 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 
 - **Contexto**: Prisma 7 elimina el motor binario y requiere un driver adapter; el generador `prisma-client` escribe el cliente como código TypeScript del proyecto.
 - **Decisión**: `@prisma/adapter-pg`, generador `prisma-client` con `moduleFormat = "cjs"` en `src/generated/prisma` (ignorado por Git y regenerado en `postinstall` y `build`). La URL de la base de datos se define en `prisma.config.ts`. Versiones fijadas sin `^` porque el cliente, el adapter y el CLI deben coincidir.
-- **Consecuencias**: el cliente carga su compilador de consultas WASM con `import()` dinámico, así que los tests e2e de Jest se ejecutan con `--experimental-vm-modules`.
+- **Consecuencias**: el cliente carga su compilador de consultas WASM con `import()` dinámico, así que todos los tests de Jest se ejecutan con `--experimental-vm-modules`. `prisma.config.ts` lee `DATABASE_URL` sin el helper `env()` para que `prisma generate` funcione sin base de datos (CI, builds de Docker). Un test unitario comprueba que el enum `ColumnType` de Prisma coincide con `COLUMN_TYPES` de `shared`.
 
 ## ADR-006: Formato único de error y filtro global
 
@@ -40,7 +40,7 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 
 ## ADR-007: Configuración validada con zod y seguridad HTTP base
 
-- **Decisión**: `@nestjs/config` (línea 4.x, CommonJS, compatible con Nest 11; la 12 es solo ESM y está pensada para Nest 12) con `validate` basado en un esquema zod. La app no arranca si falta o es inválida alguna variable. `helmet`, CORS con lista blanca (`CORS_ORIGINS`) y `credentials: true`, prefijo global `/api` y `@nestjs/throttler` global (100 peticiones/min; los límites estrictos de auth llegan en la fase 2). `/api/health` comprueba la base de datos y no está sujeto a throttling.
+- **Decisión**: `@nestjs/config` (línea 4.x, CommonJS, compatible con Nest 11; la 12 es solo ESM y está pensada para Nest 12) con `validate` basado en un esquema zod. La app no arranca si falta o es inválida alguna variable. `helmet`, CORS con lista blanca (`CORS_ORIGINS`) y `credentials: true`, prefijo global `/api` y `@nestjs/throttler` global (100 peticiones/min; los límites estrictos de auth llegan en la fase 2). `/api/health` comprueba la base de datos y no está sujeto a throttling. `TRUST_PROXY_HOPS` configura `trust proxy` de Express para que el rate limiter use la IP real del cliente detrás del rewrite de producción; en local es 0.
 - **Consecuencias**: la configuración HTTP vive en `configureApp()` (`src/app.setup.ts`) y la comparten `main.ts` y los tests e2e.
 
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
