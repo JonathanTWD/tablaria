@@ -15,10 +15,19 @@ La especificación completa del MVP está en [MVP_PROMPT.md](MVP_PROMPT.md).
 ## Después del MVP
 
 - **Despliegue (fase 7)**: candidato gratuito con frontend en Render Static Site (rewrite `/api/*` hacia el backend), backend en Render Web Service, PostgreSQL en Neon y email con la API de Resend.
+### Colaboración (en este orden)
+
+1. **Tablas compartidas**: invitaciones, roles por tabla (lectura/edición) y ownership ampliado en el backend.
+2. **Tiempo real básico**: gateway WebSocket que emite eventos de registro creado/editado/borrado por tabla; el frontend invalida o actualiza la caché de TanStack Query. Política "último en guardar gana".
+3. **Presencia**: quién está viendo la tabla y qué celda está editando cada usuario.
+4. **Bloqueo o resolución de conflictos por celda**, solo si se demuestra necesario.
+
+> Preparación durante el MVP: todas las escrituras de registros pasan por un único servicio del backend, para que emitir eventos más adelante sea un único punto de enganche.
+
+### Otras
+
 - Import/export CSV.
 - Más tipos de columna.
 - Historial de actividad.
-- Colaboración en tiempo real y presencia.
-- Permisos avanzados y tablas compartidas.
 - Notificaciones.
 - Gestión de inventario asistida por IA.
