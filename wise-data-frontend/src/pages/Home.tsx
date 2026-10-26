@@ -1,24 +1,25 @@
-import Header from "@/components/header/Header";
-import Hero from "@/components/home/Hero";
-import {
-  AboutSection,
-  CallToAction,
-  FeaturesSection,
-  Footer,
-} from "@/components/home/LandingSections";
+import { Comparison } from "@/features/landing/sections/Comparison";
+import { Faq } from "@/features/landing/sections/Faq";
+import { FinalCta, SiteFooter } from "@/features/landing/sections/FinalCta";
+import { HeroSection } from "@/features/landing/sections/HeroSection";
+import { HowItWorks } from "@/features/landing/sections/HowItWorks";
+import { SiteHeader } from "@/features/landing/sections/SiteHeader";
+import { UseCases } from "@/features/landing/sections/UseCases";
 
 const Home = () => {
   return (
-    <div className="relative isolate min-h-dvh overflow-hidden bg-brand-navy text-brand-navy-foreground">
+    <div className="min-h-dvh bg-background text-foreground">
       <title>WiseData | Tu inventario en tablas hechas a tu medida</title>
-      <Header />
+      <SiteHeader />
       <main>
-        <Hero />
-        <FeaturesSection />
-        <AboutSection />
-        <CallToAction />
+        <HeroSection />
+        <HowItWorks />
+        <Comparison />
+        <UseCases />
+        <Faq />
+        <FinalCta />
       </main>
-      <Footer />
+      <SiteFooter />
     </div>
   );
 };
