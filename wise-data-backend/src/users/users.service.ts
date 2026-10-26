@@ -19,17 +19,22 @@ export class UsersService {
     return this.prisma.user.create({ data: { email, passwordHash } });
   }
 
-  markEmailVerified(id: string): Promise<User> {
-    return this.prisma.user.update({
-      where: { id },
-      data: { emailVerifiedAt: new Date() },
-    });
-  }
-
-  updatePassword(id: string, passwordHash: string): Promise<User> {
-    return this.prisma.user.update({
-      where: { id },
-      data: { passwordHash },
+  /**
+   * Sets a password proven by an email link: marks the address as verified
+   * and ends every existing session, atomically.
+   */
+  setVerifiedPassword(id: string, passwordHash: string): Promise<User> {
+    return this.prisma.$transaction(async (tx) => {
+      const now = new Date();
+      await tx.refreshToken.updateMany({
+        where: { userId: id, revokedAt: null },
+        data: { revokedAt: now },
+      });
+      await tx.user.updateMany({
+        where: { id, emailVerifiedAt: null },
+        data: { emailVerifiedAt: now },
+      });
+      return tx.user.update({ where: { id }, data: { passwordHash } });
     });
   }
 }

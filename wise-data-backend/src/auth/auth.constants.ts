@@ -1,7 +1,8 @@
-import { API_PREFIX } from '../app.setup';
+import { API_PREFIX } from '../common/api-prefix';
 
 export const ACCESS_TOKEN_TTL_SECONDS = 15 * 60;
 export const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+export const REFRESH_REUSE_GRACE_MS = 30_000;
 
 export const ACCESS_COOKIE = 'wd_access';
 export const REFRESH_COOKIE = 'wd_refresh';

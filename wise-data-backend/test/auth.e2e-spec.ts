@@ -11,6 +11,9 @@ import {
   type TestClient,
   uniqueEmail,
 } from './helpers/app';
+import { REFRESH_REUSE_GRACE_MS } from '../src/auth/auth.constants';
+import { hashToken } from '../src/auth/secure-token';
+import { PrismaService } from '../src/database/prisma.service';
 import { extractToken, latestEmail, listEmails } from './helpers/mailpit';
 
 const PASSWORD = 'correct horse battery';
@@ -37,7 +40,10 @@ describe('Auth (e2e)', () => {
       .send({ email, password: PASSWORD })
       .expect(202);
     const token = extractToken(await latestEmail(email));
-    await client.post('/api/auth/verify-email').send({ token }).expect(200);
+    await client
+      .post('/api/auth/verify-email')
+      .send({ token, password: PASSWORD })
+      .expect(200);
   }
 
   function login(client: TestClient, email: string, password = PASSWORD) {
@@ -57,13 +63,12 @@ describe('Auth (e2e)', () => {
 
       const verificationEmail = await latestEmail(email);
       expect(verificationEmail.Subject).toBe('Confirma tu email en WiseData');
-      await client
+      // Verifying confirms the password and starts the session directly.
+      const verified = await client
         .post('/api/auth/verify-email')
-        .send({ token: extractToken(verificationEmail) })
+        .send({ token: extractToken(verificationEmail), password: PASSWORD })
         .expect(200);
-
-      const loggedIn = await login(client, email).expect(200);
-      const user = loggedIn.body as AuthUser;
+      const user = verified.body as AuthUser;
       expect(user).toEqual({
         id: expect.any(String) as string,
         email,
@@ -73,6 +78,8 @@ describe('Auth (e2e)', () => {
 
       const me = await client.get('/api/auth/me').expect(200);
       expect(me.body).toEqual(user);
+
+      await login(createClient(app), email).expect(200);
     });
 
     it('rejects login until the email is verified', async () => {
@@ -108,7 +115,7 @@ describe('Auth (e2e)', () => {
       await login(client, email).expect(200);
     });
 
-    it('prevents pre-hijacking: the last registrant of an unverified email sets the password', async () => {
+    it('prevents pre-hijacking when the attacker registers first', async () => {
       const email = uniqueEmail();
       const attacker = createClient(app);
       await attacker
@@ -122,7 +129,35 @@ describe('Auth (e2e)', () => {
         .send({ email, password: PASSWORD })
         .expect(202);
       const token = extractToken(await latestEmail(email));
-      await victim.post('/api/auth/verify-email').send({ token }).expect(200);
+      await victim
+        .post('/api/auth/verify-email')
+        .send({ token, password: PASSWORD })
+        .expect(200);
+
+      await login(attacker, email, 'attacker password').expect(401);
+      await login(victim, email).expect(200);
+    });
+
+    it('prevents pre-hijacking when the attacker registers after the victim', async () => {
+      const email = uniqueEmail();
+      const victim = createClient(app);
+      await victim
+        .post('/api/auth/register')
+        .send({ email, password: PASSWORD })
+        .expect(202);
+
+      const attacker = createClient(app);
+      await attacker
+        .post('/api/auth/register')
+        .send({ email, password: 'attacker password' })
+        .expect(202);
+
+      // The victim follows the newest link (the attacker's registration triggered it).
+      const token = extractToken(await latestEmail(email));
+      await victim
+        .post('/api/auth/verify-email')
+        .send({ token, password: PASSWORD })
+        .expect(200);
 
       await login(attacker, email, 'attacker password').expect(401);
       await login(victim, email).expect(200);
@@ -137,11 +172,17 @@ describe('Auth (e2e)', () => {
         .expect(202);
       const token = extractToken(await latestEmail(email));
 
-      await client.post('/api/auth/verify-email').send({ token }).expect(200);
-      await client.post('/api/auth/verify-email').send({ token }).expect(400);
       await client
         .post('/api/auth/verify-email')
-        .send({ token: 'not-a-real-token' })
+        .send({ token, password: PASSWORD })
+        .expect(200);
+      await client
+        .post('/api/auth/verify-email')
+        .send({ token, password: PASSWORD })
+        .expect(400);
+      await client
+        .post('/api/auth/verify-email')
+        .send({ token: 'not-a-real-token', password: PASSWORD })
         .expect(400);
       await client.post('/api/auth/verify-email').send({}).expect(400);
     });
@@ -165,11 +206,11 @@ describe('Auth (e2e)', () => {
 
       await client
         .post('/api/auth/verify-email')
-        .send({ token: firstToken })
+        .send({ token: firstToken, password: PASSWORD })
         .expect(400);
       await client
         .post('/api/auth/verify-email')
-        .send({ token: secondToken })
+        .send({ token: secondToken, password: PASSWORD })
         .expect(200);
     });
 
@@ -274,7 +315,18 @@ describe('Auth (e2e)', () => {
       expect(secondRefresh).not.toBe(firstRefresh);
       await client.get('/api/auth/me').expect(200);
 
-      // An attacker replays the first (already rotated) token.
+      // Replays right after rotation look like a parallel tab: no tokens, session kept.
+      const racing = await request(app.getHttpServer())
+        .post('/api/auth/refresh')
+        .set('Cookie', `wd_refresh=${firstRefresh}`)
+        .expect(409);
+      expect(setCookies(racing)).toEqual({});
+
+      // Later, an attacker replays the first (already rotated) token.
+      await app.get(PrismaService).refreshToken.updateMany({
+        where: { tokenHash: hashToken(firstRefresh) },
+        data: { revokedAt: new Date(Date.now() - REFRESH_REUSE_GRACE_MS) },
+      });
       await request(app.getHttpServer())
         .post('/api/auth/refresh')
         .set('Cookie', `wd_refresh=${firstRefresh}`)
@@ -300,6 +352,38 @@ describe('Auth (e2e)', () => {
 
       await client.get('/api/auth/me').expect(401);
       await client.post('/api/auth/refresh').expect(401);
+    });
+
+    it('keeps the session when two tabs refresh with the same token at once', async () => {
+      const client = createClient(app);
+      const email = uniqueEmail();
+      await registerAndVerify(client, email);
+      const refreshToken = cookieValue(
+        setCookies(await login(client, email)).wd_refresh,
+      );
+
+      const [first, second] = await Promise.all(
+        [0, 1].map(() =>
+          request(app.getHttpServer())
+            .post('/api/auth/refresh')
+            .set('Cookie', `wd_refresh=${refreshToken}`),
+        ),
+      );
+      const statuses = [first.status, second.status].sort();
+      expect(statuses).toEqual([200, 409]);
+
+      const loser = first.status === 409 ? first : second;
+      const winner = first.status === 200 ? first : second;
+      // The losing response must not wipe the cookies the winner just set.
+      expect(setCookies(loser)).toEqual({});
+
+      await request(app.getHttpServer())
+        .post('/api/auth/refresh')
+        .set(
+          'Cookie',
+          `wd_refresh=${cookieValue(setCookies(winner).wd_refresh)}`,
+        )
+        .expect(200);
     });
 
     it('refresh without a cookie is rejected', async () => {

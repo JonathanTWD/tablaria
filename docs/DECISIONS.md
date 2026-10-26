@@ -58,7 +58,13 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
   - Si el email ya existe, el dueño recibe un correo ("ya tienes una cuenta" o una nueva verificación).
   - El login con email desconocido verifica contra un hash ficticio para igualar tiempos.
   - "Email no verificado" (403) solo se revela tras una contraseña correcta.
-- **Contraseñas**: argon2id con los parámetros mínimos de OWASP (19 MiB, t=2, p=1) mediante `@node-rs/argon2`. El paquete `argon2` (node-gyp) provoca un segfault al cargarse en Windows con Node 22. Al resetear la contraseña se cierran todas las sesiones y se marca el email como verificado.
+- **Verificación de email**:
+  - `verify-email` recibe el token y la contraseña: quien controla el buzón fija la contraseña definitiva, así que una cuenta registrada antes por otra persona no se puede pre-secuestrar, sea cual sea el orden de los registros.
+  - Al verificar se inicia sesión directamente.
+  - Volver a registrar un email no verificado solo reenvía el enlace.
+- **Varias pestañas**: si un refresh token se rotó hace menos de 30 s, reutilizarlo devuelve 409 sin tokens nuevos y no revoca la familia: es otra pestaña que refrescó a la vez y el navegador ya tiene las cookies nuevas, que esa respuesta tampoco borra. La rotación marca al sucesor de forma atómica, lo que distingue este caso de un logout o reseteo.
+- **Correo**: los fallos de envío en `register`, `resend-verification` y `forgot-password` se registran en el log sin alterar la respuesta genérica; el usuario puede pedir el correo de nuevo.
+- **Contraseñas**: argon2id con los parámetros mínimos de OWASP (19 MiB, t=2, p=1) mediante `@node-rs/argon2`. El paquete `argon2` (node-gyp) provoca un segfault al cargarse en Windows con Node 22. Al resetear la contraseña se cierran todas las sesiones y se marca el email como verificado, en una sola transacción.
 - **Rate limiting**: 5 peticiones/min por IP en los endpoints que comprueban credenciales o envían correos, y 30/min en `refresh`.
 - **Versiones**: `@nestjs/jwt` 11 y `nodemailer` 9, porque las mayores siguientes solo se distribuyen como ESM.
 

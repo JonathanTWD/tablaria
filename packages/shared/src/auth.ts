@@ -32,8 +32,11 @@ export const emailOnlySchema = z.object({
   email: emailSchema,
 });
 
+// The password is (re)chosen when verifying: whoever controls the mailbox sets it,
+// so a password set by someone else who registered the address first never survives.
 export const verifyEmailSchema = z.object({
   token: tokenSchema,
+  password: passwordSchema,
 });
 
 export const resetPasswordSchema = z.object({

@@ -40,6 +40,7 @@ import {
 } from './auth.constants';
 import { AuthService } from './auth.service';
 import { CurrentUserId, Public } from './decorators';
+import { RefreshSupersededException } from './session.service';
 
 const CHECK_YOUR_EMAIL: MessageResponse = {
   message: 'If the address is valid, an email is on its way',
@@ -74,9 +75,11 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async verifyEmail(
     @Body(new ZodValidationPipe(verifyEmailSchema)) body: VerifyEmailInput,
-  ): Promise<MessageResponse> {
-    await this.auth.verifyEmail(body.token);
-    return { message: 'Email verified' };
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<AuthUser> {
+    const { user, tokens } = await this.auth.verifyEmail(body);
+    setSessionCookies(response, tokens, this.secureCookies);
+    return user;
   }
 
   @Public()
@@ -121,7 +124,10 @@ export class AuthController {
       setSessionCookies(response, tokens, this.secureCookies);
       return user;
     } catch (error) {
-      clearSessionCookies(response, this.secureCookies);
+      // A concurrent refresh already stored new cookies in this browser; keep them.
+      if (!(error instanceof RefreshSupersededException)) {
+        clearSessionCookies(response, this.secureCookies);
+      }
       throw error;
     }
   }

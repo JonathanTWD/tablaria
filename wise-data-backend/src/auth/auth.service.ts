@@ -1,6 +1,7 @@
 import {
   ForbiddenException,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -9,10 +10,11 @@ import type {
   LoginInput,
   RegisterInput,
   ResetPasswordInput,
+  VerifyEmailInput,
 } from '@wisedata/shared';
 import type { Env } from '../config/env.schema';
 import { EmailTokenType, Prisma, type User } from '../generated/prisma/client';
-import { Mailer } from '../mail/mailer';
+import { type MailMessage, Mailer } from '../mail/mailer';
 import { toAuthUser, UsersService } from '../users/users.service';
 import {
   accountExistsEmail,
@@ -30,6 +32,7 @@ export interface AuthenticatedSession {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
   private readonly appUrl: string;
 
   constructor(
@@ -53,19 +56,16 @@ export class AuthService {
     const existing = await this.users.findByEmail(email);
 
     if (existing?.emailVerifiedAt) {
-      await this.mailer.send({
+      await this.sendEmail({
         to: existing.email,
         ...accountExistsEmail(`${this.appUrl}/login`),
       });
       return;
     }
 
+    // An unverified account keeps its current password: the final one is chosen
+    // when the link is used (see verifyEmail), so it cannot be pre-hijacked.
     if (existing) {
-      // An unverified account proves nothing about who registered it. The latest
-      // registrant's password wins and older sessions end, so whoever controls the
-      // mailbox (and clicks the link) owns the password, preventing pre-hijacking.
-      await this.users.updatePassword(existing.id, passwordHash);
-      await this.sessions.endAllForUser(existing.id);
       await this.sendVerificationEmail(existing);
       return;
     }
@@ -83,12 +83,23 @@ export class AuthService {
     await this.sendVerificationEmail(user);
   }
 
-  async verifyEmail(token: string): Promise<void> {
+  /**
+   * Proves control of the mailbox, sets the password typed on the verification
+   * page and starts a session, so a password chosen by whoever registered the
+   * address first never survives verification.
+   */
+  async verifyEmail({
+    token,
+    password,
+  }: VerifyEmailInput): Promise<AuthenticatedSession> {
     const userId = await this.emailTokens.consume(
       token,
       EmailTokenType.VERIFY_EMAIL,
     );
-    await this.users.markEmailVerified(userId);
+    const passwordHash = await this.passwords.hash(password);
+    const user = await this.users.setVerifiedPassword(userId, passwordHash);
+    const tokens = await this.sessions.start(user.id);
+    return { user: toAuthUser(user), tokens };
   }
 
   async resendVerification(email: string): Promise<void> {
@@ -146,7 +157,7 @@ export class AuthService {
       user.id,
       EmailTokenType.RESET_PASSWORD,
     );
-    await this.mailer.send({
+    await this.sendEmail({
       to: user.email,
       ...passwordResetEmail(this.link('/reset-password', token)),
     });
@@ -158,14 +169,8 @@ export class AuthService {
       EmailTokenType.RESET_PASSWORD,
     );
     const passwordHash = await this.passwords.hash(password);
-    const user = await this.users.updatePassword(userId, passwordHash);
-
-    // Receiving the reset email proves ownership of the address.
-    if (!user.emailVerifiedAt) {
-      await this.users.markEmailVerified(userId);
-    }
-    // A new password must log out every existing session.
-    await this.sessions.endAllForUser(userId);
+    // Also verifies the address (the reset email proves ownership) and logs out every session.
+    await this.users.setVerifiedPassword(userId, passwordHash);
   }
 
   private async sendVerificationEmail(user: User): Promise<void> {
@@ -173,10 +178,26 @@ export class AuthService {
       user.id,
       EmailTokenType.VERIFY_EMAIL,
     );
-    await this.mailer.send({
+    await this.sendEmail({
       to: user.email,
       ...verificationEmail(this.link('/verify-email', token)),
     });
+  }
+
+  /**
+   * Delivery failures are logged instead of failing the request: these endpoints
+   * must answer the same whether or not an account exists, and the user can
+   * always ask for the email again.
+   */
+  private async sendEmail(message: MailMessage): Promise<void> {
+    try {
+      await this.mailer.send(message);
+    } catch (error) {
+      this.logger.error(
+        `Failed to send "${message.subject}"`,
+        error instanceof Error ? error.stack : String(error),
+      );
+    }
   }
 
   private link(path: string, token: string): string {
