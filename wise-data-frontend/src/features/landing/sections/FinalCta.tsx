@@ -18,25 +18,11 @@ export function FinalCta() {
         </div>
         <Link
           to="/register"
-          className="inline-flex h-12 w-fit shrink-0 items-center rounded-lg bg-white px-6 font-semibold text-[#15163a] transition-colors hover:bg-white/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+          className="inline-flex h-12 w-fit shrink-0 items-center rounded-lg bg-white px-6 font-semibold text-brand-navy transition-colors hover:bg-white/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
         >
           {t("cta.action")}
         </Link>
       </div>
     </section>
-  );
-}
-
-export function SiteFooter() {
-  const { t } = useTranslation("landing");
-  return (
-    <footer className="border-t border-border">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-8 text-sm text-muted-foreground sm:px-6">
-        <span>{t("footer", { year: new Date().getFullYear() })}</span>
-        <Link to="/login" className="rounded-md hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring">
-          {t("nav.login")}
-        </Link>
-      </div>
-    </footer>
   );
 }

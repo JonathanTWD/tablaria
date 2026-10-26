@@ -1,8 +1,9 @@
 import { Comparison } from "@/features/landing/sections/Comparison";
 import { Faq } from "@/features/landing/sections/Faq";
-import { FinalCta, SiteFooter } from "@/features/landing/sections/FinalCta";
+import { FinalCta } from "@/features/landing/sections/FinalCta";
 import { HeroSection } from "@/features/landing/sections/HeroSection";
 import { HowItWorks } from "@/features/landing/sections/HowItWorks";
+import { SiteFooter } from "@/features/landing/sections/SiteFooter";
 import { SiteHeader } from "@/features/landing/sections/SiteHeader";
 import { UseCases } from "@/features/landing/sections/UseCases";
 

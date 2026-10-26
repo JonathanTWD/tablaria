@@ -5,7 +5,7 @@ import { DemoInventoryTable } from "../DemoInventoryTable";
 import { DEMO_CASES, useDemoDataset, type DemoCase } from "../use-demo-dataset";
 
 export function UseCases() {
-  const { t } = useTranslation("landing");
+  const { t, i18n } = useTranslation("landing");
   const [current, setCurrent] = useState<DemoCase>("workshop");
   const dataset = useDemoDataset(current);
 
@@ -61,7 +61,7 @@ export function UseCases() {
               {t(`useCases.cases.${current}.description`)}
             </p>
             {/* A new key resets the table state when switching datasets. */}
-            <DemoInventoryTable key={current} dataset={dataset} />
+            <DemoInventoryTable key={`${current}-${i18n.language}`} dataset={dataset} />
           </div>
         </div>
       </div>

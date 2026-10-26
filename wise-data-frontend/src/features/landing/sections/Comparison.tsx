@@ -16,10 +16,34 @@ export function Comparison() {
           {t("comparison.title")}
         </h2>
 
-        {/* Real table on wide screens; each row stacks into a block on small ones. */}
-        <table className="mt-12 w-full border-collapse text-left max-md:block">
+        {/* Narrow screens get a list: restyling table elements as blocks drops their semantics. */}
+        <ul className="mt-10 divide-y divide-border border-y border-border md:hidden">
+          {ROWS.map((row) => (
+            <li key={row} className="space-y-3 py-6">
+              <h3 className="font-semibold">{t(`comparison.rows.${row}.aspect`)}</h3>
+              <p className="flex gap-2.5 text-muted-foreground">
+                <X aria-hidden="true" className="mt-1 size-4 shrink-0" />
+                <span>
+                  <span className="block text-xs font-medium">{t("comparison.spreadsheet")}</span>
+                  {t(`comparison.rows.${row}.spreadsheet`)}
+                </span>
+              </p>
+              <p className="flex gap-2.5">
+                <Check aria-hidden="true" className="mt-1 size-4 shrink-0 text-primary" />
+                <span>
+                  <span className="block text-xs font-medium text-primary">
+                    {t("comparison.wisedata")}
+                  </span>
+                  {t(`comparison.rows.${row}.wisedata`)}
+                </span>
+              </p>
+            </li>
+          ))}
+        </ul>
+
+        <table className="mt-12 hidden w-full border-collapse text-left md:table">
           <caption className="sr-only">{t("comparison.caption")}</caption>
-          <thead className="max-md:hidden">
+          <thead>
             <tr className="border-b border-foreground/15 text-sm text-muted-foreground">
               <th scope="col" className="w-1/4 py-3 pr-6 font-medium">
                 {t("comparison.aspect")}
@@ -32,35 +56,22 @@ export function Comparison() {
               </th>
             </tr>
           </thead>
-          <tbody className="max-md:block">
+          <tbody>
             {ROWS.map((row) => (
-              <tr
-                key={row}
-                className="border-b border-border align-top max-md:grid max-md:gap-3 max-md:py-6"
-              >
-                <th scope="row" className="py-5 pr-6 font-semibold max-md:p-0">
+              <tr key={row} className="border-b border-border align-top">
+                <th scope="row" className="py-5 pr-6 font-semibold">
                   {t(`comparison.rows.${row}.aspect`)}
                 </th>
-                <td className="py-5 pr-6 text-muted-foreground max-md:p-0">
+                <td className="py-5 pr-6 text-muted-foreground">
                   <span className="flex gap-2.5">
                     <X aria-hidden="true" className="mt-1 size-4 shrink-0" />
-                    <span>
-                      <span className="block text-xs font-medium md:hidden">
-                        {t("comparison.spreadsheet")}
-                      </span>
-                      {t(`comparison.rows.${row}.spreadsheet`)}
-                    </span>
+                    {t(`comparison.rows.${row}.spreadsheet`)}
                   </span>
                 </td>
-                <td className="py-5 max-md:p-0">
+                <td className="py-5">
                   <span className="flex gap-2.5">
                     <Check aria-hidden="true" className="mt-1 size-4 shrink-0 text-primary" />
-                    <span>
-                      <span className="block text-xs font-medium text-primary md:hidden">
-                        {t("comparison.wisedata")}
-                      </span>
-                      {t(`comparison.rows.${row}.wisedata`)}
-                    </span>
+                    {t(`comparison.rows.${row}.wisedata`)}
                   </span>
                 </td>
               </tr>

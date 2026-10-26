@@ -6,7 +6,7 @@ import { DemoInventoryTable } from "../DemoInventoryTable";
 import { useDemoDataset } from "../use-demo-dataset";
 
 export function HeroSection() {
-  const { t } = useTranslation("landing");
+  const { t, i18n } = useTranslation("landing");
   const dataset = useDemoDataset("shop");
 
   return (
@@ -46,7 +46,8 @@ export function HeroSection() {
           id="demo"
           className="scroll-mt-24 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-6 motion-safe:duration-700"
         >
-          <DemoInventoryTable dataset={dataset} />
+          {/* Remount on language change: the table copies its dataset into state. */}
+          <DemoInventoryTable key={i18n.language} dataset={dataset} />
         </div>
       </div>
     </section>
