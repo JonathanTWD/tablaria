@@ -1,10 +1,10 @@
 import type { INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { NestExpressApplication } from '@nestjs/platform-express';
+import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
+import { API_PREFIX } from './common/api-prefix';
 import type { Env } from './config/env.schema';
-
-export const API_PREFIX = 'api';
 
 /** HTTP-level configuration shared by main.ts and e2e tests. */
 export function configureApp(app: INestApplication): void {
@@ -16,6 +16,7 @@ export function configureApp(app: INestApplication): void {
   }
 
   app.use(helmet());
+  app.use(cookieParser());
   app.enableCors({
     origin: config.get('CORS_ORIGINS', { infer: true }),
     credentials: true,

@@ -5,6 +5,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { SkipThrottle } from '@nestjs/throttler';
+import { Public } from '../auth/decorators';
 import { PrismaService } from '../database/prisma.service';
 
 @Controller('health')
@@ -13,6 +14,7 @@ export class HealthController {
 
   constructor(private readonly prisma: PrismaService) {}
 
+  @Public()
   @SkipThrottle()
   @Get()
   async check(): Promise<{ status: 'ok' }> {

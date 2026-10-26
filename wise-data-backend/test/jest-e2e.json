@@ -12,5 +12,10 @@
   },
   "moduleNameMapper": {
     "^(\\.{1,2}/.*)\\.js$": "$1"
-  }
+  },
+  "globalSetup": "<rootDir>/setup/global-setup.ts",
+  "setupFiles": [
+    "<rootDir>/setup/env.ts"
+  ],
+  "maxWorkers": 1
 }

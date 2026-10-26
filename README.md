@@ -25,6 +25,7 @@ Docker Compose levanta los servicios de desarrollo: PostgreSQL y Mailpit (correo
 ```bash
 cp .env.example .env
 cp wise-data-backend/.env.example wise-data-backend/.env
+# Rellena JWT_ACCESS_SECRET en wise-data-backend/.env (el archivo explica cómo generarlo)
 docker compose up -d
 pnpm install
 pnpm --filter wise-data-backend db:migrate
@@ -52,6 +53,15 @@ El frontend llama siempre a rutas relativas `/api/...`; en desarrollo Vite las r
 
 El cliente de Prisma se genera en `wise-data-backend/src/generated` al instalar dependencias y al compilar; no se versiona.
 
+### Autenticación
+
+Endpoints bajo `/api/auth`: `register`, `verify-email`, `resend-verification`, `login`, `refresh`, `logout`, `me`, `forgot-password` y `reset-password`.
+
+- **Sesión:** cookies httpOnly. El access token (JWT, 15 min) va en `wd_access`; el refresh token (opaco, rotatorio, 7 días) va en `wd_refresh` y solo se envía a `/api/auth`.
+- **Rutas protegidas por defecto:** todas lo están salvo las marcadas con `@Public()`.
+- **Correos en desarrollo:** se pueden ver en Mailpit (http://localhost:8025); los enlaces apuntan a `APP_URL`.
+- **Login:** no se permite hasta verificar el email.
+
 ## Scripts (raíz)
 
 | Script | Descripción |
@@ -62,7 +72,7 @@ El cliente de Prisma se genera en `wise-data-backend/src/generated` al instalar 
 | `pnpm typecheck` | Comprobación de tipos en todos los paquetes |
 | `pnpm test` | Tests unitarios de todos los paquetes |
 
-Los tests e2e del backend necesitan la base de datos levantada: `pnpm --filter wise-data-backend test:e2e`.
+Los tests e2e del backend (`pnpm --filter wise-data-backend test:e2e`) necesitan Docker levantado: usan una base de datos aparte (`TEST_DATABASE_URL`, que debe terminar en `_test`), la migran solos, la vacían entre tests y leen los correos desde la API de Mailpit.
 
 ## Documentación
 
