@@ -38,7 +38,7 @@ pnpm dev
 | API (directa) | http://localhost:3000/api |
 | Health check | http://localhost:3000/api/health |
 | Mailpit (bandeja de correo de pruebas) | http://localhost:8025 |
-| PostgreSQL | `localhost:5433` |
+| PostgreSQL | `127.0.0.1:5433` (usa la IP, no `localhost`: el puerto solo escucha en IPv4) |
 
 El frontend llama siempre a rutas relativas `/api/...`; en desarrollo Vite las redirige al backend (`API_PROXY_TARGET`, ver `wise-data-frontend/.env.example`).
 
