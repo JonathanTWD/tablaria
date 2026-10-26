@@ -3,6 +3,8 @@ import { validateEnv } from './env.schema';
 const validEnv = {
   DATABASE_URL: 'postgresql://user:pass@localhost:5433/wisedata',
   CORS_ORIGINS: 'http://localhost:5173, https://app.example.com',
+  APP_URL: 'http://localhost:5173',
+  JWT_ACCESS_SECRET: 'a'.repeat(32),
 };
 
 describe('validateEnv', () => {
@@ -13,11 +15,15 @@ describe('validateEnv', () => {
       PORT: 3000,
       TRUST_PROXY_HOPS: 0,
       CORS_ORIGINS: ['http://localhost:5173', 'https://app.example.com'],
+      MAIL_FROM: 'WiseData <no-reply@wisedata.local>',
+      MAIL_TRANSPORT: 'smtp',
+      SMTP_HOST: '127.0.0.1',
+      SMTP_PORT: 1025,
     });
   });
 
   it('rejects a missing DATABASE_URL', () => {
-    expect(() => validateEnv({ CORS_ORIGINS: validEnv.CORS_ORIGINS })).toThrow(
+    expect(() => validateEnv({ ...validEnv, DATABASE_URL: undefined })).toThrow(
       /DATABASE_URL/,
     );
   });
@@ -32,5 +38,17 @@ describe('validateEnv', () => {
     expect(() =>
       validateEnv({ ...validEnv, CORS_ORIGINS: 'https://app.example.com/' }),
     ).toThrow(/CORS_ORIGINS/);
+  });
+
+  it('rejects a short JWT secret', () => {
+    expect(() =>
+      validateEnv({ ...validEnv, JWT_ACCESS_SECRET: 'too-short' }),
+    ).toThrow(/JWT_ACCESS_SECRET/);
+  });
+
+  it('requires RESEND_API_KEY when sending through Resend', () => {
+    expect(() =>
+      validateEnv({ ...validEnv, MAIL_TRANSPORT: 'resend' }),
+    ).toThrow(/RESEND_API_KEY/);
   });
 });
