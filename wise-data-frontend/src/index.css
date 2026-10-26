@@ -68,7 +68,8 @@
     --accent-foreground: #2a1fb0;
     --destructive: #c4283c;
     --border: #e3e4f0;
-    --input: #d6d8e8;
+    /* Input borders need 3:1 against the page (WCAG 1.4.11). */
+    --input: #878ba6;
     --ring: #3b2bea;
     --chart-1: #3b2bea;
     --chart-2: #7a6ff5;
@@ -105,7 +106,7 @@
     --accent-foreground: #e8e9f5;
     --destructive: #ff6b7d;
     --border: #2a2d5c;
-    --input: #343873;
+    --input: #5f64a3;
     --ring: #8f86ff;
     --chart-1: #8f86ff;
     --chart-2: #b9b2ff;
@@ -134,6 +135,8 @@
   html {
     @apply font-sans;
     color-scheme: light;
+    /* Keeps focused elements clear of the sticky app header (WCAG 2.4.11). */
+    scroll-padding-top: 4.5rem;
     }
   html.dark {
     color-scheme: dark;

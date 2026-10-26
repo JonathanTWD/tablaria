@@ -97,7 +97,7 @@ export default function LoginPage() {
           <div className="-mt-2 text-right text-sm">
             <Link
               to="/forgot-password"
-              className="font-medium text-primary underline-offset-4 hover:underline"
+              className="inline-block py-1 font-medium text-primary underline-offset-4 hover:underline"
             >
               {t("login.forgot")}
             </Link>

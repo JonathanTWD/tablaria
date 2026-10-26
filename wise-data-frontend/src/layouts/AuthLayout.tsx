@@ -2,11 +2,13 @@ import { useTranslation } from "react-i18next";
 import { Link, Outlet } from "react-router";
 import { InventoryPreview } from "@/components/InventoryPreview";
 import { Logo } from "@/components/Logo";
+import { useFocusOnNavigate } from "@/hooks/use-focus-on-navigate";
 import { ThemeToggle } from "@/features/theme/ThemeToggle";
 
 /** Split screen: the product on the left (large screens), the form on the right. */
 export default function AuthLayout() {
   const { t } = useTranslation();
+  const mainRef = useFocusOnNavigate<HTMLElement>();
 
   return (
     <div className="grid min-h-dvh bg-background lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
@@ -16,9 +18,10 @@ export default function AuthLayout() {
         </Link>
         <div className="space-y-8">
           <div className="max-w-md space-y-3">
-            <h2 className="text-3xl font-semibold leading-tight tracking-tight">
+            {/* Not a heading: it would precede the page's h1 in the outline. */}
+            <p className="text-3xl font-semibold leading-tight tracking-tight">
               {t("preview.title")}
-            </h2>
+            </p>
             <p className="text-base leading-7 text-white/70">
               {t("preview.description")}
             </p>
@@ -38,7 +41,11 @@ export default function AuthLayout() {
           </Link>
           <ThemeToggle />
         </header>
-        <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10">
+        <main
+          ref={mainRef}
+          tabIndex={-1}
+          className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10 outline-none"
+        >
           <Outlet />
         </main>
       </div>

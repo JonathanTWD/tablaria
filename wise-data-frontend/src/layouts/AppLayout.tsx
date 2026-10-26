@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, NavLink, Outlet } from "react-router";
 import { Logo } from "@/components/Logo";
+import { useFocusOnNavigate } from "@/hooks/use-focus-on-navigate";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -67,6 +68,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 export default function AppLayout() {
   const { t } = useTranslation(["app", "common"]);
   const [menuOpen, setMenuOpen] = useState(false);
+  const mainRef = useFocusOnNavigate<HTMLElement>();
 
   return (
     <div className="min-h-dvh bg-background lg:grid lg:grid-cols-[15rem_minmax(0,1fr)]">
@@ -116,6 +118,7 @@ export default function AppLayout() {
         </header>
 
         <main
+          ref={mainRef}
           id="main"
           tabIndex={-1}
           className="w-full max-w-5xl px-4 py-8 outline-none sm:px-8 sm:py-10"
