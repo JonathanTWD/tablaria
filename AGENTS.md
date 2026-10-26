@@ -474,6 +474,14 @@ Tests should verify behavior rather than implementation details.
 
 # Git
 
+## Branches
+
+- `develop` is the integration branch. All work starts from `develop`: create feature branches from it (`feat/...`, `fix/...`, `chore/...`) and open pull requests against `develop`.
+- `main` is reserved for deployments. It is only updated by merging `develop` into `main` when a release is explicitly requested.
+- Never commit directly to `main` or open feature pull requests against it.
+
+## Commits
+
 Use small, focused commits.
 
 Commit messages should describe the actual change.
