@@ -1,0 +1,113 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [develop, main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # Dummy values for CI only; the real ones live in each environment's secrets.
+  JWT_ACCESS_SECRET: ci-only-secret-that-is-at-least-32-characters-long
+  APP_URL: http://localhost:5173
+  CORS_ORIGINS: http://localhost:5173
+  MAIL_TRANSPORT: smtp
+  SMTP_HOST: 127.0.0.1
+  SMTP_PORT: "1025"
+
+jobs:
+  checks:
+    name: Lint, typecheck, build and unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @wisedata/shared build
+      # Without --fix, so formatting problems fail the build instead of being fixed silently.
+      - run: pnpm --filter wise-data-backend exec eslint "{src,test}/**/*.ts"
+      - run: pnpm --filter wise-data-frontend lint
+      - run: pnpm typecheck
+      - run: pnpm build
+      - run: pnpm test
+
+  backend-e2e:
+    name: Backend e2e (PostgreSQL + Mailpit)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: wisedata
+          POSTGRES_PASSWORD: wisedata
+          POSTGRES_DB: wisedata_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U wisedata -d wisedata_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      mailpit:
+        image: axllent/mailpit:v1.27
+        ports: ["1025:1025", "8025:8025"]
+    env:
+      TEST_DATABASE_URL: postgresql://wisedata:wisedata@127.0.0.1:5432/wisedata_test?schema=public
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @wisedata/shared build
+      - run: pnpm --filter wise-data-backend test:e2e
+
+  playwright:
+    name: Playwright (full stack)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: wisedata
+          POSTGRES_PASSWORD: wisedata
+          POSTGRES_DB: wisedata
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U wisedata -d wisedata"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      mailpit:
+        image: axllent/mailpit:v1.27
+        ports: ["1025:1025", "8025:8025"]
+    env:
+      # Plain HTTP in CI, so the API must not mark cookies as Secure.
+      NODE_ENV: test
+      DATABASE_URL: postgresql://wisedata:wisedata@127.0.0.1:5432/wisedata?schema=public
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @wisedata/shared build
+      - run: pnpm --filter wise-data-backend build
+      - run: pnpm --filter wise-data-backend db:deploy
+      - run: pnpm --filter wise-data-e2e exec playwright install --with-deps chromium
+      - run: pnpm --filter wise-data-e2e test
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: e2e/playwright-report
+          retention-days: 7
