@@ -17,6 +17,7 @@ export const tableKeys = {
   all: ["tables"] as const,
   list: () => [...tableKeys.all, "list"] as const,
   detail: (tableId: string) => [...tableKeys.all, "detail", tableId] as const,
+  records: (tableId: string) => [...tableKeys.all, "records", tableId] as const,
 };
 
 /** Every table of the user, most recently edited first. */
@@ -32,10 +33,14 @@ export function tableQuery(tableId: string) {
   });
 }
 
-/** Column changes also change the table's counts and last edit in the list. */
+/**
+ * Column changes also change the table's counts and last edit in the list,
+ * and the records themselves (type conversions, deleted columns).
+ */
 function refreshTable(queryClient: QueryClient, tableId: string) {
   return Promise.all([
     queryClient.invalidateQueries({ queryKey: tableKeys.detail(tableId) }),
+    queryClient.invalidateQueries({ queryKey: tableKeys.records(tableId) }),
     queryClient.invalidateQueries({ queryKey: tableKeys.list() }),
   ]);
 }
@@ -68,6 +73,7 @@ export function useDeleteTable(tableId: string) {
     mutationFn: () => tablesApi.remove(tableId),
     onSuccess: () => {
       queryClient.removeQueries({ queryKey: tableKeys.detail(tableId) });
+      queryClient.removeQueries({ queryKey: tableKeys.records(tableId) });
       return queryClient.invalidateQueries({ queryKey: tableKeys.list() });
     },
   });

@@ -93,7 +93,7 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 - **Formularios**:
   - react-hook-form con los esquemas zod de `@wisedata/shared` y validación al salir del campo (`onTouched`).
   - Mensajes propios por campo en español; zod usa su locale `es` como respaldo.
-- **i18n**: react-i18next con un JSON por namespace (`common`, `landing`, `auth`, `app`, `tables`) y claves tipadas. Para añadir inglés basta con una carpeta `en` con los mismos archivos.
+- **i18n**: react-i18next con un JSON por namespace (`common`, `landing`, `auth`, `app`, `tables`, `records`) y claves tipadas. Para añadir inglés basta con una carpeta `en` con los mismos archivos.
 - **Tema**:
   - `ThemeProvider` propio (claro, oscuro o sistema) guardado en `localStorage`, con un script inline en `index.html` que evita el parpadeo.
   - Sin `next-themes`.
@@ -123,6 +123,27 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 - **Borrado**: definitivo y en cascada. En la UI, borrar una tabla exige escribir su nombre y borrar una columna pide confirmación.
 - **Dashboard**: no hay endpoint `/dashboard/summary`. `GET /tables` devuelve todas las tablas del usuario (como mucho 100) con número de columnas y registros, ordenadas por última edición. El dashboard y el sidebar comparten esa query: las métricas y las recientes se calculan a partir de ella.
 - **Plantillas**: tres plantillas en `shared` (inventario básico, catálogo, equipos y activos). Los nombres de sus columnas están en español porque pasan a ser datos del usuario; el nombre y la descripción de cada plantilla se traducen en la UI.
+
+## ADR-012: Registros y consultas sobre JSONB
+
+- **Validación**: `recordDataSchema(columns)` en `@wisedata/shared` valida los datos de un registro contra las columnas de su tabla. Rechaza ids de columna desconocidos, valores que no encajan con el tipo y opciones que no existen, y exige las columnas obligatorias. Al crear, lo que falta toma el valor por defecto; al editar, solo se validan las celdas enviadas, y `null` vacía la celda. Las celdas vacías no se guardan: la clave desaparece de `data`.
+- **Escrituras**: crear, editar y borrar empiezan con `touchOwnedTable`. Eso comprueba la propiedad, actualiza la última edición de la tabla y bloquea su fila, así que una escritura nunca se cruza con una conversión de tipo de columna.
+- **Listado** (`GET /tables/:tableId/records`):
+  - Paginación con `page` y `pageSize` (como mucho 100), y respuesta `{ data, meta }`.
+  - `search` busca con `ILIKE` en las columnas de texto y de opciones. Los comodines `%` y `_` se escapan.
+  - `sort` y `order` ordenan por el valor convertido a su tipo (`::numeric`, `::date`, `::boolean`; el texto con `lower`), con las celdas vacías al final. Sin `sort`, el orden es el de creación.
+  - `filters` es un array JSON con un operador por tipo, definido en `FILTER_OPERATOR_BY_TYPE`: `contains` para texto, `between` para número, precio y fecha, `is` para sí/no, e `in` para opciones.
+- **SQL seguro**: la consulta se compone con `Prisma.sql` y `Prisma.join`. Todos los valores, ids de columna incluidos, van como parámetros. Solo se usan ids que existen en la tabla (cualquier otro responde 400), y la dirección del orden sale de una lista cerrada. `record-query.spec.ts` comprueba que la entrada del usuario nunca aparece en el texto SQL.
+- **Límite**: 10.000 registros por tabla (422).
+- **Frontend**:
+  - La vista (página, tamaño, búsqueda, orden y filtros) vive en la URL (`useRecordsView`), con valores por defecto si algo viene mal formado.
+  - TanStack Table en modo manual: solo lleva el estado del orden; los datos ya llegan paginados, filtrados y ordenados.
+  - Edición en la celda con un editor por tipo:
+    - Texto, número, precio y fecha se abren con clic o Enter. Enter o salir de la celda guarda, y Escape cancela.
+    - Sí/No y las opciones guardan al cambiar.
+    - La actualización es optimista y vuelve atrás si la API la rechaza.
+  - Para crear o editar un registro entero hay un diálogo validado con el mismo esquema que usa la API.
+- **Pestañas**: la página de una tabla tiene dos rutas anidadas, `/app/tables/:id` (registros) y `/app/tables/:id/columns` (columnas), que comparten la cabecera.
 
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
