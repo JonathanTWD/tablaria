@@ -12,6 +12,7 @@ import {
   uniqueEmail,
 } from './helpers/app';
 import { REFRESH_REUSE_GRACE_MS } from '../src/auth/auth.constants';
+import { EMAIL_TOKEN_LIMIT } from '../src/auth/email-token.service';
 import { hashToken } from '../src/auth/secure-token';
 import { PrismaService } from '../src/database/prisma.service';
 import { extractToken, latestEmail, listEmails } from './helpers/mailpit';
@@ -433,6 +434,26 @@ describe('Auth (e2e)', () => {
 
       expect(response.body).toEqual({ message: GENERIC_MESSAGE });
       expect(await listEmails(email)).toHaveLength(0);
+    });
+
+    it('caps the emails an account receives, whatever the client IP', async () => {
+      const email = uniqueEmail();
+      await registerAndVerify(createClient(app), email);
+
+      // A fresh IP per request, as someone rotating addresses would use.
+      for (let attempt = 0; attempt < EMAIL_TOKEN_LIMIT.count + 2; attempt++) {
+        const response = await createClient(app)
+          .post('/api/auth/forgot-password')
+          .send({ email })
+          .expect(202);
+        expect(response.body).toEqual({ message: GENERIC_MESSAGE });
+      }
+
+      await latestEmail(email);
+      const resetEmails = (await listEmails(email)).filter(({ Subject }) =>
+        Subject.startsWith('Restablece'),
+      );
+      expect(resetEmails).toHaveLength(EMAIL_TOKEN_LIMIT.count);
     });
 
     it('verifies the email of an unverified account that resets its password', async () => {

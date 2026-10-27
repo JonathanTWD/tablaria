@@ -150,7 +150,10 @@ export class AuthService {
 
   async forgotPassword(email: string): Promise<void> {
     const user = await this.users.findByEmail(email);
-    if (!user) {
+    if (
+      !user ||
+      (await this.emailLimitReached(user, EmailTokenType.RESET_PASSWORD))
+    ) {
       return;
     }
     const token = await this.emailTokens.issue(
@@ -174,6 +177,9 @@ export class AuthService {
   }
 
   private async sendVerificationEmail(user: User): Promise<void> {
+    if (await this.emailLimitReached(user, EmailTokenType.VERIFY_EMAIL)) {
+      return;
+    }
     const token = await this.emailTokens.issue(
       user.id,
       EmailTokenType.VERIFY_EMAIL,
@@ -198,6 +204,20 @@ export class AuthService {
         error instanceof Error ? error.stack : String(error),
       );
     }
+  }
+
+  /** The caller answers as usual, so the limit reveals nothing about the account. */
+  private async emailLimitReached(
+    user: User,
+    type: EmailTokenType,
+  ): Promise<boolean> {
+    const reached = await this.emailTokens.limitReached(user.id, type);
+    if (reached) {
+      this.logger.warn(
+        `Email limit reached for user ${user.id} (${type}); not sending another`,
+      );
+    }
+    return reached;
   }
 
   private link(path: string, token: string): string {

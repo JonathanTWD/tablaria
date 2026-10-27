@@ -8,6 +8,9 @@ const TOKEN_TTL_MS: Record<EmailTokenType, number> = {
   [EmailTokenType.RESET_PASSWORD]: 60 * 60 * 1000,
 };
 
+/** How many emails of one type an account can receive per window. */
+export const EMAIL_TOKEN_LIMIT = { count: 3, windowMs: 15 * 60 * 1000 };
+
 /** Single-use tokens sent by email (verification and password reset). */
 @Injectable()
 export class EmailTokenService {
@@ -34,6 +37,22 @@ export class EmailTokenService {
     ]);
 
     return token;
+  }
+
+  /**
+   * Whether the account already got the maximum number of these emails in the
+   * current window. The per-IP rate limit alone would let someone rotating IPs
+   * flood a mailbox.
+   */
+  async limitReached(userId: string, type: EmailTokenType): Promise<boolean> {
+    const recent = await this.prisma.emailToken.count({
+      where: {
+        userId,
+        type,
+        createdAt: { gt: new Date(Date.now() - EMAIL_TOKEN_LIMIT.windowMs) },
+      },
+    });
+    return recent >= EMAIL_TOKEN_LIMIT.count;
   }
 
   /** Marks the token as used and returns its user id, or throws if it is invalid, used or expired. */
