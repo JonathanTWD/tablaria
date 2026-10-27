@@ -93,7 +93,7 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 - **Formularios**:
   - react-hook-form con los esquemas zod de `@wisedata/shared` y validación al salir del campo (`onTouched`).
   - Mensajes propios por campo en español; zod usa su locale `es` como respaldo.
-- **i18n**: react-i18next con un JSON por namespace (`common`, `landing`, `auth`, `app`) y claves tipadas. Para añadir inglés basta con una carpeta `en` con los mismos archivos.
+- **i18n**: react-i18next con un JSON por namespace (`common`, `landing`, `auth`, `app`, `tables`) y claves tipadas. Para añadir inglés basta con una carpeta `en` con los mismos archivos.
 - **Tema**:
   - `ThemeProvider` propio (claro, oscuro o sistema) guardado en `localStorage`, con un script inline en `index.html` que evita el parpadeo.
   - Sin `next-themes`.
@@ -104,6 +104,25 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
   - La misma tabla se reutiliza en "Casos de uso" con cuatro inventarios definidos en `landing.json`, cada uno con columnas de tipos distintos. Será la base de la tabla real de la fase 5.
   - Se eliminó Lightfall (`ogl`): era un efecto genérico que no decía nada del producto. La landing usa la paleta de la app, con modo oscuro y una cuadrícula de hoja de cálculo muy tenue como único recurso decorativo.
 - **Logout**: lleva a `/login`. Navegar a la landing antes de vaciar la sesión no es fiable, porque React Router aplica la navegación como transición y el guard redirige antes.
+
+## ADR-011: Tablas y columnas
+
+- **Definición de columnas en un solo sitio**: `@wisedata/shared` define, para cada tipo, el esquema de su valor y de sus ajustes (`options`), y un `columnDefinitionSchema` con unión discriminada por `type`. La API y el formulario validan con el mismo esquema.
+- **Propiedad**:
+  - Todas las consultas filtran por `ownerId`, así que la tabla de otro usuario responde 404, igual que una que no existe.
+  - Los cambios de columnas empiezan con un `UPDATE` de la tabla filtrado por dueño (`touchOwnedTable`). Ese update comprueba la propiedad, marca la tabla como editada y bloquea su fila hasta el final de la transacción, de modo que dos cambios de columnas de la misma tabla nunca se intercalan. En la fase 5, las escrituras de registros pasarán por el mismo paso: así actualizan la última edición y no se cruzan con una conversión de tipo.
+- **Cambio de tipo**:
+  - Dentro de la transacción se leen los valores de esa columna, se convierten en TypeScript (`convertCellValue`, con tests unitarios) y se escriben con un único `UPDATE … FROM jsonb_each($1)` parametrizado.
+  - Lo que no se puede convertir se borra de `data` y la respuesta devuelve `clearedValues`.
+  - Al cambiar de tipo, `options` y `defaultValue` se reinician salvo que se envíen.
+- **Opciones de `select`**:
+  - Las celdas guardan la etiqueta, que es lo que se busca y se filtra.
+  - Cada opción tiene un `id` estable, así que renombrarla actualiza los registros y quitarla vacía sus celdas.
+- **Valor por defecto**: al crear una columna con valor por defecto, ese valor se rellena en los registros existentes. `required` se aplicará al escribir registros (fase 5); marcar una columna como obligatoria no toca los datos que ya hay.
+- **Límites**: 100 tablas por usuario y 50 columnas por tabla (422 al superarlos), para acotar el tamaño de los datos y de las consultas.
+- **Borrado**: definitivo y en cascada. En la UI, borrar una tabla exige escribir su nombre y borrar una columna pide confirmación.
+- **Dashboard**: no hay endpoint `/dashboard/summary`. `GET /tables` devuelve todas las tablas del usuario (como mucho 100) con número de columnas y registros, ordenadas por última edición. El dashboard y el sidebar comparten esa query: las métricas y las recientes se calculan a partir de ella.
+- **Plantillas**: tres plantillas en `shared` (inventario básico, catálogo, equipos y activos). Los nombres de sus columnas están en español porque pasan a ser datos del usuario; el nombre y la descripción de cada plantilla se traducen en la UI.
 
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
