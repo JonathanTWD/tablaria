@@ -1,0 +1,15 @@
+{
+  "name": "wise-data-e2e",
+  "private": true,
+  "description": "End-to-end tests that drive the real frontend, API, database and Mailpit.",
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.0",
+    "@types/node": "^24.19.2",
+    "typescript": "~6.0.3"
+  }
+}
