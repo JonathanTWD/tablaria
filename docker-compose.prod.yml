@@ -1,0 +1,81 @@
+# Self-hosted WiseData: the whole stack in containers.
+#   cp .env.prod.example .env.prod   # then fill in the secrets
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+# Without an email provider, add `--profile mailpit` and read the emails at http://localhost:8025.
+name: wisedata-prod
+
+x-api-env: &api-env
+  DATABASE_URL: postgresql://${POSTGRES_USER:-wisedata}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-wisedata}?schema=public
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-wisedata}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-wisedata}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Applies pending migrations, then exits; the API waits for it.
+  migrate:
+    build:
+      context: .
+      dockerfile: wise-data-backend/Dockerfile
+      target: migrate
+    environment: *api-env
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    build:
+      context: .
+      dockerfile: wise-data-backend/Dockerfile
+      target: runtime
+    restart: unless-stopped
+    environment:
+      <<: *api-env
+      NODE_ENV: production
+      PORT: "3000"
+      APP_URL: ${APP_URL:-http://localhost:8080}
+      CORS_ORIGINS: ${APP_URL:-http://localhost:8080}
+      # nginx (the web service) is the only proxy in front of the API.
+      TRUST_PROXY_HOPS: "1"
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?set JWT_ACCESS_SECRET}
+      MAIL_TRANSPORT: ${MAIL_TRANSPORT:-smtp}
+      MAIL_FROM: ${MAIL_FROM:-WiseData <no-reply@wisedata.local>}
+      SMTP_HOST: ${SMTP_HOST:-mailpit}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  web:
+    build:
+      context: .
+      dockerfile: wise-data-frontend/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-8080}:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+
+  mailpit:
+    image: axllent/mailpit:v1.27
+    profiles: [mailpit]
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8025:8025"
+
+volumes:
+  db-data:

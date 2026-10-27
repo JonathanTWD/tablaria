@@ -39,7 +39,11 @@ export const envSchema = z
     MAIL_TRANSPORT: z.enum(['smtp', 'resend']).default('smtp'),
     SMTP_HOST: z.string().min(1).default('127.0.0.1'),
     SMTP_PORT: z.coerce.number().int().positive().default(1025),
-    RESEND_API_KEY: z.string().min(1).optional(),
+    // Empty counts as unset: Compose passes `KEY=` through when the value is missing.
+    RESEND_API_KEY: z.preprocess(
+      (value) => (value === '' ? undefined : value),
+      z.string().min(1).optional(),
+    ),
   })
   .superRefine((env, ctx) => {
     if (env.MAIL_TRANSPORT === 'resend' && !env.RESEND_API_KEY) {

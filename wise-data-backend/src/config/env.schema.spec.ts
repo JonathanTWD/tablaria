@@ -50,5 +50,19 @@ describe('validateEnv', () => {
     expect(() =>
       validateEnv({ ...validEnv, MAIL_TRANSPORT: 'resend' }),
     ).toThrow(/RESEND_API_KEY/);
+    expect(() =>
+      validateEnv({
+        ...validEnv,
+        MAIL_TRANSPORT: 'resend',
+        RESEND_API_KEY: '',
+      }),
+    ).toThrow(/RESEND_API_KEY/);
+  });
+
+  it('treats an empty RESEND_API_KEY as unset when using SMTP', () => {
+    expect(validateEnv({ ...validEnv, RESEND_API_KEY: '' })).not.toHaveProperty(
+      'RESEND_API_KEY',
+      '',
+    );
   });
 });
