@@ -10,10 +10,10 @@ import { Input } from "@/components/ui/input";
 import { authApi } from "@/features/auth/api";
 import { AuthHeading } from "@/features/auth/components/AuthHeading";
 import { CheckEmail } from "@/features/auth/components/CheckEmail";
-import { FormAlert } from "@/features/auth/components/FormAlert";
-import { FormField } from "@/features/auth/components/FormField";
+import { FormAlert } from "@/components/form/FormAlert";
+import { FormField } from "@/components/form/FormField";
 import { PasswordInput } from "@/features/auth/components/PasswordInput";
-import { SubmitButton } from "@/features/auth/components/SubmitButton";
+import { SubmitButton } from "@/components/form/SubmitButton";
 import { emailErrorMessage, passwordErrorMessage } from "@/features/auth/field-errors";
 import { apiErrorMessage } from "@/lib/error-message";
 

@@ -14,8 +14,16 @@
   "dashboard": {
     "title": "Inicio",
     "greeting": "Hola, {{name}}",
-    "emptyTitle": "Todavía no tienes tablas",
-    "emptyDescription": "Muy pronto podrás crear aquí tus tablas de inventario, con las columnas que necesites para tu negocio."
+    "emptyTitle": "Crea tu primera tabla",
+    "emptyDescription": "Empieza con una plantilla de inventario, catálogo o equipos, o con una tabla vacía en la que tú decides las columnas.",
+    "metrics": {
+      "tables": "Tablas",
+      "records": "Registros",
+      "lastEdit": "Última edición"
+    },
+    "tablesTitle": "Tus tablas",
+    "loadError": "No se pudieron cargar tus tablas.",
+    "retry": "Reintentar"
   },
   "settings": {
     "title": "Ajustes",
