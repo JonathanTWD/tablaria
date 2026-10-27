@@ -58,7 +58,7 @@ export default function RegisterPage() {
               type="email"
               autoComplete="email"
               inputMode="email"
-              className="h-10"
+              className="h-11"
               {...form.register("email")}
             />
           </FormField>

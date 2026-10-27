@@ -8,11 +8,13 @@ export function AuthHeading({
   description?: ReactNode;
 }) {
   return (
-    <div className="mb-8 space-y-2">
+    <div className="mb-8 space-y-3">
       <title>{`${title} | WiseData`}</title>
-      <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+      <h1 className="text-3xl leading-tight font-semibold tracking-[-0.025em] text-balance sm:text-4xl">
+        {title}
+      </h1>
       {description && (
-        <p className="text-sm leading-6 text-muted-foreground">{description}</p>
+        <p className="leading-7 text-muted-foreground">{description}</p>
       )}
     </div>
   );

@@ -46,7 +46,7 @@ export default function ResetPasswordPage() {
     return (
       <>
         <AuthHeading title={t("invalidLink.title")} description={t("invalidLink.resetDescription")} />
-        <Link to="/forgot-password" className={cn(buttonVariants(), "h-10 w-full")}>
+        <Link to="/forgot-password" className={cn(buttonVariants(), "h-11 w-full")}>
           {t("invalidLink.requestReset")}
         </Link>
         <BackToLogin />
@@ -59,7 +59,7 @@ export default function ResetPasswordPage() {
       <>
         <CircleCheck aria-hidden="true" className="mb-6 size-10 text-primary" strokeWidth={1.5} />
         <AuthHeading title={t("reset.doneTitle")} description={t("reset.doneDescription")} />
-        <Link to="/login" className={cn(buttonVariants(), "h-10 w-full")}>
+        <Link to="/login" className={cn(buttonVariants(), "h-11 w-full")}>
           {t("login.submit")}
         </Link>
       </>

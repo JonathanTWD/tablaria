@@ -25,13 +25,13 @@ export function CheckEmail({ email, onUseAnother }: { email: string; onUseAnothe
       />
       <div className="flex flex-col gap-3 sm:flex-row">
         <Button
-          className="h-10 px-4"
+          className="h-11 px-5"
           disabled={resend.isPending}
           onClick={() => resend.mutate({ email })}
         >
           {t("checkEmail.resend")}
         </Button>
-        <Button variant="ghost" className="h-10 px-4" onClick={onUseAnother}>
+        <Button variant="ghost" className="h-11 px-5" onClick={onUseAnother}>
           {t("checkEmail.useAnother")}
         </Button>
       </div>
