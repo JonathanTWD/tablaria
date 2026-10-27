@@ -5,6 +5,7 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../../src/app.module';
 import { configureApp } from '../../src/app.setup';
+import { PasswordService } from '../../src/auth/password.service';
 import { PrismaService } from '../../src/database/prisma.service';
 
 export async function createTestApp(): Promise<INestApplication<App>> {
@@ -56,4 +57,29 @@ export function setCookies(response: request.Response): Record<string, string> {
 /** Value of a cookie from its raw Set-Cookie string. */
 export function cookieValue(rawCookie: string): string {
   return rawCookie.slice(rawCookie.indexOf('=') + 1, rawCookie.indexOf(';'));
+}
+
+const SIGNED_IN_PASSWORD = 'correct horse battery';
+
+/**
+ * Client logged in as a fresh, already verified user. Skips the email flow,
+ * which auth.e2e-spec covers, to keep resource tests fast.
+ */
+export async function createSignedInClient(
+  app: INestApplication<App>,
+): Promise<TestClient> {
+  const email = uniqueEmail();
+  await app.get(PrismaService).user.create({
+    data: {
+      email,
+      passwordHash: await app.get(PasswordService).hash(SIGNED_IN_PASSWORD),
+      emailVerifiedAt: new Date(),
+    },
+  });
+  const client = createClient(app);
+  await client
+    .post('/api/auth/login')
+    .send({ email, password: SIGNED_IN_PASSWORD })
+    .expect(200);
+  return client;
 }
