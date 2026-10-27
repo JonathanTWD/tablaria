@@ -57,9 +57,7 @@
     "notFoundTitle": "No encontramos esta tabla",
     "notFoundDescription": "Puede que se haya borrado o que el enlace no sea correcto.",
     "loadError": "No se pudo cargar la tabla.",
-    "retry": "Reintentar",
-    "recordsTitle": "Registros",
-    "recordsEmpty": "Esta tabla aún no tiene registros."
+    "retry": "Reintentar"
   },
   "columns": {
     "title": "Columnas",

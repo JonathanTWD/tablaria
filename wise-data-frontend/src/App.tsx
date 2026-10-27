@@ -16,6 +16,8 @@ const ResetPasswordPage = lazy(() => import("@/pages/auth/ResetPasswordPage"));
 const DashboardPage = lazy(() => import("@/pages/app/DashboardPage"));
 const SettingsPage = lazy(() => import("@/pages/app/SettingsPage"));
 const TablePage = lazy(() => import("@/pages/app/TablePage"));
+const RecordsPage = lazy(() => import("@/pages/app/table/RecordsPage"));
+const ColumnsPage = lazy(() => import("@/pages/app/table/ColumnsPage"));
 
 const App = () => {
   return (
@@ -37,7 +39,10 @@ const App = () => {
         <Route path="app" element={<RequireAuth />}>
           <Route element={<AppLayout />}>
             <Route index element={<DashboardPage />} />
-            <Route path="tables/:tableId" element={<TablePage />} />
+            <Route path="tables/:tableId" element={<TablePage />}>
+              <Route index element={<RecordsPage />} />
+              <Route path="columns" element={<ColumnsPage />} />
+            </Route>
             <Route path="settings" element={<SettingsPage />} />
           </Route>
         </Route>

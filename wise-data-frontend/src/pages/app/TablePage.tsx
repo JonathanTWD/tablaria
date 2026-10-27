@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Ellipsis, Pencil, Rows3, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { ArrowLeft, Ellipsis, Pencil, Trash2 } from "lucide-react";
+import { Suspense, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useParams } from "react-router";
+import { Link, NavLink, Outlet, useParams } from "react-router";
+import { FullPageLoader } from "@/components/FullPageLoader";
 import { buttonVariants } from "@/components/ui/button-variants";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,7 +14,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ColumnList } from "@/features/columns/ColumnList";
 import { DeleteTableDialog } from "@/features/tables/DeleteTableDialog";
 import { EditTableDialog } from "@/features/tables/EditTableDialog";
 import { tableQuery } from "@/features/tables/queries";
@@ -22,8 +22,9 @@ import { apiErrorMessage } from "@/lib/error-message";
 import { formatRelativeTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
+/** Header and tabs of a table; the records or columns view renders below. */
 export default function TablePage() {
-  const { t, i18n } = useTranslation("tables");
+  const { t, i18n } = useTranslation(["tables", "records"]);
   const { tableId = "" } = useParams();
   const table = useQuery(tableQuery(tableId));
   const [dialog, setDialog] = useState<"edit" | "delete" | null>(null);
@@ -121,17 +122,32 @@ export default function TablePage() {
         </DropdownMenu>
       </div>
 
-      <ColumnList table={data} />
+      <nav aria-label={t("records:tabs.label")} className="mt-6 flex gap-1 border-b border-border">
+        {[
+          { to: "", end: true, label: t("records:tabs.records") },
+          { to: "columns", end: false, label: t("records:tabs.columns") },
+        ].map(({ to, end, label }) => (
+          <NavLink
+            key={label}
+            to={to}
+            end={end}
+            className={({ isActive }) =>
+              cn(
+                "-mb-px border-b-2 px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-ring",
+                isActive
+                  ? "border-primary text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground",
+              )
+            }
+          >
+            {label}
+          </NavLink>
+        ))}
+      </nav>
 
-      <section aria-labelledby="records-title" className="mt-10">
-        <h2 id="records-title" className="text-lg font-semibold tracking-tight">
-          {t("page.recordsTitle")}
-        </h2>
-        <div className="mt-4 flex items-center gap-3 rounded-xl border border-dashed border-border px-6 py-8 text-sm text-muted-foreground">
-          <Rows3 aria-hidden="true" className="size-5 shrink-0" strokeWidth={1.5} />
-          {t("page.recordsEmpty")}
-        </div>
-      </section>
+      <Suspense fallback={<FullPageLoader className="min-h-48" />}>
+        <Outlet context={data} />
+      </Suspense>
 
       <EditTableDialog
         table={data}

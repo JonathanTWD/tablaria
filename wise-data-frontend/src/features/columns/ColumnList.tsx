@@ -1,4 +1,4 @@
-import type { CellValue, TableColumn, TableDetail } from "@wisedata/shared";
+import type { TableColumn, TableDetail } from "@wisedata/shared";
 import { ArrowDown, ArrowUp, Columns3, Ellipsis, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { ColumnDialog } from "./ColumnDialog";
 import { COLUMN_TYPE_ICONS, SELECT_CHIP_CLASSES } from "./column-ui";
 import { DeleteColumnDialog } from "./DeleteColumnDialog";
+import { useCellFormatter } from "./format-value";
 
 const VISIBLE_CHOICES = 4;
 
@@ -49,7 +50,7 @@ export function ColumnList({ table }: { table: TableDetail }) {
   );
 
   return (
-    <section aria-labelledby="columns-title" className="mt-10">
+    <section aria-labelledby="columns-title" className="mt-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 id="columns-title" className="text-lg font-semibold tracking-tight">
@@ -120,7 +121,7 @@ function ColumnRow({
 }) {
   const { t } = useTranslation("tables");
   const Icon = COLUMN_TYPE_ICONS[column.type];
-  const defaultValue = useFormattedValue(column, column.defaultValue);
+  const defaultValue = useCellFormatter()(column, column.defaultValue);
   const details = [
     column.type === "currency"
       ? `${t(`types.${column.type}`)} · ${column.options.currency}`
@@ -201,29 +202,4 @@ function ColumnRow({
       </div>
     </li>
   );
-}
-
-/** A cell value as the user would read it, or null when empty. */
-function useFormattedValue(column: TableColumn, value: CellValue): string | null {
-  const { t, i18n } = useTranslation("tables");
-  if (value === null) {
-    return null;
-  }
-  switch (column.type) {
-    case "boolean":
-      return value ? t("columns.yes") : t("columns.no");
-    case "currency":
-      return new Intl.NumberFormat(i18n.language, {
-        style: "currency",
-        currency: column.options.currency,
-      }).format(Number(value));
-    case "number":
-      return new Intl.NumberFormat(i18n.language).format(Number(value));
-    case "date":
-      return new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium" }).format(
-        new Date(`${String(value)}T00:00:00`),
-      );
-    default:
-      return String(value);
-  }
 }

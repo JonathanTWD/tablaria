@@ -1,0 +1,98 @@
+{
+  "tabs": {
+    "label": "Secciones de la tabla",
+    "records": "Registros",
+    "columns": "Columnas"
+  },
+  "toolbar": {
+    "search": "Buscar registros",
+    "searchPlaceholder": "Buscar en texto y opciones…",
+    "filters": "Filtros",
+    "filtersActive_one": "Filtros ({{count}} activo)",
+    "filtersActive_other": "Filtros ({{count}} activos)",
+    "add": "Nuevo registro"
+  },
+  "table": {
+    "caption": "Registros de {{name}}",
+    "actions": "Acciones",
+    "rowActions": "Acciones del registro {{label}}",
+    "edit": "Editar en formulario",
+    "delete": "Borrar registro",
+    "untitled": "registro sin nombre"
+  },
+  "cell": {
+    "edit": "{{label}}: {{value}}",
+    "empty": "vacío",
+    "label": "{{column}} de {{row}}",
+    "invalidHint": "Ese valor no encaja con la columna. Corrígelo o pulsa Escape para cancelar.",
+    "invalid": "El valor no encaja con la columna «{{column}}»; se ha descartado.",
+    "saveError": "No se pudo guardar el cambio. Se ha restaurado el valor anterior."
+  },
+  "pagination": {
+    "label": "Paginación",
+    "range": "{{from}}–{{to}} de {{total}}",
+    "pageSize": "Por página",
+    "previous": "Página anterior",
+    "next": "Página siguiente",
+    "page": "Página {{page}} de {{pageCount}}"
+  },
+  "empty": {
+    "noColumnsTitle": "Primero, define las columnas",
+    "noColumnsDescription": "Las columnas indican qué datos guarda cada registro.",
+    "noColumnsAction": "Ir a columnas",
+    "title": "Aún no hay registros",
+    "description": "Añade el primero con el botón «Nuevo registro»; luego podrás editar cada celda directamente en la tabla.",
+    "noResultsTitle": "Ningún registro coincide",
+    "noResultsDescription": "Prueba con otra búsqueda o quita algún filtro.",
+    "clear": "Quitar búsqueda y filtros"
+  },
+  "loadError": "No se pudieron cargar los registros.",
+  "retry": "Reintentar",
+  "filters": {
+    "title": "Filtros",
+    "description": "Muestra solo los registros que cumplan todas las condiciones.",
+    "contains": "Contiene",
+    "min": "Desde",
+    "max": "Hasta",
+    "any": "Cualquiera",
+    "yes": "Sí",
+    "no": "No",
+    "apply": "Aplicar filtros",
+    "clear": "Quitar todos",
+    "remove": "Quitar el filtro de {{column}}",
+    "chipContains": "{{column}} contiene «{{value}}»",
+    "chipRange": "{{column}}: {{min}} – {{max}}",
+    "chipMin": "{{column}} ≥ {{min}}",
+    "chipMax": "{{column}} ≤ {{max}}",
+    "chipIs": "{{column}}: {{value}}",
+    "chipIn": "{{column}}: {{values}}"
+  },
+  "dialog": {
+    "createTitle": "Nuevo registro",
+    "editTitle": "Editar registro",
+    "description": "Los campos marcados con * son obligatorios.",
+    "empty": "Sin valor",
+    "createSubmit": "Crear registro",
+    "editSubmit": "Guardar cambios",
+    "created": "Registro creado",
+    "saved": "Registro guardado",
+    "limit": "Esta tabla ya tiene el máximo de 10.000 registros.",
+    "changedColumns": "Las columnas de la tabla han cambiado. Revisa los datos y vuelve a intentarlo.",
+    "errors": {
+      "required": "Este campo es obligatorio.",
+      "text": "Usa como máximo 2000 caracteres.",
+      "number": "Escribe un número, por ejemplo 12 o 3,5.",
+      "currency": "Escribe un importe, por ejemplo 19,99.",
+      "date": "Elige una fecha válida.",
+      "select": "Elige una de las opciones.",
+      "boolean": "Elige Sí o No."
+    }
+  },
+  "delete": {
+    "title": "¿Borrar «{{label}}»?",
+    "description": "El registro se borrará de forma definitiva.",
+    "submit": "Borrar registro",
+    "deleted": "Registro borrado"
+  },
+  "cancel": "Cancelar"
+}
