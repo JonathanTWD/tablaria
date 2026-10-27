@@ -36,6 +36,8 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod --profile mailpit
 
 La web y la API comparten origen: nginx sirve la aplicación y redirige `/api` a la API, así las cookies de sesión funcionan sin configurar CORS.
 
+Las cookies de sesión son `Secure`: funcionan con HTTPS y en `http://localhost`. Para servirlo por HTTP desde otro equipo de tu red, pon `COOKIE_SECURE=false` en `.env.prod`.
+
 ## Desarrollo
 
 Requisitos: Node.js ≥ 22.12, pnpm 10 (`corepack enable`) y Docker.

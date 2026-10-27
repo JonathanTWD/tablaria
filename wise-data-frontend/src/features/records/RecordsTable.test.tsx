@@ -64,7 +64,8 @@ describe("RecordsTable", () => {
     const fetchMock = mockApi(() => page);
     renderWithProviders(<RecordsTable table={table} />, { route: "/app/tables/x" });
 
-    await user.click(await screen.findByRole("button", { name: /Precio/ }));
+    // Exact name: the cells' buttons ("Precio de Taladro: …") contain it too.
+    await user.click(await screen.findByRole("button", { name: "Precio" }));
 
     await waitFor(() =>
       expect(screen.getByTestId("location")).toHaveTextContent(

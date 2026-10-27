@@ -21,6 +21,9 @@ const originList = z
       .min(1),
   );
 
+// Empty counts as unset: Compose passes `KEY=` through when the value is missing.
+const emptyAsUnset = (value: unknown) => (value === '' ? undefined : value);
+
 export const envSchema = z
   .object({
     NODE_ENV: z
@@ -39,10 +42,15 @@ export const envSchema = z
     MAIL_TRANSPORT: z.enum(['smtp', 'resend']).default('smtp'),
     SMTP_HOST: z.string().min(1).default('127.0.0.1'),
     SMTP_PORT: z.coerce.number().int().positive().default(1025),
-    // Empty counts as unset: Compose passes `KEY=` through when the value is missing.
-    RESEND_API_KEY: z.preprocess(
-      (value) => (value === '' ? undefined : value),
-      z.string().min(1).optional(),
+    RESEND_API_KEY: z.preprocess(emptyAsUnset, z.string().min(1).optional()),
+    // Secure session cookies; defaults to on in production. Turn off only to
+    // serve over plain HTTP on a host other than localhost (e.g. a LAN server).
+    COOKIE_SECURE: z.preprocess(
+      emptyAsUnset,
+      z
+        .enum(['true', 'false'])
+        .transform((value) => value === 'true')
+        .optional(),
     ),
   })
   .superRefine((env, ctx) => {

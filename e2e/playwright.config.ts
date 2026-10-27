@@ -1,6 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const BASE_URL = process.env.E2E_BASE_URL ?? "http://localhost:5173";
+// Set it to test an instance that is already running (e.g. the Docker stack).
+const EXTERNAL_URL = process.env.E2E_BASE_URL;
+const BASE_URL = EXTERNAL_URL ?? "http://localhost:5173";
 const isCI = Boolean(process.env.CI);
 
 /**
@@ -22,7 +24,7 @@ export default defineConfig({
     trace: "retain-on-failure",
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
-  webServer: [
+  webServer: EXTERNAL_URL ? undefined : [
     {
       // CI runs the compiled API; locally `nest start` compiles it first.
       command: isCI

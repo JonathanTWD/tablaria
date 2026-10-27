@@ -55,6 +55,7 @@ export class AuthController {
     config: ConfigService<Env, true>,
   ) {
     this.secureCookies =
+      config.get('COOKIE_SECURE', { infer: true }) ??
       config.get('NODE_ENV', { infer: true }) === 'production';
   }
 

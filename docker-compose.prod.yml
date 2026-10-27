@@ -50,6 +50,8 @@ services:
       # nginx (the web service) is the only proxy in front of the API.
       TRUST_PROXY_HOPS: "1"
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?set JWT_ACCESS_SECRET}
+      # Empty means "on in production"; see .env.prod.example before turning it off.
+      COOKIE_SECURE: ${COOKIE_SECURE:-}
       MAIL_TRANSPORT: ${MAIL_TRANSPORT:-smtp}
       MAIL_FROM: ${MAIL_FROM:-WiseData <no-reply@wisedata.local>}
       SMTP_HOST: ${SMTP_HOST:-mailpit}

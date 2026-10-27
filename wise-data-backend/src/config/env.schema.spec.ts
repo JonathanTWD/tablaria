@@ -59,6 +59,19 @@ describe('validateEnv', () => {
     ).toThrow(/RESEND_API_KEY/);
   });
 
+  it('parses COOKIE_SECURE and leaves it unset when empty', () => {
+    expect(validateEnv({ ...validEnv, COOKIE_SECURE: 'false' })).toHaveProperty(
+      'COOKIE_SECURE',
+      false,
+    );
+    expect(validateEnv({ ...validEnv, COOKIE_SECURE: '' }).COOKIE_SECURE).toBe(
+      undefined,
+    );
+    expect(() => validateEnv({ ...validEnv, COOKIE_SECURE: 'yes' })).toThrow(
+      /COOKIE_SECURE/,
+    );
+  });
+
   it('treats an empty RESEND_API_KEY as unset when using SMTP', () => {
     expect(validateEnv({ ...validEnv, RESEND_API_KEY: '' })).not.toHaveProperty(
       'RESEND_API_KEY',
