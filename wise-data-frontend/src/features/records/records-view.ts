@@ -1,9 +1,12 @@
 import {
   DEFAULT_PAGE_SIZE,
+  FILTER_OPERATOR_BY_TYPE,
+  SEARCH_MAX_LENGTH,
   recordFilterSchema,
   recordListQuerySchema,
   type RecordFilter,
   type SortOrder,
+  type TableColumn,
 } from "@wisedata/shared";
 import { useSearchParams } from "react-router";
 import { z } from "zod";
@@ -28,21 +31,22 @@ const DEFAULT_VIEW: RecordsView = {
   filters: [],
 };
 
-const viewSchema = recordListQuerySchema.omit({ filters: true }).extend({
-  search: z.string().default(""),
-});
+const { shape } = recordListQuerySchema;
 
-/** Reads the view from the URL; anything malformed falls back to its default. */
+/** Parses one URL parameter, falling back to its default when missing or malformed. */
+function param<T>(schema: z.ZodType<T>, raw: string | null, fallback: T): T {
+  const result = schema.safeParse(raw ?? undefined);
+  return result.success ? result.data : fallback;
+}
+
+/** Reads the view from the URL; each malformed parameter falls back on its own. */
 export function parseRecordsView(params: URLSearchParams): RecordsView {
-  const view = viewSchema.safeParse({
-    page: params.get("page") ?? undefined,
-    pageSize: params.get("pageSize") ?? undefined,
-    search: params.get("q") ?? undefined,
-    sort: params.get("sort") ?? undefined,
-    order: params.get("order") ?? undefined,
-  });
   return {
-    ...(view.success ? view.data : DEFAULT_VIEW),
+    page: param(shape.page, params.get("page"), DEFAULT_VIEW.page),
+    pageSize: param(shape.pageSize, params.get("pageSize"), DEFAULT_VIEW.pageSize),
+    search: param(z.string().trim().max(SEARCH_MAX_LENGTH), params.get("q"), ""),
+    sort: param(shape.sort, params.get("sort"), undefined),
+    order: param(shape.order, params.get("order"), DEFAULT_VIEW.order),
     filters: parseFilters(params.get("filters")),
   };
 }
@@ -57,6 +61,22 @@ function parseFilters(raw: string | null): RecordFilter[] {
   } catch {
     return [];
   }
+}
+
+/**
+ * Drops the sort and filters that point at columns which no longer exist (or
+ * changed type), so an old link still opens instead of failing with a 400.
+ */
+export function applicableView(view: RecordsView, columns: TableColumn[]): RecordsView {
+  const byId = new Map(columns.map((column) => [column.id, column]));
+  return {
+    ...view,
+    sort: view.sort && byId.has(view.sort) ? view.sort : undefined,
+    filters: view.filters.filter((filter) => {
+      const column = byId.get(filter.columnId);
+      return column !== undefined && FILTER_OPERATOR_BY_TYPE[column.type] === filter.op;
+    }),
+  };
 }
 
 function toSearchParams(view: RecordsView): URLSearchParams {
@@ -74,16 +94,19 @@ function toSearchParams(view: RecordsView): URLSearchParams {
 }
 
 /**
- * The current view and a setter. Any change other than the page itself goes
- * back to page 1, since the old page may no longer exist.
+ * The current view and a setter. Changes merge into the URL as it is when they
+ * apply (not as it was when the caller rendered), so a delayed update such as
+ * the debounced search never undoes a newer one. Any change other than the
+ * page itself goes back to page 1, since the old page may no longer exist.
  */
 export function useRecordsView() {
   const [params, setParams] = useSearchParams();
   const view = parseRecordsView(params);
 
   const update = (patch: Partial<RecordsView>, { replace = false } = {}) => {
-    const next = { ...view, page: 1, ...patch };
-    setParams(toSearchParams(next), { replace });
+    setParams((current) => toSearchParams({ ...parseRecordsView(current), page: 1, ...patch }), {
+      replace,
+    });
   };
 
   return [view, update] as const;

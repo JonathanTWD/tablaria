@@ -20,7 +20,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { toast } from "sonner";
@@ -45,7 +45,7 @@ import { FiltersSheet } from "./FiltersSheet";
 import { RecordDialog } from "./RecordDialog";
 import { RecordsPagination } from "./RecordsPagination";
 import { recordsQuery, useUpdateRecord } from "./queries";
-import { useRecordsView } from "./records-view";
+import { applicableView, useRecordsView } from "./records-view";
 
 // Sorting runs on the server; TanStack Table only tracks which header is active.
 const recordTableFeatures = tableFeatures({ rowSortingFeature });
@@ -60,12 +60,21 @@ interface DialogState {
 
 export function RecordsTable({ table }: { table: TableDetail }) {
   const { t } = useTranslation("records");
-  const [view, setView] = useRecordsView();
+  const [urlView, setView] = useRecordsView();
+  const { columns } = table;
+  const view = applicableView(urlView, columns);
   const records = useQuery(recordsQuery(table.id, view));
   const update = useUpdateRecord(table.id);
   const format = useCellFormatter();
   const [dialog, setDialog] = useState<DialogState>({ kind: null });
-  const { columns } = table;
+
+  // A page past the end (e.g. after deleting its last record) moves to the last one.
+  const lastPage = records.data && Math.max(records.data.meta.pageCount, 1);
+  useEffect(() => {
+    if (lastPage !== undefined && view.page > lastPage) {
+      setView({ page: lastPage }, { replace: true });
+    }
+  }, [lastPage, view.page, setView]);
 
   const sorting: SortingState = view.sort ? [{ id: view.sort, desc: view.order === "desc" }] : [];
   const onSortingChange = (updater: Updater<SortingState>) => {
@@ -147,7 +156,9 @@ export function RecordsTable({ table }: { table: TableDetail }) {
           columns={columns}
           filters={view.filters}
           format={format}
-          onRemove={(filter) => setView({ filters: view.filters.filter((item) => item !== filter) })}
+          onRemove={(columnId) =>
+            setView({ filters: view.filters.filter((filter) => filter.columnId !== columnId) })
+          }
         />
       )}
 
@@ -324,6 +335,15 @@ function SearchField({ initial, onSearch }: { initial: string; onSearch: (search
   const { t } = useTranslation("records");
   const id = useId();
   const [value, setValue] = useState(initial);
+  // Follows resets from outside the field ("clear filters", back button) without
+  // fighting the user's own typing, which reaches the URL trimmed.
+  const [synced, setSynced] = useState(initial);
+  if (initial !== synced) {
+    setSynced(initial);
+    if (initial !== value.trim()) {
+      setValue(initial);
+    }
+  }
   const timer = useRef<number | undefined>(undefined);
 
   return (
@@ -361,7 +381,7 @@ function FilterChips({
   columns: TableColumn[];
   filters: RecordFilter[];
   format: CellFormatter;
-  onRemove: (filter: RecordFilter) => void;
+  onRemove: (columnId: string) => void;
 }) {
   const { t } = useTranslation("records");
 
@@ -402,7 +422,7 @@ function FilterChips({
             <button
               type="button"
               aria-label={t("filters.remove", { column: column.name })}
-              onClick={() => onRemove(filter)}
+              onClick={() => onRemove(filter.columnId)}
               className="flex size-6 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
             >
               <X aria-hidden="true" className="size-3.5" />

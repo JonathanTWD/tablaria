@@ -80,7 +80,12 @@ export function useUpdateRecord(tableId: string) {
         queryClient.setQueryData(queryKey, data);
       }
     },
-    // The edit may move the record out of the current sort or filter.
-    onSettled: () => refreshAfterWrite(queryClient, tableId),
+    // The edit may move the record out of the current sort or filter. Counts
+    // don't change, so the table detail stays; the list shows "last edited".
+    onSettled: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: key }),
+        queryClient.invalidateQueries({ queryKey: tableKeys.list() }),
+      ]),
   });
 }
