@@ -113,7 +113,9 @@ function toFormPath(path: PropertyKey[]): PropertyKey[] {
 /** Validates the form with the same rules the API applies to the column. */
 export const columnFormSchema = z
   .object({
-    name: columnNameSchema,
+    // Checked in superRefine: a failing field here would skip the refinement and
+    // hide the other errors until the name is fixed.
+    name: z.string(),
     type: z.enum(COLUMN_TYPES),
     required: z.boolean(),
     currency: z.string(),
@@ -123,6 +125,9 @@ export const columnFormSchema = z
     defaultValue: z.string(),
   })
   .superRefine((values, ctx) => {
+    if (!columnNameSchema.safeParse(values.name).success) {
+      ctx.addIssue({ code: "custom", path: ["name"], message: "Invalid name" });
+    }
     const result = columnDefinitionSchema.safeParse(toDraft(values));
     for (const issue of result.error?.issues ?? []) {
       if (issue.path[0] !== "name") {

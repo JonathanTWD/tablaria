@@ -83,8 +83,8 @@ export function ColumnDialog({ open, onOpenChange, column, ...props }: ColumnDia
             {column ? column.name : t("columns.description")}
           </DialogDescription>
         </DialogHeader>
-        {/* Mounted only while open, so every opening starts from fresh values. */}
-        {open && <ColumnForm column={column} onDone={() => onOpenChange(false)} {...props} />}
+        {/* The popup unmounts when closed, so every opening starts from fresh values. */}
+        <ColumnForm column={column} onDone={() => onOpenChange(false)} {...props} />
       </DialogContent>
     </Dialog>
   );

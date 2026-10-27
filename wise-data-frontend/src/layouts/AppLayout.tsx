@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { House, Menu, Plus, Settings, Table2 } from "lucide-react";
-import { Suspense, useState } from "react";
+import { Suspense, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, NavLink, Outlet } from "react-router";
 import { FullPageLoader } from "@/components/FullPageLoader";
@@ -47,12 +47,14 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
 function TablesNav({ onNavigate }: { onNavigate?: () => void }) {
   const { t } = useTranslation("tables");
   const tables = useQuery(tablesQuery);
+  // The sidebar renders twice on small screens (hidden aside + menu sheet).
+  const labelId = useId();
 
   return (
-    <nav aria-labelledby="sidebar-tables" className="flex min-h-0 flex-1 flex-col">
+    <nav aria-labelledby={labelId} className="flex min-h-0 flex-1 flex-col">
       <div className="flex items-center justify-between pr-1 pl-2.5">
         {/* Not a heading: it would precede the page's h1 in the outline. */}
-        <p id="sidebar-tables" className="text-xs font-medium text-muted-foreground">
+        <p id={labelId} className="text-xs font-medium text-muted-foreground">
           {t("sidebar.title")}
         </p>
         <CreateTableDialog

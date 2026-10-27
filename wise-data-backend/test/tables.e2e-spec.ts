@@ -391,6 +391,46 @@ describe('Tables and columns (e2e)', () => {
       ]);
     });
 
+    it('keeps select settings on a partial change and moves the default with its choice', async () => {
+      const client = await createSignedInClient(app);
+      const table = await createTable(client);
+      const status = await addColumn(client, table.id, {
+        name: 'Estado',
+        type: 'select',
+        options: STATUS_OPTIONS,
+        defaultValue: 'En uso',
+      });
+      const url = `/api/tables/${table.id}/columns/${status.id}`;
+
+      const renamed = await client
+        .patch(url)
+        .send({ name: 'Situación' })
+        .expect(200);
+      expect((renamed.body as UpdateColumnResponse).column).toMatchObject({
+        options: STATUS_OPTIONS,
+        defaultValue: 'En uso',
+      });
+
+      const [inUse, ...others] = STATUS_OPTIONS.choices;
+      const relabeled = await client
+        .patch(url)
+        .send({
+          options: { choices: [{ ...inUse, label: 'Activo' }, ...others] },
+        })
+        .expect(200);
+      expect((relabeled.body as UpdateColumnResponse).column.defaultValue).toBe(
+        'Activo',
+      );
+
+      const removed = await client
+        .patch(url)
+        .send({ options: { choices: others } })
+        .expect(200);
+      expect(
+        (removed.body as UpdateColumnResponse).column.defaultValue,
+      ).toBeNull();
+    });
+
     it('renames a column without touching its values', async () => {
       const client = await createSignedInClient(app);
       const table = await createTable(client);

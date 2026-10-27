@@ -10,6 +10,7 @@ import {
   type ColumnDefinition,
   columnDefinitionSchema,
   MAX_COLUMNS_PER_TABLE,
+  selectOptionsSchema,
   type TableColumn,
   type UpdateColumnInput,
   type UpdateColumnResponse,
@@ -179,8 +180,32 @@ function mergeColumnPatch(
     required: patch.required ?? current.required,
     type: patch.type ?? current.type,
     options: keep('options', current.options),
-    defaultValue: keep('defaultValue', current.defaultValue),
+    defaultValue: keep('defaultValue', followDefaultChoice(current, patch)),
   };
+}
+
+/**
+ * A select default follows its choice when new choices are sent without a
+ * default: renamed with it, or cleared if the choice was removed.
+ */
+function followDefaultChoice(
+  current: ColumnDefinition,
+  patch: UpdateColumnInput,
+): CellValue {
+  if (current.type !== 'select' || current.defaultValue === null) {
+    return current.defaultValue;
+  }
+  const options = selectOptionsSchema.safeParse(patch.options);
+  if (!options.success) {
+    // Missing options keep the current ones; invalid ones fail validation anyway.
+    return current.defaultValue;
+  }
+  const choice = current.options.choices.find(
+    ({ label }) => label === current.defaultValue,
+  );
+  return (
+    options.data.choices.find(({ id }) => id === choice?.id)?.label ?? null
+  );
 }
 
 /** Old label → new label for select choices renamed in this change. */

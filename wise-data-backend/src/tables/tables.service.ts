@@ -56,31 +56,32 @@ export class TablesService {
   }
 
   async create(ownerId: string, input: CreateTable): Promise<TableDetail> {
-    const owned = await this.prisma.inventoryTable.count({
-      where: { ownerId },
-    });
-    if (owned >= MAX_TABLES_PER_USER) {
-      throw new UnprocessableEntityException('Table limit reached');
-    }
-
     const columns = input.templateId
       ? TABLE_TEMPLATES[input.templateId].map((column) =>
           columnDefinitionSchema.parse(column),
         )
       : [];
 
-    const table = await this.prisma.inventoryTable.create({
-      data: {
-        ownerId,
-        name: input.name,
-        description: input.description ?? null,
-        columns: {
-          create: columns.map((column, position) => ({
-            ...toColumnData(column),
-            position,
-          })),
+    const table = await this.prisma.$transaction(async (tx) => {
+      // Locking the owner serializes concurrent creates, so the limit holds.
+      await tx.$executeRaw`SELECT 1 FROM users WHERE id = ${ownerId}::uuid FOR UPDATE`;
+      const owned = await tx.inventoryTable.count({ where: { ownerId } });
+      if (owned >= MAX_TABLES_PER_USER) {
+        throw new UnprocessableEntityException('Table limit reached');
+      }
+      return tx.inventoryTable.create({
+        data: {
+          ownerId,
+          name: input.name,
+          description: input.description ?? null,
+          columns: {
+            create: columns.map((column, position) => ({
+              ...toColumnData(column),
+              position,
+            })),
+          },
         },
-      },
+      });
     });
     return this.get(ownerId, table.id);
   }

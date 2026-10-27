@@ -67,14 +67,12 @@ export function CreateTableDialog({
           <DialogTitle>{t("create.title")}</DialogTitle>
           <DialogDescription>{t("create.description")}</DialogDescription>
         </DialogHeader>
-        {open && (
-          <CreateTableForm
-            onCreated={() => {
-              setOpen(false);
-              onCreated?.();
-            }}
-          />
-        )}
+        <CreateTableForm
+          onCreated={() => {
+            setOpen(false);
+            onCreated?.();
+          }}
+        />
       </DialogContent>
     </Dialog>
   );
@@ -108,8 +106,9 @@ function CreateTableForm({ onCreated }: { onCreated: () => void }) {
       {
         onSuccess: (table) => {
           toast.success(t("create.created", { name: table.name }));
-          onCreated();
+          // Navigate first: onCreated may close the mobile menu that holds this dialog.
           void navigate(`/app/tables/${table.id}`);
+          onCreated();
         },
       },
     ),

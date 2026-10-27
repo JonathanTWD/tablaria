@@ -50,7 +50,7 @@ export function EditTableDialog({ table, open, onOpenChange }: EditTableDialogPr
           <DialogTitle>{t("edit.title")}</DialogTitle>
           <DialogDescription className="sr-only">{table.name}</DialogDescription>
         </DialogHeader>
-        {open && <EditTableForm table={table} onDone={() => onOpenChange(false)} />}
+        <EditTableForm table={table} onDone={() => onOpenChange(false)} />
       </DialogContent>
     </Dialog>
   );

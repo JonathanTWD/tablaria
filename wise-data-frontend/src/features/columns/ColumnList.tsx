@@ -19,14 +19,15 @@ import { DeleteColumnDialog } from "./DeleteColumnDialog";
 
 const VISIBLE_CHOICES = 4;
 
-type DialogState =
-  | { kind: "closed" }
-  | { kind: "create" }
-  | { kind: "edit" | "delete"; column: TableColumn };
+/** The column stays set while a dialog closes, so its content doesn't change mid-animation. */
+interface DialogState {
+  kind: "create" | "edit" | "delete" | null;
+  column?: TableColumn;
+}
 
 export function ColumnList({ table }: { table: TableDetail }) {
   const { t } = useTranslation("tables");
-  const [dialog, setDialog] = useState<DialogState>({ kind: "closed" });
+  const [dialog, setDialog] = useState<DialogState>({ kind: null });
   const [announcement, setAnnouncement] = useState("");
   const reorder = useReorderColumns(table.id);
   const { columns } = table;
@@ -39,7 +40,7 @@ export function ColumnList({ table }: { table: TableDetail }) {
     reorder.mutate(ids, { onError: () => toast.error(t("columns.reorderError")) });
   };
 
-  const close = (open: boolean) => !open && setDialog({ kind: "closed" });
+  const close = (open: boolean) => !open && setDialog((current) => ({ ...current, kind: null }));
   const addButton = (
     <Button className="h-9" onClick={() => setDialog({ kind: "create" })}>
       <Plus aria-hidden="true" />
@@ -91,11 +92,11 @@ export function ColumnList({ table }: { table: TableDetail }) {
       <ColumnDialog
         tableId={table.id}
         recordCount={table.recordCount}
-        column={dialog.kind === "edit" ? dialog.column : undefined}
+        column={dialog.kind === "create" ? undefined : dialog.column}
         open={dialog.kind === "create" || dialog.kind === "edit"}
         onOpenChange={close}
       />
-      {dialog.kind === "delete" && (
+      {dialog.kind === "delete" && dialog.column && (
         <DeleteColumnDialog tableId={table.id} column={dialog.column} onOpenChange={close} />
       )}
     </section>
