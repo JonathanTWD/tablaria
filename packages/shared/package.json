@@ -27,7 +27,7 @@
     "typecheck": "tsc -p tsconfig.esm.json --noEmit"
   },
   "devDependencies": {
-    "typescript": "~6.0.2"
+    "typescript": "~7.0.2"
   },
   "dependencies": {
     "zod": "^4.6.6"
