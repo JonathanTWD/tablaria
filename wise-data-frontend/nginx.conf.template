@@ -3,12 +3,17 @@ server {
     listen 8080;
     server_name _;
     root /usr/share/nginx/html;
+    # Don't advertise the nginx version in headers or error pages.
+    server_tokens off;
 
     # Declared once here: a location with its own add_header would drop these,
     # so caching below uses `expires` instead.
     add_header X-Content-Type-Options "nosniff" always;
     add_header X-Frame-Options "DENY" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    # Scripts, data and fonts only from this origin. Inline styles stay allowed:
+    # React style props and the UI library's positioning rely on them.
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" always;
 
     location /api/ {
         proxy_pass ${API_UPSTREAM};

@@ -1,6 +1,7 @@
 import {
   ConflictException,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -25,6 +26,8 @@ export interface AccessTokenPayload {
  */
 @Injectable()
 export class SessionService {
+  private readonly logger = new Logger(SessionService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
@@ -54,7 +57,7 @@ export class SessionService {
       data: { revokedAt: now, replacedById: successorId },
     });
     if (count === 0) {
-      await this.handleRevokedToken(stored.id, stored.familyId, now);
+      await this.handleRevokedToken(stored, now);
     }
 
     const tokens = await this.issue(
@@ -110,12 +113,11 @@ export class SessionService {
    * and keep the session. Older reuse, or reuse after logout/reset, is treated as theft.
    */
   private async handleRevokedToken(
-    tokenId: string,
-    familyId: string,
+    stored: { id: string; familyId: string; userId: string },
     now: Date,
   ): Promise<never> {
     const current = await this.prisma.refreshToken.findUnique({
-      where: { id: tokenId },
+      where: { id: stored.id },
       select: { revokedAt: true, replacedById: true },
     });
     const rotatedAt = current?.replacedById ? current.revokedAt?.getTime() : 0;
@@ -123,7 +125,11 @@ export class SessionService {
       throw new RefreshSupersededException();
     }
 
-    await this.revokeFamily(familyId);
+    // Security event: a stolen token, or a client replaying an old one.
+    this.logger.warn(
+      `Refresh token reuse for user ${stored.userId}; session family ${stored.familyId} revoked`,
+    );
+    await this.revokeFamily(stored.familyId);
     throw invalidSession();
   }
 
