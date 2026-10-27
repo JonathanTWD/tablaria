@@ -9,6 +9,7 @@ import { validateEnv } from './config/env.schema';
 import { DatabaseModule } from './database/database.module';
 import { HealthModule } from './health/health.module';
 import { MailModule } from './mail/mail.module';
+import { RecordsModule } from './records/records.module';
 import { TablesModule } from './tables/tables.module';
 
 @Module({
@@ -21,6 +22,7 @@ import { TablesModule } from './tables/tables.module';
     HealthModule,
     TablesModule,
     ColumnsModule,
+    RecordsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
