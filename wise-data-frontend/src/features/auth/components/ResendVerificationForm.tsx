@@ -9,9 +9,9 @@ import { Input } from "@/components/ui/input";
 import { apiErrorMessage } from "@/lib/error-message";
 import { authApi } from "../api";
 import { emailErrorMessage } from "../field-errors";
-import { FormAlert } from "./FormAlert";
-import { FormField } from "./FormField";
-import { SubmitButton } from "./SubmitButton";
+import { FormAlert } from "@/components/form/FormAlert";
+import { FormField } from "@/components/form/FormField";
+import { SubmitButton } from "@/components/form/SubmitButton";
 
 export function ResendVerificationForm() {
   const { t } = useTranslation("auth");
