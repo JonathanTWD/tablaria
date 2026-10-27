@@ -1,0 +1,30 @@
+# Rendered at start-up by the nginx image; ${API_UPSTREAM} comes from the environment.
+server {
+    listen 8080;
+    server_name _;
+    root /usr/share/nginx/html;
+
+    # Declared once here: a location with its own add_header would drop these,
+    # so caching below uses `expires` instead.
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    location /api/ {
+        proxy_pass ${API_UPSTREAM};
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Vite fingerprints these file names, so they can be cached for a year.
+    location /assets/ {
+        expires 1y;
+    }
+
+    # Client-side routes all serve the app shell, which is always revalidated.
+    location / {
+        try_files $uri /index.html;
+        expires -1;
+    }
+}

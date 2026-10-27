@@ -4,3 +4,9 @@ node_modules
 !.env.example
 *.tsbuildinfo
 .claude/
+
+# Playwright
+e2e/test-results/
+e2e/playwright-report/
+e2e/blob-report/
+!.env.prod.example

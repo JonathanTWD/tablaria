@@ -10,11 +10,11 @@ La especificación completa del MVP está en [MVP_PROMPT.md](MVP_PROMPT.md).
 - [x] **Fase 3 — Frontend base**: layouts y rutas, i18n, tema claro/oscuro, cliente API con TanStack Query, páginas de auth y landing completa.
 - [x] **Fase 4 — Tablas y columnas**: CRUD, plantillas, reordenar, cambio de tipo y dashboard.
 - [x] **Fase 5 — Registros**: CRUD, búsqueda, filtros, orden y paginación en servidor, edición inline y en diálogo.
-- [ ] **Fase 6 — Calidad y entrega**: tests de frontend, Playwright, GitHub Actions, Docker de producción y documentación final.
+- [x] **Fase 6 — Calidad y entrega**: tests de frontend, Playwright, GitHub Actions, Docker de producción y documentación final.
 
 ## Después del MVP
 
-- **Despliegue (fase 7)**: candidato gratuito con frontend en Render Static Site (rewrite `/api/*` hacia el backend), backend en Render Web Service, PostgreSQL en Neon y email con la API de Resend.
+- **Despliegue (fase 7)**: demo pública como pieza principal del portfolio, con un modo demo para entrar sin registrarse y con datos de ejemplo. Candidato gratuito: Render (frontend y API) más PostgreSQL en Neon y email con la API de Resend. El `docker-compose.prod.yml` sigue siendo la vía para ejecutarlo en local.
 ### Colaboración (en este orden)
 
 1. **Tablas compartidas**: invitaciones, roles por tabla (lectura/edición) y ownership ampliado en el backend.
@@ -24,10 +24,18 @@ La especificación completa del MVP está en [MVP_PROMPT.md](MVP_PROMPT.md).
 
 > Preparación durante el MVP: todas las escrituras de registros pasan por un único servicio del backend, para que emitir eventos más adelante sea un único punto de enganche.
 
+### Prioridades tras el MVP
+
+1. **Exportar** a CSV o Excel, respetando la vista actual (búsqueda y filtros).
+2. **Alertas de stock bajo** (umbral por columna numérica) y **gráficos** en el dashboard.
+3. **Importar** CSV o Excel con un asistente paso a paso: subir el archivo, indicar el formato, emparejar columnas, revisar las opciones nuevas y validar antes de importar. Usará la misma conversión y validación que la API. Se importan formatos neutros (CSV, Excel, JSON), no SQL de cada motor.
+4. **Preguntas sobre los datos con IA**: el modelo consulta la API mediante herramientas (filtros validados y un endpoint de agregaciones), nunca con SQL libre. Las herramientas solo leen.
+
 ### Otras
 
-- Import/export CSV.
-- Más tipos de columna.
-- Historial de actividad.
-- Notificaciones.
-- Gestión de inventario asistida por IA.
+- Integridad: columnas de valor único (SKU, nº de serie) y tablas bloqueadas o archivadas de solo lectura.
+- Tipos de columna: selección múltiple, imágenes y adjuntos, columnas calculadas, relaciones entre tablas.
+- Inventario: movimientos de stock (entradas y salidas con histórico), códigos de barras y QR.
+- Productividad: vistas guardadas, edición en lote, navegación con teclado, deshacer, papelera recuperable.
+- Cuenta: cambiar email y contraseña, borrar la cuenta, cerrar sesión en todos los dispositivos.
+- Historial de actividad, notificaciones, enlaces públicos de solo lectura, API pública con webhooks, inglés y PWA.
