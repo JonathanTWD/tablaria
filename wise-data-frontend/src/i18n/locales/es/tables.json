@@ -1,0 +1,152 @@
+{
+  "count": {
+    "columns_one": "{{count}} columna",
+    "columns_other": "{{count}} columnas",
+    "records_one": "{{count}} registro",
+    "records_other": "{{count}} registros"
+  },
+  "edited": "Editada {{time}}",
+  "templates": {
+    "blank": {
+      "name": "Tabla vacía",
+      "description": "Empieza desde cero y añade tus propias columnas."
+    },
+    "basic-inventory": {
+      "name": "Inventario básico",
+      "description": "Producto, SKU, cantidad, ubicación y última revisión."
+    },
+    "product-catalog": {
+      "name": "Catálogo de productos",
+      "description": "Referencia, categoría, precio, estado y destacados."
+    },
+    "assets": {
+      "name": "Equipos y activos",
+      "description": "Nº de serie, estado, a quién está asignado y su valor."
+    }
+  },
+  "create": {
+    "open": "Nueva tabla",
+    "title": "Nueva tabla",
+    "description": "Elige cómo empezar. Podrás cambiar las columnas cuando quieras.",
+    "template": "Punto de partida",
+    "name": "Nombre de la tabla",
+    "submit": "Crear tabla",
+    "created": "Tabla «{{name}}» creada",
+    "limit": "Has llegado al máximo de 100 tablas. Borra alguna que ya no uses para crear otra."
+  },
+  "edit": {
+    "open": "Editar nombre y descripción",
+    "title": "Editar tabla",
+    "name": "Nombre",
+    "description": "Descripción",
+    "descriptionHint": "Opcional. Para qué sirve la tabla o quién la usa.",
+    "submit": "Guardar cambios",
+    "saved": "Cambios guardados"
+  },
+  "delete": {
+    "open": "Borrar tabla",
+    "title": "¿Borrar «{{name}}»?",
+    "description": "Se borrarán la tabla, sus columnas y todos sus registros. No se puede deshacer.",
+    "confirmLabel": "Escribe «{{name}}» para confirmar",
+    "submit": "Borrar tabla",
+    "deleted": "Tabla «{{name}}» borrada"
+  },
+  "page": {
+    "back": "Inicio",
+    "actions": "Acciones de la tabla",
+    "notFoundTitle": "No encontramos esta tabla",
+    "notFoundDescription": "Puede que se haya borrado o que el enlace no sea correcto.",
+    "loadError": "No se pudo cargar la tabla.",
+    "retry": "Reintentar"
+  },
+  "columns": {
+    "title": "Columnas",
+    "description": "Define qué datos guarda cada registro y en qué orden se muestran.",
+    "add": "Añadir columna",
+    "emptyTitle": "Esta tabla aún no tiene columnas",
+    "emptyDescription": "Añade la primera para empezar a guardar datos: nombre, cantidad, precio, fecha…",
+    "required": "Obligatoria",
+    "default": "Por defecto: {{value}}",
+    "moveUp": "Subir «{{name}}»",
+    "moveDown": "Bajar «{{name}}»",
+    "options": "Opciones de «{{name}}»",
+    "edit": "Editar columna",
+    "delete": "Borrar columna",
+    "moved": "«{{name}}» está ahora en la posición {{position}}",
+    "reorderError": "No se pudo cambiar el orden. Inténtalo de nuevo.",
+    "deleteTitle": "¿Borrar la columna «{{name}}»?",
+    "deleteDescription": "Se borrarán también sus valores en todos los registros. No se puede deshacer.",
+    "deleted": "Columna «{{name}}» borrada",
+    "yes": "Sí",
+    "no": "No"
+  },
+  "types": {
+    "text": "Texto",
+    "number": "Número",
+    "date": "Fecha",
+    "boolean": "Sí / No",
+    "select": "Lista de opciones",
+    "currency": "Precio"
+  },
+  "typeHints": {
+    "text": "Nombres, referencias, notas…",
+    "number": "Cantidades, medidas, stock…",
+    "date": "Revisiones, caducidades, compras…",
+    "boolean": "Activo, revisado, en oferta…",
+    "select": "Estado, categoría… con colores",
+    "currency": "Importes en la moneda que elijas"
+  },
+  "colors": {
+    "gray": "Gris",
+    "red": "Rojo",
+    "orange": "Naranja",
+    "amber": "Ámbar",
+    "green": "Verde",
+    "teal": "Turquesa",
+    "blue": "Azul",
+    "indigo": "Índigo",
+    "purple": "Morado",
+    "pink": "Rosa"
+  },
+  "columnForm": {
+    "createTitle": "Nueva columna",
+    "editTitle": "Editar columna",
+    "name": "Nombre",
+    "type": "Tipo",
+    "currency": "Moneda",
+    "choices": "Opciones",
+    "choiceLabel": "Opción {{index}}",
+    "choiceColor": "Color de la opción {{index}}",
+    "removeChoice": "Quitar la opción {{index}}",
+    "addChoice": "Añadir opción",
+    "required": "Obligatoria",
+    "requiredHint": "Cada registro tendrá que rellenar esta columna.",
+    "defaultValue": "Valor por defecto",
+    "defaultValueHint": "Se usa al crear registros nuevos y se rellena en los que ya existen al añadir la columna.",
+    "noDefault": "Sin valor por defecto",
+    "typeChangeWarning": "Al cambiar el tipo se convertirán los valores guardados. Los que no encajen se quedarán vacíos.",
+    "createSubmit": "Añadir columna",
+    "editSubmit": "Guardar cambios",
+    "created": "Columna «{{name}}» añadida",
+    "saved": "Columna guardada",
+    "cleared_one": "Columna guardada. {{count}} valor no se pudo convertir y se ha vaciado.",
+    "cleared_other": "Columna guardada. {{count}} valores no se pudieron convertir y se han vaciado.",
+    "limit": "Esta tabla ya tiene el máximo de 50 columnas.",
+    "errors": {
+      "name": "Escribe un nombre de hasta 60 caracteres.",
+      "nameTaken": "Ya hay una columna con ese nombre en esta tabla.",
+      "choices": "Añade al menos una opción (máximo 50).",
+      "choiceLabel": "Escribe la opción (hasta 50 caracteres) sin repetir otra.",
+      "defaultValue": "Este valor no encaja con el tipo de la columna."
+    }
+  },
+  "validation": {
+    "tableName": "Escribe un nombre de hasta 80 caracteres.",
+    "description": "Usa como máximo 500 caracteres."
+  },
+  "sidebar": {
+    "title": "Tablas",
+    "loadError": "No se pudieron cargar las tablas."
+  },
+  "cancel": "Cancelar"
+}

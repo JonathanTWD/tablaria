@@ -2,3 +2,4 @@ packages:
   - wise-data-frontend
   - wise-data-backend
   - packages/*
+  - e2e

@@ -1,0 +1,424 @@
+{
+  "nav": {
+    "label": "Navegación principal",
+    "howItWorks": "Cómo funciona",
+    "useCases": "Casos de uso",
+    "faq": "Preguntas",
+    "login": "Entrar",
+    "signup": "Crear cuenta",
+    "openApp": "Ir a mi cuenta"
+  },
+  "hero": {
+    "title": "Tu inventario, en tablas hechas a tu medida.",
+    "description": "Crea las columnas que necesita tu negocio y encuentra cualquier producto en segundos. Sin fórmulas ni hojas que se rompen.",
+    "primary": "Crear cuenta gratis",
+    "secondary": "Prueba la tabla",
+    "free": "Gratis, sin tarjeta y sin instalar nada."
+  },
+  "demo": {
+    "label": "Tabla de ejemplo: {{name}}",
+    "hint": "Haz clic en un número para cambiarlo. Ordena con los encabezados.",
+    "search": "Buscar en la tabla",
+    "searchPlaceholder": "Buscar…",
+    "all": "Todas",
+    "filterBy": "Filtrar por {{column}}",
+    "results": "{{count}} de {{total}} filas",
+    "noResults": "Ninguna fila coincide con «{{query}}».",
+    "reset": "Restablecer ejemplo",
+    "edit": "Cambiar {{column}} de {{row}}",
+    "outOfStock": "Sin stock",
+    "lowStock": "Quedan pocas",
+    "currency": "EUR",
+    "cases": {
+      "shop": {
+        "name": "Ferretería López",
+        "lowStock": 20,
+        "columns": [
+          {
+            "id": "product",
+            "label": "Producto",
+            "type": "text"
+          },
+          {
+            "id": "category",
+            "label": "Categoría",
+            "type": "select",
+            "secondary": true
+          },
+          {
+            "id": "stock",
+            "label": "Stock",
+            "type": "number",
+            "stock": true
+          },
+          {
+            "id": "price",
+            "label": "Precio",
+            "type": "currency"
+          }
+        ],
+        "rows": [
+          {
+            "product": "Tornillo hexagonal M8",
+            "category": "Ferretería",
+            "stock": 1240,
+            "price": 0.12
+          },
+          {
+            "product": "Cinta de embalar 48 mm",
+            "category": "Embalaje",
+            "stock": 86,
+            "price": 2.35
+          },
+          {
+            "product": "Guantes de nitrilo, talla M",
+            "category": "Protección",
+            "stock": 12,
+            "price": 8.9
+          },
+          {
+            "product": "Etiquetas térmicas 100 × 150",
+            "category": "Envíos",
+            "stock": 0,
+            "price": 14.5
+          },
+          {
+            "product": "Brida de nailon 200 mm",
+            "category": "Ferretería",
+            "stock": 530,
+            "price": 0.05
+          },
+          {
+            "product": "Caja de cartón doble canal",
+            "category": "Embalaje",
+            "stock": 42,
+            "price": 1.8
+          },
+          {
+            "product": "Gafas de protección",
+            "category": "Protección",
+            "stock": 7,
+            "price": 6.4
+          }
+        ]
+      },
+      "workshop": {
+        "name": "Taller Mecánico Ruiz",
+        "lowStock": 2,
+        "columns": [
+          {
+            "id": "tool",
+            "label": "Herramienta",
+            "type": "text"
+          },
+          {
+            "id": "status",
+            "label": "Estado",
+            "type": "select"
+          },
+          {
+            "id": "units",
+            "label": "Unidades",
+            "type": "number",
+            "stock": true
+          },
+          {
+            "id": "checked",
+            "label": "Última revisión",
+            "type": "date",
+            "secondary": true
+          }
+        ],
+        "rows": [
+          {
+            "tool": "Llave dinamométrica 1/2\"",
+            "status": "Disponible",
+            "units": 3,
+            "checked": "2026-09-14"
+          },
+          {
+            "tool": "Gato hidráulico 3 t",
+            "status": "En uso",
+            "units": 1,
+            "checked": "2026-08-02"
+          },
+          {
+            "tool": "Juego de vasos 46 piezas",
+            "status": "Disponible",
+            "units": 4,
+            "checked": "2026-10-01"
+          },
+          {
+            "tool": "Multímetro digital",
+            "status": "En reparación",
+            "units": 0,
+            "checked": "2026-06-21"
+          },
+          {
+            "tool": "Compresor 50 L",
+            "status": "Disponible",
+            "units": 2,
+            "checked": "2026-07-30"
+          },
+          {
+            "tool": "Elevador de motor",
+            "status": "En uso",
+            "units": 1,
+            "checked": "2026-05-11"
+          }
+        ]
+      },
+      "warehouse": {
+        "name": "Almacén central",
+        "lowStock": 50,
+        "columns": [
+          {
+            "id": "sku",
+            "label": "SKU",
+            "type": "text",
+            "secondary": true
+          },
+          {
+            "id": "product",
+            "label": "Producto",
+            "type": "text"
+          },
+          {
+            "id": "aisle",
+            "label": "Pasillo",
+            "type": "select"
+          },
+          {
+            "id": "stock",
+            "label": "Stock",
+            "type": "number",
+            "stock": true
+          }
+        ],
+        "rows": [
+          {
+            "sku": "A-03-12",
+            "product": "Palé europeo 1200 × 800",
+            "aisle": "Pasillo A",
+            "stock": 340
+          },
+          {
+            "sku": "A-05-02",
+            "product": "Film estirable 23 µm",
+            "aisle": "Pasillo A",
+            "stock": 48
+          },
+          {
+            "sku": "B-01-07",
+            "product": "Caja plegable 60 × 40",
+            "aisle": "Pasillo B",
+            "stock": 1210
+          },
+          {
+            "sku": "B-04-11",
+            "product": "Precinto con logo",
+            "aisle": "Pasillo B",
+            "stock": 0
+          },
+          {
+            "sku": "C-02-03",
+            "product": "Saco rafia 50 kg",
+            "aisle": "Pasillo C",
+            "stock": 95
+          },
+          {
+            "sku": "C-06-09",
+            "product": "Cantonera de cartón",
+            "aisle": "Pasillo C",
+            "stock": 23
+          }
+        ]
+      },
+      "office": {
+        "name": "Material de oficina",
+        "lowStock": 5,
+        "columns": [
+          {
+            "id": "item",
+            "label": "Material",
+            "type": "text"
+          },
+          {
+            "id": "team",
+            "label": "Departamento",
+            "type": "select"
+          },
+          {
+            "id": "quantity",
+            "label": "Cantidad",
+            "type": "number",
+            "stock": true
+          },
+          {
+            "id": "ordered",
+            "label": "Último pedido",
+            "type": "date",
+            "secondary": true
+          }
+        ],
+        "rows": [
+          {
+            "item": "Paquete de folios A4",
+            "team": "Administración",
+            "quantity": 24,
+            "ordered": "2026-10-06"
+          },
+          {
+            "item": "Tóner impresora",
+            "team": "Administración",
+            "quantity": 2,
+            "ordered": "2026-08-19"
+          },
+          {
+            "item": "Portátil de préstamo",
+            "team": "Soporte",
+            "quantity": 3,
+            "ordered": "2026-03-10"
+          },
+          {
+            "item": "Auriculares con micro",
+            "team": "Atención al cliente",
+            "quantity": 9,
+            "ordered": "2026-09-02"
+          },
+          {
+            "item": "Cable HDMI 2 m",
+            "team": "Soporte",
+            "quantity": 0,
+            "ordered": "2026-07-15"
+          },
+          {
+            "item": "Libreta de notas",
+            "team": "Atención al cliente",
+            "quantity": 31,
+            "ordered": "2026-09-28"
+          }
+        ]
+      }
+    }
+  },
+  "howItWorks": {
+    "title": "De la hoja de cálculo a una tabla que no se rompe",
+    "description": "Tres pasos y tu inventario está ordenado.",
+    "steps": {
+      "create": {
+        "title": "Crea una tabla",
+        "description": "Una para cada almacén, tienda o lo que gestiones. Empieza en blanco o desde una plantilla.",
+        "example": "Almacén central"
+      },
+      "columns": {
+        "title": "Define tus columnas",
+        "description": "Elige el tipo de cada una y WiseData no dejará escribir una fecha donde va un precio."
+      },
+      "find": {
+        "title": "Encuentra lo que buscas",
+        "description": "Busca, filtra y ordena miles de filas. Lo que falta se ve a la primera."
+      }
+    },
+    "types": {
+      "text": "Texto",
+      "number": "Número",
+      "date": "Fecha",
+      "boolean": "Sí / no",
+      "select": "Lista de opciones",
+      "currency": "Precio"
+    },
+    "filterExample": {
+      "query": "guantes",
+      "chip": "Protección",
+      "result": "2 resultados"
+    }
+  },
+  "comparison": {
+    "title": "Lo que una hoja de cálculo no hace por ti",
+    "caption": "Comparativa entre una hoja de cálculo y WiseData",
+    "aspect": "Qué necesitas",
+    "spreadsheet": "En una hoja de cálculo",
+    "wisedata": "En WiseData",
+    "rows": {
+      "types": {
+        "aspect": "Datos correctos",
+        "spreadsheet": "Cualquier celda acepta cualquier cosa: «12 uds» en una columna de números.",
+        "wisedata": "Cada columna tiene un tipo y rechaza lo que no encaja."
+      },
+      "search": {
+        "aspect": "Encontrar un producto",
+        "spreadsheet": "Ctrl + F y desplazarte hasta dar con él.",
+        "wisedata": "Busca, filtra por categoría y ordena en un clic."
+      },
+      "tables": {
+        "aspect": "Varios inventarios",
+        "spreadsheet": "Pestañas y copias con nombres como «stock_final_v3».",
+        "wisedata": "Una tabla por almacén, todas en el mismo sitio."
+      },
+      "access": {
+        "aspect": "Acceso",
+        "spreadsheet": "El archivo vive en un ordenador o en un adjunto.",
+        "wisedata": "Desde el navegador, en el ordenador o en el móvil."
+      }
+    }
+  },
+  "useCases": {
+    "title": "Hecho para inventarios reales",
+    "description": "Cambia de negocio y mira cómo se adapta la misma tabla.",
+    "label": "Elige un tipo de negocio",
+    "cases": {
+      "shop": {
+        "tab": "Tienda",
+        "description": "Productos, precios y stock al día, con aviso cuando algo se está acabando."
+      },
+      "workshop": {
+        "tab": "Taller",
+        "description": "Qué herramienta está libre, cuál está en reparación y cuándo se revisó por última vez."
+      },
+      "warehouse": {
+        "tab": "Almacén",
+        "description": "Cada SKU con su pasillo y su stock, para encontrarlo sin recorrer todas las estanterías."
+      },
+      "office": {
+        "tab": "Oficina",
+        "description": "El material de cada departamento y la fecha del último pedido."
+      }
+    }
+  },
+  "faq": {
+    "title": "Preguntas frecuentes",
+    "items": {
+      "price": {
+        "question": "¿Cuánto cuesta?",
+        "answer": "Nada. WiseData es gratuito para cualquier negocio que quiera usarlo."
+      },
+      "privacy": {
+        "question": "¿Quién ve mis datos?",
+        "answer": "Solo tú. Cada cuenta ve únicamente sus propias tablas, y la contraseña se guarda cifrada."
+      },
+      "import": {
+        "question": "¿Puedo importar mi Excel?",
+        "answer": "Todavía no. Importar y exportar CSV está en la hoja de ruta; por ahora las tablas se crean desde WiseData."
+      },
+      "install": {
+        "question": "¿Tengo que instalar algo?",
+        "answer": "No. WiseData funciona en el navegador, tanto en el ordenador como en el móvil."
+      },
+      "columns": {
+        "question": "¿Qué tipos de columna puedo usar?",
+        "answer": "Texto, número, fecha, sí / no, lista de opciones y precio. Puedes cambiar el tipo de una columna más adelante."
+      },
+      "team": {
+        "question": "¿Puedo compartir una tabla con mi equipo?",
+        "answer": "Aún no: de momento cada tabla pertenece a una cuenta. Compartir tablas es lo siguiente en la hoja de ruta."
+      }
+    }
+  },
+  "cta": {
+    "title": "Ordena tu inventario hoy",
+    "description": "Crear una cuenta lleva menos de un minuto.",
+    "action": "Crear cuenta gratis"
+  },
+  "footer": "© {{year}} WiseData"
+}

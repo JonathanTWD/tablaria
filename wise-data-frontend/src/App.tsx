@@ -1,11 +1,55 @@
-import { Routes, Route } from "react-router";
-import Home from "./pages/Home";
+import { lazy, Suspense } from "react";
+import { Route, Routes } from "react-router";
+import { FullPageLoader } from "@/components/FullPageLoader";
+import { GuestOnly, RequireAuth } from "@/routes/guards";
+
+// Route-level code splitting keeps the WebGL landing out of the app bundle and vice versa.
+const Home = lazy(() => import("@/pages/Home"));
+const NotFound = lazy(() => import("@/pages/NotFound"));
+const AuthLayout = lazy(() => import("@/layouts/AuthLayout"));
+const AppLayout = lazy(() => import("@/layouts/AppLayout"));
+const LoginPage = lazy(() => import("@/pages/auth/LoginPage"));
+const RegisterPage = lazy(() => import("@/pages/auth/RegisterPage"));
+const VerifyEmailPage = lazy(() => import("@/pages/auth/VerifyEmailPage"));
+const ForgotPasswordPage = lazy(() => import("@/pages/auth/ForgotPasswordPage"));
+const ResetPasswordPage = lazy(() => import("@/pages/auth/ResetPasswordPage"));
+const DashboardPage = lazy(() => import("@/pages/app/DashboardPage"));
+const SettingsPage = lazy(() => import("@/pages/app/SettingsPage"));
+const TablePage = lazy(() => import("@/pages/app/TablePage"));
+const RecordsPage = lazy(() => import("@/pages/app/table/RecordsPage"));
+const ColumnsPage = lazy(() => import("@/pages/app/table/ColumnsPage"));
 
 const App = () => {
   return (
-    <Routes>
-      <Route path="/" element={<Home />} />
-    </Routes>
+    <Suspense fallback={<FullPageLoader />}>
+      <Routes>
+        <Route index element={<Home />} />
+
+        <Route element={<AuthLayout />}>
+          <Route element={<GuestOnly />}>
+            <Route path="login" element={<LoginPage />} />
+            <Route path="register" element={<RegisterPage />} />
+            <Route path="forgot-password" element={<ForgotPasswordPage />} />
+          </Route>
+          {/* Email links work whether or not this browser already has a session. */}
+          <Route path="verify-email" element={<VerifyEmailPage />} />
+          <Route path="reset-password" element={<ResetPasswordPage />} />
+        </Route>
+
+        <Route path="app" element={<RequireAuth />}>
+          <Route element={<AppLayout />}>
+            <Route index element={<DashboardPage />} />
+            <Route path="tables/:tableId" element={<TablePage />}>
+              <Route index element={<RecordsPage />} />
+              <Route path="columns" element={<ColumnsPage />} />
+            </Route>
+            <Route path="settings" element={<SettingsPage />} />
+          </Route>
+        </Route>
+
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </Suspense>
   );
 };
 

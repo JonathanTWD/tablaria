@@ -1,0 +1,46 @@
+{
+  "nav": {
+    "label": "Navegación principal",
+    "dashboard": "Inicio",
+    "settings": "Ajustes",
+    "openMenu": "Abrir menú",
+    "skipToContent": "Saltar al contenido"
+  },
+  "userMenu": {
+    "label": "Menú de la cuenta",
+    "settings": "Ajustes",
+    "logout": "Cerrar sesión"
+  },
+  "dashboard": {
+    "title": "Inicio",
+    "greeting": "Hola, {{name}}",
+    "emptyTitle": "Crea tu primera tabla",
+    "emptyDescription": "Empieza con una plantilla de inventario, catálogo o equipos, o con una tabla vacía en la que tú decides las columnas.",
+    "metrics": {
+      "tables": "Tablas",
+      "records": "Registros",
+      "lastEdit": "Última edición"
+    },
+    "tablesTitle": "Tus tablas",
+    "loadError": "No se pudieron cargar tus tablas.",
+    "retry": "Reintentar"
+  },
+  "settings": {
+    "title": "Ajustes",
+    "account": {
+      "title": "Cuenta",
+      "email": "Email",
+      "memberSince": "Miembro desde"
+    },
+    "appearance": {
+      "title": "Apariencia",
+      "description": "Elige cómo se ve WiseData en este dispositivo."
+    },
+    "session": {
+      "title": "Sesión",
+      "description": "Cierra la sesión en este navegador.",
+      "logout": "Cerrar sesión"
+    }
+  },
+  "logoutError": "No se pudo cerrar la sesión. Inténtalo de nuevo."
+}

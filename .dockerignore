@@ -1,0 +1,16 @@
+**/node_modules
+**/dist
+**/coverage
+**/*.tsbuildinfo
+**/.env
+**/.env.*
+!**/.env.example
+.git
+.github
+.claude
+docs
+# The manifest is needed for the workspace install; the tests are not.
+e2e/tests
+e2e/test-results
+e2e/playwright-report
+wise-data-backend/src/generated

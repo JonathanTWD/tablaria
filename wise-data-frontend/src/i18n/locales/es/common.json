@@ -1,0 +1,33 @@
+{
+  "brand": "WiseData",
+  "homeLink": "Ir a la página de inicio de WiseData",
+  "theme": {
+    "label": "Tema",
+    "light": "Claro",
+    "dark": "Oscuro",
+    "system": "Sistema"
+  },
+  "errors": {
+    "network": "No se pudo conectar con el servidor. Comprueba tu conexión e inténtalo de nuevo.",
+    "unexpected": "Algo ha fallado en el servidor. Inténtalo de nuevo en unos minutos.",
+    "tooManyRequests": "Has hecho demasiados intentos. Espera un minuto antes de volver a intentarlo."
+  },
+  "validation": {
+    "email": "Introduce un email válido, como nombre@empresa.com.",
+    "passwordMin": "Usa al menos 8 caracteres.",
+    "passwordMax": "Usa como máximo 128 caracteres.",
+    "passwordRequired": "Introduce tu contraseña."
+  },
+  "notFound": {
+    "title": "Esta página no existe",
+    "description": "Puede que el enlace esté mal escrito o que la página se haya movido.",
+    "action": "Volver al inicio"
+  },
+  "loading": "Cargando…",
+  "serverUnavailable": {
+    "title": "No podemos conectar con WiseData",
+    "description": "Comprueba tu conexión a internet. Si funciona, puede que el servicio esté reiniciándose: vuelve a intentarlo en unos segundos.",
+    "retry": "Reintentar"
+  },
+  "close": "Cerrar"
+}
