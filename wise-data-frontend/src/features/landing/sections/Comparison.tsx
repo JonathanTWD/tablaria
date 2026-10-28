@@ -8,10 +8,10 @@ export function Comparison() {
 
   return (
     <section aria-labelledby="comparativa-title" className="border-t border-border">
-      <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-28">
+      <div className="mx-auto max-w-landing px-4 py-20 sm:px-6 sm:py-28">
         <h2
           id="comparativa-title"
-          className="max-w-2xl text-3xl font-semibold tracking-[-0.025em] text-balance sm:text-5xl"
+          className="max-w-2xl text-3xl font-semibold tracking-[-0.025em] text-balance sm:text-5xl 2xl:text-landing-title"
         >
           {t("comparison.title")}
         </h2>

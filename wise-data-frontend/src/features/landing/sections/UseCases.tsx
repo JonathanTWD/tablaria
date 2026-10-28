@@ -15,11 +15,11 @@ export function UseCases() {
       aria-labelledby="casos-title"
       className="scroll-mt-16 border-t border-border bg-secondary/50"
     >
-      <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-28">
+      <div className="mx-auto max-w-landing px-4 py-20 sm:px-6 sm:py-28">
         <div className="max-w-2xl">
           <h2
             id="casos-title"
-            className="text-3xl font-semibold tracking-[-0.025em] text-balance sm:text-5xl"
+            className="text-3xl font-semibold tracking-[-0.025em] text-balance sm:text-5xl 2xl:text-landing-title"
           >
             {t("useCases.title")}
           </h2>

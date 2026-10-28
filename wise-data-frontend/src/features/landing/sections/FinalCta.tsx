@@ -6,11 +6,11 @@ export function FinalCta() {
 
   return (
     <section aria-labelledby="cta-title" className="px-4 pb-20 sm:px-6">
-      <div className="mx-auto flex max-w-7xl flex-col gap-8 rounded-3xl bg-brand-navy px-6 py-14 text-brand-navy-foreground sm:px-12 sm:py-20 md:flex-row md:items-end md:justify-between">
+      <div className="mx-auto flex max-w-landing flex-col gap-8 rounded-3xl bg-brand-navy px-6 py-14 text-brand-navy-foreground sm:px-12 sm:py-20 md:flex-row md:items-end md:justify-between">
         <div>
           <h2
             id="cta-title"
-            className="text-3xl font-semibold tracking-[-0.025em] sm:text-5xl"
+            className="text-3xl font-semibold tracking-[-0.025em] sm:text-5xl 2xl:text-landing-title"
           >
             {t("cta.title")}
           </h2>

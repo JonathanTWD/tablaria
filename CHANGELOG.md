@@ -7,6 +7,7 @@
   - El inicio se centra hasta 1600 px y, en pantallas anchas, pone «Bajo mínimo» y el gráfico en una columna lateral junto a las tablas.
   - Ajustes y columnas mantienen un ancho cómodo de lectura.
   - En escritorio, la cabecera de la tabla es más compacta, y la primera columna se queda fija al desplazar la tabla en horizontal.
+- **Landing en monitores grandes**: el contenido crece de 1280 a 1792 px y los títulos aumentan con `clamp()` a partir de unos 2050 px de ancho. En un monitor de 27" (2560 px) el contenido pasa a ocupar el 70 % del ancho, frente al 50 % de antes. En pantallas altas, la cabecera ocupa la mayor parte de la primera pantalla. En portátiles y móviles se ve igual que antes.
 
 ## v1.2.0 — Exportación, alertas y gráficos
 

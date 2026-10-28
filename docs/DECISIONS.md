@@ -197,6 +197,11 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
   - el inicio se centra hasta 1600 px;
   - los formularios y ajustes se quedan en un ancho de lectura (`max-w-4xl`).
 - **Consultas de contenedor**: el inicio y el gráfico se adaptan al ancho de su propio contenedor (`@container`), no al de la ventana, porque la barra lateral y la columna lateral cambian el espacio disponible.
+- **Landing fluida**: tres tokens en `@theme`:
+  - `--container-landing`: `clamp(80rem, 72vw, 112rem)`;
+  - `--text-landing-hero` y `--text-landing-title`: `clamp()` con tope.
+
+  Hasta unos 1780 px la landing no cambia; a partir de ahí, el contenedor y los títulos crecen en proporción, mientras los párrafos conservan su ancho máximo de lectura.
 - **Orden de lectura**: en pantallas anchas, «Bajo mínimo» y el gráfico pasan a una columna lateral colocada con grid. El orden del DOM (avisos, tablas, gráfico) no cambia, así que el foco y los lectores de pantalla siguen el mismo orden en todos los tamaños.
 
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
