@@ -82,11 +82,22 @@ describe('Demo accounts (e2e)', () => {
     await second.client.get(`/api/tables/${firstTables[0].id}`).expect(404);
   });
 
-  it('deletes expired demo accounts with all their data', async () => {
-    const { user } = await startDemo();
+  it('stops refreshing an expired demo session', async () => {
+    const { client, user } = await startDemo();
     await prisma.user.update({
       where: { id: user.id },
       data: { demoExpiresAt: new Date(Date.now() - 1000) },
+    });
+
+    await client.post('/api/auth/refresh').expect(401);
+  });
+
+  it('deletes expired demo accounts with all their data', async () => {
+    const { user } = await startDemo();
+    // Past expiry plus one access-token lifetime, so no token can still be valid.
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { demoExpiresAt: new Date(Date.now() - 16 * 60 * 1000) },
     });
 
     await startDemo();
@@ -103,6 +114,10 @@ describe('Demo accounts (e2e)', () => {
     await createClient(app)
       .post('/api/auth/forgot-password')
       .send({ email: user.email })
+      .expect(202);
+    await createClient(app)
+      .post('/api/auth/register')
+      .send({ email: user.email, password: 'correct horse battery' })
       .expect(202);
 
     expect(await listEmails(user.email)).toHaveLength(0);

@@ -36,7 +36,8 @@
     "waking": "Despertando el servidor…",
     "busy": "Ahora mismo hay demasiadas demos abiertas. Prueba de nuevo en unos minutos.",
     "name": "visitante",
-    "account": "Cuenta de demostración"
+    "account": "Cuenta de demostración",
+    "openApp": "Ir a mis tablas"
   },
   "waking": "Despertando el servidor. La primera visita puede tardar hasta un minuto."
 }

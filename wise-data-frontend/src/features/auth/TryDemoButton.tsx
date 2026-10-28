@@ -1,14 +1,16 @@
 import { useMutation } from "@tanstack/react-query";
 import { Loader2, Sparkles } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button-variants";
 import { useDelayedFlag } from "@/hooks/use-delayed-flag";
 import { ApiError } from "@/lib/api-client";
 import { apiErrorMessage } from "@/lib/error-message";
+import { cn } from "@/lib/utils";
 import { authApi } from "./api";
-import { useStartSession } from "./session";
+import { useSession, useStartSession } from "./session";
 
 const WAKING_HINT_DELAY_MS = 3000;
 
@@ -37,6 +39,16 @@ export function TryDemoButton({
       ),
   });
   const waking = useDelayedFlag(demo.isPending, WAKING_HINT_DELAY_MS);
+  const { data: user } = useSession();
+
+  // Starting a demo replaces the session, so someone already signed in goes to the app instead.
+  if (user) {
+    return (
+      <Link to="/app" className={cn(buttonVariants({ variant }), className)}>
+        {t("demo.openApp")}
+      </Link>
+    );
+  }
 
   return (
     <Button

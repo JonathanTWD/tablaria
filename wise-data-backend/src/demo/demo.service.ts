@@ -6,6 +6,7 @@ import {
   TABLE_TEMPLATES,
 } from '@wisedata/shared';
 import { randomUUID } from 'node:crypto';
+import { ACCESS_TOKEN_TTL_SECONDS } from '../auth/auth.constants';
 import { PasswordService } from '../auth/password.service';
 import { generateSecureToken } from '../auth/secure-token';
 import { toColumnData } from '../columns/column-mapper';
@@ -65,9 +66,15 @@ export class DemoService {
   }
 
   deleteExpiredAccounts(): Promise<Prisma.BatchPayload> {
-    // Tables, columns, records and tokens go with the user (ON DELETE CASCADE).
+    // Waiting one access-token lifetime past expiry means no request can still
+    // carry a valid token for the account (refresh stops at expiry), so writes
+    // never hit a missing owner. Tables, columns, records and tokens go with
+    // the user (ON DELETE CASCADE).
+    const deletableBefore = new Date(
+      Date.now() - ACCESS_TOKEN_TTL_SECONDS * 1000,
+    );
     return this.prisma.user.deleteMany({
-      where: { demoExpiresAt: { lt: new Date() } },
+      where: { demoExpiresAt: { lt: deletableBefore } },
     });
   }
 }

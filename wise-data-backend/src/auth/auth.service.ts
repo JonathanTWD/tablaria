@@ -60,6 +60,10 @@ export class AuthService {
     const passwordHash = await this.passwords.hash(password);
     const existing = await this.users.findByEmail(email);
 
+    // Demo addresses are not real mailboxes; answer as usual without sending anything.
+    if (existing?.demoExpiresAt) {
+      return;
+    }
     if (existing?.emailVerifiedAt) {
       await this.sendEmail({
         to: existing.email,
@@ -145,7 +149,9 @@ export class AuthService {
   async refresh(refreshToken: string): Promise<AuthenticatedSession> {
     const { userId, tokens } = await this.sessions.rotate(refreshToken);
     const user = await this.users.findById(userId);
-    if (!user) {
+    // An expired demo account gets no new access tokens, so by the time it is
+    // deleted (see DemoService) no token for it can still be valid.
+    if (!user || (user.demoExpiresAt && user.demoExpiresAt <= new Date())) {
       throw new UnauthorizedException('Invalid session');
     }
     return { user: toAuthUser(user), tokens };
