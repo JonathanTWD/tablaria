@@ -15,4 +15,4 @@ API de WiseData (NestJS 11). Consulta el [README raíz](../README.md) para la pu
 
 Variables de entorno: ver [.env.example](.env.example).
 
-La imagen de producción ([Dockerfile](Dockerfile)) tiene dos destinos: `runtime` (la API compilada, solo con dependencias de producción) y `migrate` (aplica las migraciones y termina).
+La imagen de producción ([Dockerfile](Dockerfile)) contiene la API compilada, solo con dependencias de producción. Al arrancar aplica las migraciones pendientes (`prisma migrate deploy`) y después inicia la API, así que no hace falta ningún paso de migración aparte al desplegar.
