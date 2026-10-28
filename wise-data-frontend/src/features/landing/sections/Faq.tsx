@@ -8,10 +8,10 @@ export function Faq() {
 
   return (
     <section id="preguntas" aria-labelledby="preguntas-title" className="scroll-mt-16 border-t border-border">
-      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-20 sm:px-6 sm:py-28 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+      <div className="mx-auto grid max-w-landing gap-10 px-4 py-20 sm:px-6 sm:py-28 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
         <h2
           id="preguntas-title"
-          className="text-3xl font-semibold tracking-[-0.025em] sm:text-5xl"
+          className="text-3xl font-semibold tracking-[-0.025em] sm:text-5xl 2xl:text-landing-title"
         >
           {t("faq.title")}
         </h2>

@@ -41,6 +41,11 @@
     --color-background: var(--background);
     --color-brand-navy: var(--brand-navy);
     --color-brand-navy-foreground: var(--brand-navy-foreground);
+    /* Landing on large screens: 1280px up to ~1780px wide windows, then 72% of the width, capped at 1792px. */
+    --container-landing: clamp(80rem, 72vw, 112rem);
+    --text-landing-hero: clamp(4.1rem, 3.2vw, 5.5rem);
+    --text-landing-title: clamp(3rem, 2.3vw, 4rem);
+    --text-landing-title--line-height: 1;
     --radius-sm: calc(var(--radius) * 0.6);
     --radius-md: calc(var(--radius) * 0.8);
     --radius-lg: var(--radius);
