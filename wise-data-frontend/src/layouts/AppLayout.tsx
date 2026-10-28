@@ -1,117 +1,269 @@
 import { useQuery } from "@tanstack/react-query";
-import { House, Menu, Plus, Settings, Table2 } from "lucide-react";
-import { Suspense, useId, useState } from "react";
+import { House, Plus, Settings, Table2 } from "lucide-react";
+import { Suspense, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, NavLink, Outlet } from "react-router";
+import { Link, Outlet, useLocation } from "react-router";
 import { FullPageLoader } from "@/components/FullPageLoader";
 import { Logo } from "@/components/Logo";
-import { useFocusOnNavigate } from "@/hooks/use-focus-on-navigate";
-import { Button } from "@/components/ui/button";
 import {
-  Sheet,
-  SheetContent,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupAction,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarRail,
+  SidebarTrigger,
+  useSidebar,
+} from "@/components/ui/sidebar";
+import { useFocusOnNavigate } from "@/hooks/use-focus-on-navigate";
 import { DemoBanner } from "@/features/auth/DemoBanner";
 import { UserMenu } from "@/features/auth/UserMenu";
 import { CreateTableDialog } from "@/features/tables/CreateTableDialog";
 import { tablesQuery } from "@/features/tables/queries";
 import { ThemeToggle } from "@/features/theme/ThemeToggle";
-import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { to: "/app", end: true, icon: House, label: "nav.dashboard" },
   { to: "/app/settings", end: false, icon: Settings, label: "nav.settings" },
 ] as const;
 
-const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-  cn(
-    "flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-2 focus-visible:outline-ring",
-    isActive && "bg-sidebar-accent text-sidebar-accent-foreground",
-  );
+const SIDEBAR_STORAGE_KEY = "wisedata:sidebar-open";
 
-function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
+function readSidebarOpen(): boolean {
+  try {
+    return localStorage.getItem(SIDEBAR_STORAGE_KEY) !== "false";
+  } catch {
+    // Storage blocked (private mode, site data disabled): start expanded.
+    return true;
+  }
+}
+
+function saveSidebarOpen(open: boolean) {
+  try {
+    localStorage.setItem(SIDEBAR_STORAGE_KEY, String(open));
+  } catch {
+    // Storage blocked: the choice only lasts until the page reloads.
+  }
+}
+
+function isCurrent(pathname: string, to: string, end: boolean) {
+  return end ? pathname === to : pathname === to || pathname.startsWith(`${to}/`);
+}
+
+/** Closes the phone sheet after following a link; on desktop the sidebar stays as it is. */
+function useCloseOnPhone() {
+  const { isMobile, setOpenMobile } = useSidebar();
+  return () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
+}
+
+function MainNav() {
   const { t } = useTranslation("app");
+  const { pathname } = useLocation();
+  const close = useCloseOnPhone();
+
   return (
-    <nav aria-label={t("nav.label")} className="flex flex-col gap-0.5">
-      {NAV_ITEMS.map(({ to, end, icon: Icon, label }) => (
-        <NavLink key={to} to={to} end={end} onClick={onNavigate} className={navLinkClass}>
-          <Icon aria-hidden="true" className="size-4" />
-          {t(label)}
-        </NavLink>
-      ))}
-    </nav>
+    <SidebarGroup>
+      <nav aria-label={t("nav.label")}>
+        <SidebarMenu>
+          {NAV_ITEMS.map(({ to, end, icon: Icon, label }) => {
+            const current = isCurrent(pathname, to, end);
+            return (
+              <SidebarMenuItem key={to}>
+                <SidebarMenuButton
+                  isActive={current}
+                  tooltip={t(label)}
+                  render={
+                    <Link to={to} onClick={close} aria-current={current ? "page" : undefined} />
+                  }
+                >
+                  <Icon aria-hidden="true" />
+                  <span>{t(label)}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            );
+          })}
+        </SidebarMenu>
+      </nav>
+    </SidebarGroup>
   );
 }
 
-function TablesNav({ onNavigate }: { onNavigate?: () => void }) {
+function TablesNav() {
   const { t } = useTranslation("tables");
   const tables = useQuery(tablesQuery);
-  // The sidebar renders twice on small screens (hidden aside + menu sheet).
-  const labelId = useId();
+  const { pathname } = useLocation();
+  const { state, isMobile } = useSidebar();
+  const close = useCloseOnPhone();
+  const collapsed = state === "collapsed" && !isMobile;
+
+  // In the icon rail every table would show the same icon, so they collapse into one menu.
+  if (collapsed) {
+    return (
+      <SidebarGroup>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <DropdownMenu>
+              <SidebarMenuButton
+                tooltip={t("sidebar.title")}
+                aria-label={t("sidebar.title")}
+                render={<DropdownMenuTrigger />}
+              >
+                <Table2 aria-hidden="true" />
+              </SidebarMenuButton>
+              <DropdownMenuContent side="right" align="start" className="w-60">
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel>{t("sidebar.title")}</DropdownMenuLabel>
+                  {tables.isError && (
+                    <DropdownMenuItem disabled>{t("sidebar.loadError")}</DropdownMenuItem>
+                  )}
+                  {tables.data?.map((table) => (
+                    <DropdownMenuItem
+                      key={table.id}
+                      render={<Link to={`/app/tables/${table.id}`} />}
+                    >
+                      <Table2 aria-hidden="true" />
+                      <span className="truncate">{table.name}</span>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarGroup>
+    );
+  }
 
   return (
-    <nav aria-labelledby={labelId} className="flex min-h-0 flex-1 flex-col">
-      <div className="flex items-center justify-between pr-1 pl-2.5">
+    <SidebarGroup className="min-h-0 flex-1">
+      <nav aria-labelledby="sidebar-tables-label" className="flex min-h-0 flex-1 flex-col">
         {/* Not a heading: it would precede the page's h1 in the outline. */}
-        <p id={labelId} className="text-xs font-medium text-muted-foreground">
+        <SidebarGroupLabel id="sidebar-tables-label" render={<p />}>
           {t("sidebar.title")}
-        </p>
+        </SidebarGroupLabel>
         <CreateTableDialog
-          onCreated={onNavigate}
+          onCreated={close}
           trigger={
-            <Button variant="ghost" size="icon-sm" aria-label={t("create.open")}>
+            <SidebarGroupAction aria-label={t("create.open")}>
               <Plus aria-hidden="true" />
-            </Button>
+            </SidebarGroupAction>
           }
         />
-      </div>
-      {tables.isError && (
-        <p className="px-2.5 py-2 text-xs text-muted-foreground">{t("sidebar.loadError")}</p>
-      )}
-      <ul className="mt-1 flex min-h-0 flex-col gap-0.5 overflow-y-auto">
-        {tables.data?.map((table) => (
-          <li key={table.id}>
-            <NavLink to={`/app/tables/${table.id}`} onClick={onNavigate} className={navLinkClass}>
-              <Table2 aria-hidden="true" className="size-4 shrink-0" />
-              <span className="truncate">{table.name}</span>
-            </NavLink>
-          </li>
-        ))}
-      </ul>
-    </nav>
+        <SidebarGroupContent className="min-h-0 overflow-y-auto">
+          {tables.isError && (
+            <p className="px-2 py-2 text-xs text-muted-foreground">{t("sidebar.loadError")}</p>
+          )}
+          <SidebarMenu>
+            {tables.data?.map((table) => {
+              const to = `/app/tables/${table.id}`;
+              const current = isCurrent(pathname, to, false);
+              return (
+                <SidebarMenuItem key={table.id}>
+                  <SidebarMenuButton
+                    isActive={current}
+                    render={
+                      <Link to={to} onClick={close} aria-current={current ? "page" : undefined} />
+                    }
+                  >
+                    <Table2 aria-hidden="true" />
+                    <span>{table.name}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              );
+            })}
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </nav>
+    </SidebarGroup>
   );
 }
 
-function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
-  const { t } = useTranslation();
+function AppSidebar() {
+  const { t } = useTranslation(["app", "common"]);
+  const close = useCloseOnPhone();
+
   return (
-    <div className="flex h-full min-h-0 flex-col gap-6 p-3">
-      <Link
-        to="/app"
-        onClick={onNavigate}
-        aria-label={t("homeLink")}
-        className="w-fit rounded-md px-2.5 pt-2"
-      >
+    <Sidebar
+      collapsible="icon"
+      mobileTitle={t("sidebar.title")}
+      mobileDescription={t("sidebar.description")}
+    >
+      <SidebarHeader>
+        <Link
+          to="/app"
+          onClick={close}
+          aria-label={t("common:homeLink")}
+          className="w-fit rounded-md px-2 pt-2 group-data-[collapsible=icon]:px-1"
+        >
+          <Logo />
+        </Link>
+      </SidebarHeader>
+      <SidebarContent>
+        <MainNav />
+        <TablesNav />
+      </SidebarContent>
+      <SidebarFooter>
+        <UserMenu />
+      </SidebarFooter>
+      <SidebarRail aria-label={t("sidebar.toggle")} title={t("sidebar.toggle")} />
+    </Sidebar>
+  );
+}
+
+function AppHeader() {
+  const { t } = useTranslation(["app", "common"]);
+  const { open, openMobile, isMobile } = useSidebar();
+
+  return (
+    <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border bg-background/90 px-3 backdrop-blur sm:px-6">
+      <SidebarTrigger
+        className="size-9"
+        aria-label={t("sidebar.toggle")}
+        aria-expanded={isMobile ? openMobile : open}
+      />
+      <Link to="/app" aria-label={t("common:homeLink")} className="rounded-md md:hidden">
         <Logo />
       </Link>
-      <SidebarNav onNavigate={onNavigate} />
-      <TablesNav onNavigate={onNavigate} />
-      <div className="mt-auto">
-        <UserMenu />
-      </div>
-    </div>
+      <ThemeToggle className="ml-auto" />
+    </header>
   );
 }
 
 export default function AppLayout() {
-  const { t } = useTranslation(["app", "common"]);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const { t } = useTranslation("app");
   const mainRef = useFocusOnNavigate<HTMLElement>();
+  const [sidebarOpen, setSidebarOpen] = useState(readSidebarOpen);
 
   return (
-    <div className="min-h-dvh bg-background lg:grid lg:grid-cols-[15rem_minmax(0,1fr)]">
+    <SidebarProvider
+      open={sidebarOpen}
+      onOpenChange={(open) => {
+        setSidebarOpen(open);
+        saveSidebarOpen(open);
+      }}
+      // Same width as before the collapsible sidebar, so the page layouts keep their measurements.
+      style={{ "--sidebar-width": "15rem" } as React.CSSProperties}
+      className="min-h-dvh bg-background"
+    >
       <a
         href="#main"
         className="sr-only z-50 rounded-md bg-primary px-3 py-2 text-primary-foreground focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
@@ -119,43 +271,10 @@ export default function AppLayout() {
         {t("nav.skipToContent")}
       </a>
 
-      <aside className="sticky top-0 hidden h-dvh border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:block">
-        <SidebarContent />
-      </aside>
+      <AppSidebar />
 
-      <div className="flex min-w-0 flex-col">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border bg-background/90 px-3 backdrop-blur sm:px-6">
-          <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-            <SheetTrigger
-              render={
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="size-9 lg:hidden"
-                  aria-label={t("nav.openMenu")}
-                />
-              }
-            >
-              <Menu aria-hidden="true" />
-            </SheetTrigger>
-            <SheetContent
-              side="left"
-              closeLabel={t("common:close")}
-              className="w-72 bg-sidebar p-0 text-sidebar-foreground"
-            >
-              <SheetTitle className="sr-only">{t("nav.label")}</SheetTitle>
-              <SidebarContent onNavigate={() => setMenuOpen(false)} />
-            </SheetContent>
-          </Sheet>
-          <Link
-            to="/app"
-            aria-label={t("common:homeLink")}
-            className="rounded-md lg:hidden"
-          >
-            <Logo />
-          </Link>
-          <ThemeToggle className="ml-auto" />
-        </header>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <AppHeader />
         <DemoBanner />
 
         <main
@@ -170,6 +289,6 @@ export default function AppLayout() {
           </Suspense>
         </main>
       </div>
-    </div>
+    </SidebarProvider>
   );
 }
