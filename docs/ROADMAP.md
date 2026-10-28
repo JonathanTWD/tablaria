@@ -15,6 +15,7 @@ La especificación completa del MVP está en [MVP_PROMPT.md](MVP_PROMPT.md).
 ## Después del MVP
 
 - [x] **Fase 7 — Despliegue y demo**: publicado en https://wise-data.es (Render + Neon + Resend). Botón "Probar la demo" con cuentas temporales y datos de ejemplo, migraciones al arrancar la API, aviso mientras el servidor gratuito despierta y vista previa al compartir el enlace.
+- [x] **Fase 8 — Exportar, alertas y gráficos** (v1.2.0): exportación CSV de la vista actual, alertas de stock bajo con tarjeta en el panel y resumen con gráfico de barras por columna. Falta la exportación a Excel.
 ### Colaboración (en este orden)
 
 1. **Tablas compartidas**: invitaciones, roles por tabla (lectura/edición) y ownership ampliado en el backend.
