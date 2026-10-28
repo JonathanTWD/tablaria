@@ -97,6 +97,14 @@ export async function personalOrganizationId(
   db: Db,
   userId: string,
 ): Promise<string> {
+  // A plain read in the usual case; the upsert only runs for a new account.
+  const existing = await db.organization.findUnique({
+    where: { personalForId: userId },
+    select: { id: true },
+  });
+  if (existing) {
+    return existing.id;
+  }
   const organization = await db.organization.upsert({
     where: { personalForId: userId },
     update: {},
