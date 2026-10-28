@@ -85,8 +85,14 @@ export const selectOptionsSchema = z.object({
 
 export const currencyOptionsSchema = z.object({ currency: currencyCodeSchema });
 
+/** Number columns can warn when a value falls below a threshold (e.g. stock). */
+export const numberOptionsSchema = z.object({
+  alertBelow: z.number().min(0).max(1_000_000_000),
+});
+
 export type SelectOptions = z.infer<typeof selectOptionsSchema>;
 export type CurrencyOptions = z.infer<typeof currencyOptionsSchema>;
+export type NumberOptions = z.infer<typeof numberOptionsSchema>;
 
 export const columnNameSchema = z.string().trim().min(1).max(COLUMN_NAME_MAX_LENGTH);
 
@@ -109,7 +115,12 @@ function plainColumn<T extends ColumnType, V extends z.ZodType<CellValue>>(type:
 export const columnDefinitionSchema = z
   .discriminatedUnion("type", [
     plainColumn("text", columnValueSchemas.text),
-    plainColumn("number", columnValueSchemas.number),
+    z.object({
+      ...columnBase,
+      type: z.literal("number"),
+      options: numberOptionsSchema.nullable().default(null),
+      defaultValue: columnValueSchemas.number.nullable().default(null),
+    }),
     plainColumn("date", columnValueSchemas.date),
     plainColumn("boolean", columnValueSchemas.boolean),
     z.object({
@@ -181,4 +192,28 @@ export interface UpdateColumnResponse {
   column: TableColumn;
   /** Cells emptied because their value could not be converted or no longer fits. */
   clearedValues: number;
+}
+
+export type StockLevel = "ok" | "low" | "out";
+
+/**
+ * Where a value stands against an alert threshold: below it is "low", or
+ * "out" at 0 or less. Matches the comparison the API runs for the alerts.
+ */
+export function stockLevelFor(value: number, alertBelow: number): StockLevel {
+  if (value >= alertBelow) {
+    return "ok";
+  }
+  return value <= 0 ? "out" : "low";
+}
+
+/** A cell's stock level, or null when its column sets no threshold. */
+export function stockLevel(
+  column: ColumnDefinition,
+  value: CellValue | undefined,
+): StockLevel | null {
+  if (column.type !== "number" || !column.options || typeof value !== "number") {
+    return null;
+  }
+  return stockLevelFor(value, column.options.alertBelow);
 }

@@ -21,6 +21,16 @@
       "records": "Registros",
       "lastEdit": "Última edición"
     },
+    "alerts": {
+      "title": "Bajo mínimo",
+      "count_one": "{{count}} aviso",
+      "count_other": "{{count}} avisos",
+      "low_one": "Queda {{value}} (mín. {{min}})",
+      "low_other": "Quedan {{value}} (mín. {{min}})",
+      "out": "Agotado",
+      "more": "Y {{count}} más. Ábrelos desde sus tablas.",
+      "loadError": "No se pudieron cargar los avisos de stock."
+    },
     "tablesTitle": "Tus tablas",
     "loadError": "No se pudieron cargar tus tablas.",
     "retry": "Reintentar"

@@ -97,7 +97,8 @@ model Column {
   position     Int
   required     Boolean    @default(false)
   defaultValue Json?
-  // Type-specific settings: choices for `select`, ISO 4217 code for `currency`.
+  // Type-specific settings: choices for `select`, ISO 4217 code for `currency`,
+  // optional low-stock threshold (`alertBelow`) for `number`.
   options      Json?
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt

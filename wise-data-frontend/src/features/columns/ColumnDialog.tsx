@@ -264,6 +264,22 @@ function ColumnForm({
           </Field>
         )}
 
+        {type === "number" && (
+          <FormField
+            id={`${ids}-alert`}
+            label={t("columnForm.alertBelow")}
+            description={t("columnForm.alertBelowHint")}
+            error={errors.alertBelow && t("columnForm.errors.alertBelow")}
+          >
+            <Input
+              inputMode="decimal"
+              autoComplete="off"
+              className="h-9"
+              {...form.register("alertBelow")}
+            />
+          </FormField>
+        )}
+
         {type === "select" && (
           <fieldset className="flex flex-col gap-2">
             <legend className="mb-2 text-sm font-medium">{t("columnForm.choices")}</legend>

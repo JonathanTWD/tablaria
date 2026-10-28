@@ -121,13 +121,17 @@ function ColumnRow({
 }) {
   const { t } = useTranslation("tables");
   const Icon = COLUMN_TYPE_ICONS[column.type];
-  const defaultValue = useCellFormatter()(column, column.defaultValue);
+  const format = useCellFormatter();
+  const defaultValue = format(column, column.defaultValue);
   const details = [
     column.type === "currency"
       ? `${t(`types.${column.type}`)} · ${column.options.currency}`
       : t(`types.${column.type}`),
     column.required && t("columns.required"),
     defaultValue && t("columns.default", { value: defaultValue }),
+    column.type === "number" &&
+      column.options &&
+      t("columns.alertBelow", { value: format(column, column.options.alertBelow) }),
   ].filter(Boolean);
 
   return (
