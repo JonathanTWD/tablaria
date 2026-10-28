@@ -67,6 +67,7 @@
     "emptyDescription": "Añade la primera para empezar a guardar datos: nombre, cantidad, precio, fecha…",
     "required": "Obligatoria",
     "default": "Por defecto: {{value}}",
+    "alertBelow": "Aviso por debajo de {{value}}",
     "moveUp": "Subir «{{name}}»",
     "moveDown": "Bajar «{{name}}»",
     "options": "Opciones de «{{name}}»",
@@ -124,6 +125,8 @@
     "defaultValue": "Valor por defecto",
     "defaultValueHint": "Se usa al crear registros nuevos y se rellena en los que ya existen al añadir la columna.",
     "noDefault": "Sin valor por defecto",
+    "alertBelow": "Avisar cuando baje de",
+    "alertBelowHint": "Opcional. Los valores por debajo se marcan en la tabla y aparecen en el panel. Déjalo vacío para no avisar.",
     "typeChangeWarning": "Al cambiar el tipo se convertirán los valores guardados. Los que no encajen se quedarán vacíos.",
     "createSubmit": "Añadir columna",
     "editSubmit": "Guardar cambios",
@@ -137,7 +140,8 @@
       "nameTaken": "Ya hay una columna con ese nombre en esta tabla.",
       "choices": "Añade al menos una opción (máximo 50).",
       "choiceLabel": "Escribe la opción (hasta 50 caracteres) sin repetir otra.",
-      "defaultValue": "Este valor no encaja con el tipo de la columna."
+      "defaultValue": "Este valor no encaja con el tipo de la columna.",
+      "alertBelow": "Escribe un número igual o mayor que 0."
     }
   },
   "validation": {

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { displayName } from "@/features/auth/display-name";
 import { useSession } from "@/features/auth/session";
+import { StockAlertsCard } from "@/features/stock-alerts/StockAlertsCard";
 import { CreateTableDialog } from "@/features/tables/CreateTableDialog";
 import { tablesQuery } from "@/features/tables/queries";
 import { apiErrorMessage } from "@/lib/error-message";
@@ -109,6 +110,8 @@ function TablesOverview({ tables }: { tables: TableSummary[] }) {
           </div>
         ))}
       </dl>
+
+      <StockAlertsCard />
 
       <section aria-labelledby="tables-title" className="mt-10">
         <h2 id="tables-title" className="text-lg font-semibold tracking-tight">

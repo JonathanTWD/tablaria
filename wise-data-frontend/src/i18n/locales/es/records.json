@@ -25,6 +25,10 @@
   "cell": {
     "edit": "{{label}}: {{value}}",
     "empty": "vacío",
+    "stock": {
+      "low": "{{value}}, bajo mínimo",
+      "out": "{{value}}, agotado"
+    },
     "label": "{{column}} de {{row}}",
     "invalidHint": "Ese valor no encaja con la columna. Corrígelo o pulsa Escape para cancelar.",
     "invalid": "El valor no encaja con la columna «{{column}}»; se ha descartado.",

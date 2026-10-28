@@ -20,6 +20,8 @@ export interface ColumnFormValues {
   type: ColumnType;
   required: boolean;
   currency: string;
+  /** Number columns: warn when a value drops below this. Empty for no warning. */
+  alertBelow: string;
   choices: { id: string; label: string; color: SelectColor }[];
   /** Typed text, "true"/"false" for booleans, or the choice id for selects. */
   defaultValue: string;
@@ -39,6 +41,7 @@ export function columnFormDefaults(column?: TableColumn): ColumnFormValues {
     type: column?.type ?? "text",
     required: column?.required ?? false,
     currency: "EUR",
+    alertBelow: "",
     choices: [newChoice(0)],
     defaultValue: "",
   };
@@ -51,6 +54,9 @@ export function columnFormDefaults(column?: TableColumn): ColumnFormValues {
   if (column.type === "select") {
     values.choices = column.options.choices;
   }
+  if (column.type === "number" && column.options) {
+    values.alertBelow = String(column.options.alertBelow);
+  }
   values.defaultValue =
     column.type === "select"
       ? (column.options.choices.find((choice) => choice.label === column.defaultValue)?.id ??
@@ -61,6 +67,11 @@ export function columnFormDefaults(column?: TableColumn): ColumnFormValues {
   return values;
 }
 
+// NaN is rejected by the schema, which marks the field as invalid.
+function parseNumber(text: string): number {
+  return Number(text.replace(",", "."));
+}
+
 function parseDefault(values: ColumnFormValues): CellValue {
   const text = values.defaultValue.trim();
   if (text === "") {
@@ -69,8 +80,7 @@ function parseDefault(values: ColumnFormValues): CellValue {
   switch (values.type) {
     case "number":
     case "currency":
-      // NaN is rejected by the schema, which marks the field as invalid.
-      return Number(text.replace(",", "."));
+      return parseNumber(text);
     case "boolean":
       return text === "true";
     case "select":
@@ -92,6 +102,14 @@ function toDraft(values: ColumnFormValues) {
       return { ...base, type: "select", options: { choices: values.choices } };
     case "currency":
       return { ...base, type: "currency", options: { currency: values.currency } };
+    case "number": {
+      const alertBelow = values.alertBelow.trim();
+      return {
+        ...base,
+        type: "number",
+        options: alertBelow === "" ? null : { alertBelow: parseNumber(alertBelow) },
+      };
+    }
     default:
       return { ...base, type: values.type, options: null };
   }
@@ -104,10 +122,7 @@ export function toColumnDefinition(values: ColumnFormValues): ColumnDefinition {
 
 /** API paths (`options.choices.0.label`) → form fields (`choices.0.label`). */
 function toFormPath(path: PropertyKey[]): PropertyKey[] {
-  if (path[0] !== "options") {
-    return path;
-  }
-  return path[1] === "currency" ? ["currency"] : path.slice(1);
+  return path[0] === "options" ? path.slice(1) : path;
 }
 
 /** Validates the form with the same rules the API applies to the column. */
@@ -119,6 +134,7 @@ export const columnFormSchema = z
     type: z.enum(COLUMN_TYPES),
     required: z.boolean(),
     currency: z.string(),
+    alertBelow: z.string(),
     choices: z.array(
       z.object({ id: z.string(), label: z.string(), color: z.enum(SELECT_COLORS) }),
     ),
