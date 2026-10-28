@@ -28,47 +28,49 @@ export function BarChart({
   const max = Math.max(0, ...rows.map(({ value }) => value));
 
   return (
-    <table className="w-full table-fixed border-separate border-spacing-y-1.5 text-sm">
-      <caption className="sr-only">{caption}</caption>
-      <thead className="sr-only">
-        <tr>
-          <th scope="col">{labelHeader}</th>
-          <th scope="col">{valueHeader}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((row) => (
-          <tr key={row.key}>
-            <th
-              scope="row"
-              title={row.label}
-              className="w-1/3 truncate pr-3 text-left font-normal"
-            >
-              {row.label}
-            </th>
-            <td>
-              <span className="flex items-center gap-3">
-                <svg
-                  aria-hidden="true"
-                  viewBox="0 0 100 10"
-                  preserveAspectRatio="none"
-                  className="h-3 min-w-0 flex-1 overflow-hidden rounded-sm"
-                >
-                  <rect width="100" height="10" className="fill-muted" />
-                  <rect
-                    width={max > 0 ? Math.max(0, (row.value / max) * 100) : 0}
-                    height="10"
-                    className={cn("fill-primary", row.fillClassName)}
-                  />
-                </svg>
-                <span className="w-20 shrink-0 text-right font-medium tabular-nums sm:w-28">
-                  {row.display}
-                </span>
-              </span>
-            </td>
+    <div className="@container">
+      <table className="w-full table-fixed border-separate border-spacing-y-1.5 text-sm">
+        <caption className="sr-only">{caption}</caption>
+        <thead className="sr-only">
+          <tr>
+            <th scope="col">{labelHeader}</th>
+            <th scope="col">{valueHeader}</th>
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.key}>
+              <th
+                scope="row"
+                title={row.label}
+                className="w-1/3 truncate pr-3 text-left font-normal"
+              >
+                {row.label}
+              </th>
+              <td>
+                <span className="flex items-center gap-3">
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 100 10"
+                    preserveAspectRatio="none"
+                    className="h-3 min-w-0 flex-1 overflow-hidden rounded-sm"
+                  >
+                    <rect width="100" height="10" className="fill-muted" />
+                    <rect
+                      width={max > 0 ? Math.max(0, (row.value / max) * 100) : 0}
+                      height="10"
+                      className={cn("fill-primary", row.fillClassName)}
+                    />
+                  </svg>
+                  <span className="w-20 shrink-0 text-right font-medium tabular-nums @lg:w-28">
+                    {row.display}
+                  </span>
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

@@ -34,7 +34,7 @@ export default function DashboardPage() {
   );
 
   return (
-    <>
+    <div className="@container mx-auto w-full max-w-[100rem]">
       <title>{`${t("dashboard.title")} | WiseData`}</title>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold tracking-tight">
@@ -46,10 +46,15 @@ export default function DashboardPage() {
       {loading && (
         <div aria-busy="true" className="mt-8">
           <Skeleton className="h-24 w-full rounded-xl" />
-          <Skeleton className="mt-10 h-6 w-40" />
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <Skeleton className="h-28 rounded-xl" />
-            <Skeleton className="h-28 rounded-xl" />
+          <div className="mt-8 grid gap-8 @5xl:grid-cols-[minmax(0,1fr)_26rem] @7xl:grid-cols-[minmax(0,1fr)_30rem]">
+            <div>
+              <Skeleton className="h-6 w-40" />
+              <div className="mt-4 grid gap-3 @xl:grid-cols-2 @7xl:grid-cols-3">
+                <Skeleton className="h-28 rounded-xl" />
+                <Skeleton className="h-28 rounded-xl" />
+              </div>
+            </div>
+            <Skeleton className="hidden h-64 rounded-xl @5xl:block" />
           </div>
         </div>
       )}
@@ -86,7 +91,7 @@ export default function DashboardPage() {
       {ready && tables.data.length > 0 && (
         <TablesOverview tables={tables.data} alerts={alerts.data} />
       )}
-    </>
+    </div>
   );
 }
 
@@ -126,44 +131,53 @@ function TablesOverview({
         ))}
       </dl>
 
-      <StockAlertsCard alerts={alerts} />
+      {/*
+        Wide pages put the alerts and the chart in a side column next to the tables.
+        The DOM order (alerts, tables, chart) is also the reading order on narrow pages.
+      */}
+      <div className="mt-8 grid gap-8 @5xl:grid-cols-[minmax(0,1fr)_26rem] @5xl:grid-rows-[auto_1fr] @7xl:grid-cols-[minmax(0,1fr)_30rem]">
+        <StockAlertsCard alerts={alerts} className="@5xl:col-start-2 @5xl:self-start" />
 
-      <section aria-labelledby="tables-title" className="mt-10">
-        <h2 id="tables-title" className="text-lg font-semibold tracking-tight">
-          {t("dashboard.tablesTitle")}
-        </h2>
-        <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-          {tables.map((table) => (
-            <li key={table.id}>
-              <Link
-                to={`/app/tables/${table.id}`}
-                className="flex h-full flex-col rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/40 hover:bg-muted/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-              >
-                <span className="flex items-center gap-2 font-medium">
-                  <Table2 aria-hidden="true" className="size-4 shrink-0 text-primary" />
-                  <span className="truncate">{table.name}</span>
-                </span>
-                {table.description && (
-                  <span className="mt-1.5 line-clamp-2 text-sm leading-6 text-muted-foreground">
-                    {table.description}
+        <section
+          aria-labelledby="tables-title"
+          className="@container/tables @5xl:col-start-1 @5xl:row-span-2 @5xl:row-start-1"
+        >
+          <h2 id="tables-title" className="text-lg font-semibold tracking-tight">
+            {t("dashboard.tablesTitle")}
+          </h2>
+          <ul className="mt-4 grid gap-3 @xl/tables:grid-cols-2 @5xl/tables:grid-cols-3">
+            {tables.map((table) => (
+              <li key={table.id}>
+                <Link
+                  to={`/app/tables/${table.id}`}
+                  className="flex h-full flex-col rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/40 hover:bg-muted/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                >
+                  <span className="flex items-center gap-2 font-medium">
+                    <Table2 aria-hidden="true" className="size-4 shrink-0 text-primary" />
+                    <span className="truncate">{table.name}</span>
                   </span>
-                )}
-                <span className="mt-auto pt-3 text-xs text-muted-foreground">
-                  {[
-                    t("tables:count.columns", { count: table.columnCount }),
-                    t("tables:count.records", { count: table.recordCount }),
-                    t("tables:edited", {
-                      time: formatRelativeTime(table.updatedAt, i18n.language),
-                    }),
-                  ].join(" · ")}
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </section>
+                  {table.description && (
+                    <span className="mt-1.5 line-clamp-2 text-sm leading-6 text-muted-foreground">
+                      {table.description}
+                    </span>
+                  )}
+                  <span className="mt-auto pt-3 text-xs text-muted-foreground">
+                    {[
+                      t("tables:count.columns", { count: table.columnCount }),
+                      t("tables:count.records", { count: table.recordCount }),
+                      t("tables:edited", {
+                        time: formatRelativeTime(table.updatedAt, i18n.language),
+                      }),
+                    ].join(" · ")}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
 
-      <RecordsChart tables={tables} />
+        <RecordsChart tables={tables} className="@5xl:col-start-2 @5xl:self-start" />
+      </div>
     </>
   );
 }

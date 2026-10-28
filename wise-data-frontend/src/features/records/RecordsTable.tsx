@@ -20,7 +20,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { type FocusEvent, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { toast } from "sonner";
@@ -57,6 +57,22 @@ const SEARCH_DEBOUNCE_MS = 300;
 interface DialogState {
   kind: "create" | "edit" | "delete" | null;
   record?: TableRecord;
+}
+
+/** The first column (the record's name) stays visible while the table scrolls sideways. */
+const STICKY_CELL = "sticky left-0 z-10 shadow-[inset_-1px_0_0_var(--border)]";
+
+/**
+ * The browser scrolls a cell focused from the keyboard to the scroller's edge,
+ * which is under the sticky first column. Padding the scroll area by that
+ * column's width before the browser scrolls (it does so after this event)
+ * keeps the focused cell next to it instead.
+ */
+function keepFocusBesideStickyColumn(event: FocusEvent<HTMLDivElement>) {
+  const sticky = event.target.closest("tr")?.firstElementChild;
+  if (sticky) {
+    event.currentTarget.style.scrollPaddingLeft = `${sticky.getBoundingClientRect().width}px`;
+  }
 }
 
 export function RecordsTable({ table }: { table: TableDetail }) {
@@ -135,7 +151,7 @@ export function RecordsTable({ table }: { table: TableDetail }) {
   }
 
   return (
-    <section aria-label={t("tabs.records")} className="mt-6">
+    <section aria-label={t("tabs.records")} className="mt-4">
       <div className="flex flex-wrap items-center gap-2">
         <SearchField
           initial={view.search}
@@ -181,6 +197,7 @@ export function RecordsTable({ table }: { table: TableDetail }) {
             records.isPlaceholderData && "opacity-60",
           )}
           aria-busy={records.isFetching}
+          onFocus={keepFocusBesideStickyColumn}
         >
           <table className="w-full border-collapse text-sm">
             <caption className="sr-only">{t("table.caption", { name: table.name })}</caption>
@@ -199,7 +216,11 @@ export function RecordsTable({ table }: { table: TableDetail }) {
                       aria-sort={
                         sorted === "asc" ? "ascending" : sorted === "desc" ? "descending" : undefined
                       }
-                      className={cn("px-1.5 py-1.5 font-medium whitespace-nowrap", numeric && "text-right")}
+                      className={cn(
+                        "px-1.5 py-1.5 font-medium whitespace-nowrap",
+                        numeric && "text-right",
+                        index === 0 && cn(STICKY_CELL, "bg-[color-mix(in_oklab,var(--muted)_60%,var(--card))]"),
+                      )}
                     >
                       <button
                         type="button"
@@ -237,16 +258,33 @@ export function RecordsTable({ table }: { table: TableDetail }) {
                     const record = row.original;
                     const label = rowLabel(record);
                     return (
-                      <tr key={row.id} className="border-b border-border last:border-b-0 hover:bg-muted/30">
-                        {columns.map((column) => (
-                          <td key={column.id} className="px-1.5 py-1 align-middle">
-                            <EditableCell
-                              column={column}
-                              value={record.data[column.id]}
-                              label={t("cell.label", { column: column.name, row: label })}
-                              format={format}
-                              onSave={(value) => save(record, column, value)}
-                            />
+                      <tr
+                        key={row.id}
+                        className="group border-b border-border last:border-b-0 hover:bg-muted/30"
+                      >
+                        {columns.map((column, index) => (
+                          <td
+                            key={column.id}
+                            className={cn(
+                              "px-1.5 py-1 align-middle",
+                              // Opaque, so scrolled cells never show through the fixed column.
+                              index === 0 &&
+                                cn(
+                                  STICKY_CELL,
+                                  "bg-card group-hover:bg-[color-mix(in_oklab,var(--muted)_30%,var(--card))]",
+                                ),
+                            )}
+                          >
+                            {/* On phones the fixed column must leave room for the cell being edited. */}
+                            <div className={cn(index === 0 && "max-w-36 sm:max-w-56 lg:max-w-none")}>
+                              <EditableCell
+                                column={column}
+                                value={record.data[column.id]}
+                                label={t("cell.label", { column: column.name, row: label })}
+                                format={format}
+                                onSave={(value) => save(record, column, value)}
+                              />
+                            </div>
                           </td>
                         ))}
                         <td className="px-1.5 py-1 text-right">
