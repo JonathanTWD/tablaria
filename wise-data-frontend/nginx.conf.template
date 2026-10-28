@@ -15,6 +15,19 @@ server {
     # React style props and the UI library's positioning rely on them.
     add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" always;
 
+    # Realtime updates: a WebSocket, so the upgrade headers must be passed on
+    # and the connection may stay idle (the API pings every 30 s).
+    location = /api/realtime {
+        proxy_pass ${API_UPSTREAM};
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 1h;
+    }
+
     location /api/ {
         proxy_pass ${API_UPSTREAM};
         proxy_set_header Host $host;

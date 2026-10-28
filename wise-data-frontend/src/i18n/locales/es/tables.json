@@ -60,7 +60,9 @@
     "retry": "Reintentar",
     "share": "Compartir",
     "leave": "Salir de la tabla",
-    "sharedWithYou": "Compartida contigo · {{role}}"
+    "sharedWithYou": "Compartida contigo · {{role}}",
+    "live": "En directo",
+    "offline": "Reconectando…"
   },
   "share": {
     "title": "Compartir «{{name}}»",
