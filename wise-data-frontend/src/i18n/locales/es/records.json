@@ -26,6 +26,7 @@
   "cell": {
     "edit": "{{label}}: {{value}}",
     "empty": "vacío",
+    "editedBy": "{{name}} también está editando esta celda. Gana el último en guardar.",
     "stock": {
       "low": "{{value}}, bajo mínimo",
       "out": "{{value}}, agotado"
@@ -75,6 +76,8 @@
     "chipIn": "{{column}}: {{values}}"
   },
   "dialog": {
+    "othersEditing_one": "{{names}} está editando una celda de este registro. Solo se guardarán los campos que cambies.",
+    "othersEditing_other": "{{names}} están editando celdas de este registro. Solo se guardarán los campos que cambies.",
     "createTitle": "Nuevo registro",
     "editTitle": "Editar registro",
     "description": "Los campos marcados con * son obligatorios.",

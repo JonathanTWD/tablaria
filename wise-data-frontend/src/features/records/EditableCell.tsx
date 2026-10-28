@@ -31,6 +31,28 @@ interface EditableCellProps {
   onSave: (value: CellValue) => void;
   /** Lets the others see this cell is being edited (realtime presence). */
   presence?: { recordId: string; setEditing: (cell: PresenceCell | null) => void };
+  /** Someone else has this cell open: editing is allowed, with a warning. */
+  editedBy?: string;
+}
+
+/**
+ * Announces the open cell to the others and withdraws it when it closes.
+ * Presence lives on the server, an external system, which is what effects are for.
+ */
+function useAnnounceEditing(
+  open: boolean,
+  presence: EditableCellProps["presence"],
+  columnId: string,
+) {
+  const recordId = presence?.recordId;
+  const setEditing = presence?.setEditing;
+  useEffect(() => {
+    if (!open || !recordId || !setEditing) {
+      return;
+    }
+    setEditing({ recordId, columnId });
+    return () => setEditing(null);
+  }, [open, recordId, setEditing, columnId]);
 }
 
 const numeric = (column: TableColumn) => column.type === "number" || column.type === "currency";
@@ -66,8 +88,10 @@ function BooleanCell({ value, label, onSave }: EditableCellProps) {
   );
 }
 
-function SelectCell({ column, value, label, onSave }: EditableCellProps) {
+function SelectCell({ column, value, label, onSave, presence }: EditableCellProps) {
   const { t } = useTranslation("records");
+  const [open, setOpen] = useState(false);
+  useAnnounceEditing(open, presence, column.id);
   if (column.type !== "select") {
     return null;
   }
@@ -80,6 +104,8 @@ function SelectCell({ column, value, label, onSave }: EditableCellProps) {
   return (
     <Select
       items={items}
+      open={open}
+      onOpenChange={setOpen}
       value={typeof value === "string" ? value : ""}
       onValueChange={(next) => {
         if (next !== null && next !== (value ?? "")) {
@@ -116,20 +142,18 @@ function SelectCell({ column, value, label, onSave }: EditableCellProps) {
   );
 }
 
-function TextualCell({ column, value, label, format, onSave, presence }: EditableCellProps) {
+function TextualCell({
+  column,
+  value,
+  label,
+  format,
+  onSave,
+  presence,
+  editedBy,
+}: EditableCellProps) {
   const { t } = useTranslation("records");
   const [draft, setDraft] = useState<string | null>(null);
-  const editing = draft !== null;
-  const recordId = presence?.recordId;
-  const setEditing = presence?.setEditing;
-  // Presence lives on the server: announce the open field and withdraw it when it closes.
-  useEffect(() => {
-    if (!editing || !recordId || !setEditing) {
-      return;
-    }
-    setEditing({ recordId, columnId: column.id });
-    return () => setEditing(null);
-  }, [editing, recordId, setEditing, column.id]);
+  useAnnounceEditing(draft !== null, presence, column.id);
   const [invalid, setInvalid] = useState(false);
   // Set when editing ends from the keyboard, so focus returns to the cell button.
   const returnFocus = useRef(false);
@@ -195,6 +219,11 @@ function TextualCell({ column, value, label, format, onSave, presence }: Editabl
           <span role="alert" className="sr-only">
             {t("cell.invalidHint")}
           </span>
+        )}
+        {editedBy && (
+          <p role="status" className="mt-1 text-xs text-amber-700 dark:text-amber-400">
+            {t("cell.editedBy", { name: editedBy })}
+          </p>
         )}
       </>
     );

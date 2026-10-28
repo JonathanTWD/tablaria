@@ -3,6 +3,10 @@
 ## Sin publicar
 
 - **Presencia**: la cabecera de la tabla muestra avatares de quién más la tiene abierta, con su nombre al pasar el ratón. La celda que alguien está editando se resalta para los demás con su color y su nombre. Para los lectores de pantalla se anuncia quién está en la tabla y quién edita cada celda.
+- **Editar a la vez sin perder cambios**:
+  - **Formulario «Editar registro»:** envía solo los campos que cambias. Antes enviaba todos y podía deshacer lo que otra persona hubiera guardado en el mismo registro mientras lo tenías abierto.
+  - **Aviso sin bloqueo:** las filas que otra persona está editando se tiñen con su color, pero nada se bloquea. Si abres la misma celda que otra persona, un aviso dice que gana el último en guardar, y el formulario avisa si alguien edita ese registro.
+  - **Listas de opciones:** también muestran la presencia mientras su desplegable está abierto.
 - **«Compartir» visible**: el botón para compartir pasa del menú de los tres puntos a la cabecera de la tabla.
 - **Tiempo real**:
   - los cambios de otras personas en una tabla aparecen solos, sin recargar: registros, columnas, el nombre de la tabla, los permisos o su borrado;

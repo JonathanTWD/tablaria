@@ -94,12 +94,21 @@ export function RecordsTable({ table }: { table: TableDetail }) {
   const { t: tTables } = useTranslation("tables");
   const { data: user } = useSession();
   const { viewers, setEditing } = useTablePresence(table.id);
+  const othersEditing = viewers.filter(
+    (viewer) => viewer.editing && viewer.userId !== user?.id,
+  );
   /** "recordId:columnId" → the other person editing that cell. */
   const editedByOthers = new Map(
-    viewers
-      .filter((viewer) => viewer.editing && viewer.userId !== user?.id)
-      .map((viewer) => [`${viewer.editing?.recordId}:${viewer.editing?.columnId}`, viewer]),
+    othersEditing.map((viewer) => [`${viewer.editing?.recordId}:${viewer.editing?.columnId}`, viewer]),
   );
+  /** Record id → the other people editing any of its cells. */
+  const recordEditors = new Map<string, typeof othersEditing>();
+  for (const viewer of othersEditing) {
+    const recordId = viewer.editing?.recordId ?? "";
+    recordEditors.set(recordId, [...(recordEditors.get(recordId) ?? []), viewer]);
+  }
+  const nameOf = (viewer: (typeof othersEditing)[number]) =>
+    viewer.name ?? tTables("presence.guest");
   // The API enforces these too; the interface just doesn't offer what would be refused.
   const canEdit = hasRole(table.role, "EDITOR");
   const canManage = hasRole(table.role, "ADMIN");
@@ -290,11 +299,16 @@ export function RecordsTable({ table }: { table: TableDetail }) {
                     return (
                       <tr
                         key={row.id}
-                        className="group border-b border-border last:border-b-0 hover:bg-muted/30"
+                        className={cn(
+                          "group border-b border-border last:border-b-0 hover:bg-muted/30",
+                          // Someone is editing this record: tinted, but nothing is locked.
+                          recordEditors.has(record.id) &&
+                            presenceColor(recordEditors.get(record.id)![0].userId).row,
+                        )}
                       >
                         {columns.map((column, index) => {
                           const editor = editedByOthers.get(`${record.id}:${column.id}`);
-                          const editorName = editor && (editor.name ?? tTables("presence.guest"));
+                          const editorName = editor && nameOf(editor);
                           return (
                           <td
                             key={column.id}
@@ -319,6 +333,7 @@ export function RecordsTable({ table }: { table: TableDetail }) {
                                   format={format}
                                   onSave={(value) => save(record, column, value)}
                                   presence={{ recordId: record.id, setEditing }}
+                                  editedBy={editorName}
                                 />
                               ) : (
                                 <ReadOnlyCell
@@ -414,6 +429,11 @@ export function RecordsTable({ table }: { table: TableDetail }) {
         tableId={table.id}
         columns={columns}
         record={dialog.kind === "create" ? undefined : dialog.record}
+        editingBy={
+          dialog.kind === "edit" && dialog.record
+            ? recordEditors.get(dialog.record.id)?.map(nameOf)
+            : undefined
+        }
         open={dialog.kind === "create" || dialog.kind === "edit"}
         onOpenChange={closeDialog}
       />
