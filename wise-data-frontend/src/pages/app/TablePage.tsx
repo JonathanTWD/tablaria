@@ -15,7 +15,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
-import { type RealtimeStatus, useRealtimeTable } from "@/features/realtime/realtime-context";
+import { PresenceAvatars } from "@/features/realtime/PresenceAvatars";
+import {
+  type RealtimeStatus,
+  useRealtimeTable,
+  useTablePresence,
+} from "@/features/realtime/realtime-context";
+import { useSession } from "@/features/auth/session";
 import { LeaveTableDialog } from "@/features/sharing/LeaveTableDialog";
 import { ShareDialog } from "@/features/sharing/ShareDialog";
 import { DeleteTableDialog } from "@/features/tables/DeleteTableDialog";
@@ -32,6 +38,9 @@ export default function TablePage() {
   const { tableId = "" } = useParams();
   const table = useQuery(tableQuery(tableId));
   const realtime = useRealtimeTable(tableId);
+  const { viewers } = useTablePresence(tableId);
+  const { data: user } = useSession();
+  const others = viewers.filter(({ userId }) => userId !== user?.id);
   const [dialog, setDialog] = useState<"share" | "edit" | "delete" | "leave" | null>(null);
 
   const backLink = (
@@ -114,39 +123,45 @@ export default function TablePage() {
           )}
           <p className="mt-2 text-xs text-muted-foreground">{meta}</p>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            render={
-              <Button variant="outline" size="icon-lg" aria-label={t("page.actions")} />
-            }
-          >
-            <Ellipsis aria-hidden="true" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-60">
-            {manages ? (
-              <>
-                <DropdownMenuItem onClick={() => setDialog("share")}>
-                  <UserPlus aria-hidden="true" />
-                  {t("page.share")}
+        <div className="flex shrink-0 items-center gap-2">
+          <PresenceAvatars viewers={others} />
+          {/* Sharing is the main action of an owner's table, so it isn't tucked into the menu. */}
+          {manages && (
+            <Button className="h-10" onClick={() => setDialog("share")}>
+              <UserPlus aria-hidden="true" />
+              <span className="sr-only sm:not-sr-only">{t("page.share")}</span>
+            </Button>
+          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button variant="outline" size="icon-lg" aria-label={t("page.actions")} />
+              }
+            >
+              <Ellipsis aria-hidden="true" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-60">
+              {manages ? (
+                <>
+                  <DropdownMenuItem onClick={() => setDialog("edit")}>
+                    <Pencil aria-hidden="true" />
+                    {t("edit.open")}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem variant="destructive" onClick={() => setDialog("delete")}>
+                    <Trash2 aria-hidden="true" />
+                    {t("delete.open")}
+                  </DropdownMenuItem>
+                </>
+              ) : (
+                <DropdownMenuItem variant="destructive" onClick={() => setDialog("leave")}>
+                  <LogOut aria-hidden="true" />
+                  {t("page.leave")}
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setDialog("edit")}>
-                  <Pencil aria-hidden="true" />
-                  {t("edit.open")}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem variant="destructive" onClick={() => setDialog("delete")}>
-                  <Trash2 aria-hidden="true" />
-                  {t("delete.open")}
-                </DropdownMenuItem>
-              </>
-            ) : (
-              <DropdownMenuItem variant="destructive" onClick={() => setDialog("leave")}>
-                <LogOut aria-hidden="true" />
-                {t("page.leave")}
-              </DropdownMenuItem>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       <nav aria-label={t("records:tabs.label")} className="mt-5 flex gap-1 border-b border-border">

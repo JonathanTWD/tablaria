@@ -278,6 +278,14 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
   - se comprueba el `Origin` de la conexión;
   - límites: 1 KB por mensaje, 20 tablas por conexión y 10 conexiones por usuario;
   - un ping cada 30 s descarta las conexiones muertas.
+- **Presencia**: sobre la misma conexión, cada pestaña avisa de qué celda tiene abierta.
+  - **Qué recibe cada uno:** el servidor envía a cada sala la lista de personas, una vez por persona aunque tengan varias pestañas, con la celda que edita cada una.
+  - **Qué se comparte:** solo el nombre visible (la parte del email antes de la @) y nunca el email, porque quienes comparten una tabla no tienen por qué conocer el email de los demás.
+- **Sin bloqueos**:
+  - **Por qué no bloquear:** bloquear el registro mientras alguien lo edita dejaría bloqueos colgados cuando se cae una conexión. Además impediría cambios que no chocan, como dos celdas distintas del mismo registro.
+  - **Cambios de celdas distintas:** la API mezcla los cambios parciales dentro de una transacción con la tabla bloqueada, así que se conservan todos.
+  - **Formulario:** el de registro envía solo los campos modificados.
+  - **Misma celda:** solo hay aviso, y gana el último en guardar. Herramientas como Google Sheets, Airtable o Notion siguen el mismo criterio.
 - **Una sola instancia**: los tickets y las suscripciones viven en memoria. Con varias instancias haría falta un bus (Redis pub/sub) para repartir los avisos; ahora no es necesario.
 
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)

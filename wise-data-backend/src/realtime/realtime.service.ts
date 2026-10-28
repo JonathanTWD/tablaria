@@ -2,6 +2,8 @@ import type { IncomingMessage, Server } from 'node:http';
 import { Injectable, Logger, type OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
+  type PresenceCell,
+  type PresenceViewer,
   REALTIME_MAX_SUBSCRIPTIONS,
   type RealtimeClientMessage,
   realtimeClientMessageSchema,
@@ -33,10 +35,19 @@ const CLOSE = {
   badMessage: 4400,
 } as const;
 
+interface Identity {
+  userId: string;
+  /** Shown to others with the same table open; null for demo accounts. */
+  name: string | null;
+}
+
 interface Client {
   socket: WebSocket;
   userId: string | null;
+  name: string | null;
   tables: Set<string>;
+  /** Table id → the cell this connection has open there, if any. */
+  editing: Map<string, PresenceCell>;
   /** Subscriptions waiting on the access check; they count toward the limit. */
   pending: Set<string>;
   alive: boolean;
@@ -54,7 +65,7 @@ export class RealtimeService implements OnModuleDestroy {
   private readonly publicUrl: string | null;
   private readonly tickets = new Map<
     string,
-    { userId: string; expiresAt: number }
+    Identity & { expiresAt: number }
   >();
   private readonly clients = new Set<Client>();
   /** Table id → clients subscribed to it. */
@@ -79,7 +90,12 @@ export class RealtimeService implements OnModuleDestroy {
   }
 
   /** A single-use ticket, valid for a few seconds, to open one connection. */
-  issueTicket(userId: string): string {
+  async issueTicket(userId: string): Promise<string> {
+    const user = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { email: true, demoExpiresAt: true },
+    });
+    const name = user.demoExpiresAt ? null : user.email.split('@')[0];
     const now = Date.now();
     for (const [ticket, { expiresAt }] of this.tickets) {
       if (expiresAt <= now) {
@@ -87,7 +103,7 @@ export class RealtimeService implements OnModuleDestroy {
       }
     }
     const ticket = generateSecureToken();
-    this.tickets.set(ticket, { userId, expiresAt: now + TICKET_TTL_MS });
+    this.tickets.set(ticket, { userId, name, expiresAt: now + TICKET_TTL_MS });
     return ticket;
   }
 
@@ -140,7 +156,9 @@ export class RealtimeService implements OnModuleDestroy {
     const client: Client = {
       socket,
       userId: null,
+      name: null,
       tables: new Set(),
+      editing: new Map(),
       pending: new Set(),
       alive: true,
     };
@@ -195,6 +213,18 @@ export class RealtimeService implements OnModuleDestroy {
       this.leave(client, message.tableId);
       return;
     }
+    if (message.type === 'editing') {
+      // Only for tables this connection was allowed to subscribe to.
+      if (client.tables.has(message.tableId)) {
+        if (message.cell) {
+          client.editing.set(message.tableId, message.cell);
+        } else {
+          client.editing.delete(message.tableId);
+        }
+        this.broadcastPresence(message.tableId);
+      }
+      return;
+    }
 
     const { tableId } = message;
     if (client.tables.has(tableId) || client.pending.has(tableId)) {
@@ -229,6 +259,7 @@ export class RealtimeService implements OnModuleDestroy {
     room.add(client);
     this.rooms.set(tableId, room);
     this.send(client, { type: 'subscribed', tableId });
+    this.broadcastPresence(tableId);
   }
 
   private authenticate(client: Client, ticket: string): void {
@@ -246,16 +277,45 @@ export class RealtimeService implements OnModuleDestroy {
       return;
     }
     client.userId = stored.userId;
+    client.name = stored.name;
     this.send(client, { type: 'ready' });
   }
 
   private leave(client: Client, tableId: string): void {
     client.tables.delete(tableId);
+    client.editing.delete(tableId);
     const room = this.rooms.get(tableId);
     room?.delete(client);
     if (room?.size === 0) {
       this.rooms.delete(tableId);
+    } else {
+      this.broadcastPresence(tableId);
     }
+  }
+
+  /**
+   * Everyone with the table open, once per person (several tabs count once),
+   * sent to the same room. Only names and the cell being edited.
+   */
+  private broadcastPresence(tableId: string): void {
+    const viewers = new Map<string, PresenceViewer>();
+    for (const client of this.rooms.get(tableId) ?? []) {
+      if (!client.userId) {
+        continue;
+      }
+      const viewer = viewers.get(client.userId) ?? {
+        userId: client.userId,
+        name: client.name,
+        editing: null,
+      };
+      viewer.editing ??= client.editing.get(tableId) ?? null;
+      viewers.set(client.userId, viewer);
+    }
+    this.sendToRoom(tableId, {
+      type: 'presence',
+      tableId,
+      viewers: [...viewers.values()],
+    });
   }
 
   private sendToRoom(tableId: string, message: RealtimeServerMessage): void {

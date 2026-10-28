@@ -42,6 +42,8 @@ interface RecordDialogProps {
   columns: TableColumn[];
   /** The record to edit; omitted to create one. */
   record?: TableRecord;
+  /** Names of other people editing a cell of this record right now. */
+  editingBy?: string[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -69,6 +71,7 @@ function RecordForm({
   tableId,
   columns,
   record,
+  editingBy = [],
   onDone,
 }: Omit<RecordDialogProps, "open" | "onOpenChange"> & { onDone: () => void }) {
   const { t } = useTranslation("records");
@@ -109,7 +112,7 @@ function RecordForm({
   });
 
   // Read at the top level: the React Compiler memoizes JSX by the values it reads.
-  const { errors } = form.formState;
+  const { errors, dirtyFields } = form.formState;
 
   const onSubmit = form.handleSubmit((data) => {
     const onSuccess = () => {
@@ -117,7 +120,16 @@ function RecordForm({
       onDone();
     };
     if (record) {
-      update.mutate({ recordId: record.id, changes: data }, { onSuccess });
+      // Only what this person changed: sending every field would undo what
+      // others saved on the same record while the dialog was open.
+      const changes = Object.fromEntries(
+        Object.entries(data).filter(([columnId]) => dirtyFields[columnId]),
+      );
+      if (Object.keys(changes).length === 0) {
+        onDone();
+        return;
+      }
+      update.mutate({ recordId: record.id, changes }, { onSuccess });
     } else {
       create.mutate(data, { onSuccess });
     }
@@ -134,6 +146,14 @@ function RecordForm({
     <form noValidate onSubmit={onSubmit}>
       <FieldGroup className="gap-4">
         {formError && <FormAlert>{formError}</FormAlert>}
+        {editingBy.length > 0 && (
+          <p
+            role="status"
+            className="rounded-lg border border-amber-500/40 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:bg-amber-500/10 dark:text-amber-100"
+          >
+            {t("dialog.othersEditing", { names: editingBy.join(", "), count: editingBy.length })}
+          </p>
+        )}
         {columns.map((column) => {
           const id = `${ids}-${column.id}`;
           const error = errors[column.id];

@@ -64,6 +64,13 @@
     "live": "En directo",
     "offline": "Reconectando…"
   },
+  "presence": {
+    "label": "También tienen abierta esta tabla: {{names}}.",
+    "viewing": "{{name}} está viendo la tabla",
+    "editing": "{{name}} está editando una celda",
+    "editingCell": "{{name}} está editando esta celda",
+    "guest": "Invitado"
+  },
   "share": {
     "title": "Compartir «{{name}}»",
     "description": "Invita a otras personas por email. Solo verán esta tabla, no el resto de tu espacio.",

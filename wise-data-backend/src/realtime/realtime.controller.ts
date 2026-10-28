@@ -13,9 +13,9 @@ export class RealtimeController {
    */
   @Post('ticket')
   @HttpCode(HttpStatus.OK)
-  ticket(@CurrentUserId() userId: string): RealtimeTicket {
+  async ticket(@CurrentUserId() userId: string): Promise<RealtimeTicket> {
     return {
-      ticket: this.realtime.issueTicket(userId),
+      ticket: await this.realtime.issueTicket(userId),
       url: this.realtime.url,
     };
   }

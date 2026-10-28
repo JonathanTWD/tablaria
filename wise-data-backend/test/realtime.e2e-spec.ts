@@ -219,4 +219,61 @@ describe('Realtime updates (e2e)', () => {
     connections.push(otherSite);
     expect(await otherSite.closed()).toBe(4403);
   });
+
+  it('shows who has the table open and which cell they are editing', async () => {
+    const owner = await createSignedInClient(app);
+    const { table, nameColumn } = await createTable(owner);
+    const record = (
+      await owner
+        .post(`/api/tables/${table.id}/records`)
+        .send({ data: { [nameColumn]: 'Guantes' } })
+        .expect(201)
+    ).body as { id: string };
+    const guest = await createSignedInClient(app);
+    const guestUser = (await guest.get('/api/auth/me').expect(200))
+      .body as AuthUser;
+    await owner
+      .post(`/api/tables/${table.id}/invitations`)
+      .send({ email: guestUser.email, role: 'EDITOR' })
+      .expect(201);
+    await guest
+      .post('/api/invitations/accept')
+      .send({ token: extractToken(await latestEmail(guestUser.email)) })
+      .expect(200);
+
+    const ownerSocket = await connect(owner);
+    await ownerSocket.send({ type: 'subscribe', tableId: table.id });
+    const guestSocket = await connect(guest);
+    await guestSocket.send({ type: 'subscribe', tableId: table.id });
+
+    const presence =
+      (count: number, editing = false) =>
+      (message: RealtimeServerMessage) =>
+        message.type === 'presence' &&
+        message.viewers.length === count &&
+        message.viewers.some((viewer) => (viewer.editing !== null) === editing);
+    const both = await ownerSocket.next(presence(2));
+    expect(both).toMatchObject({
+      viewers: expect.arrayContaining([
+        {
+          userId: guestUser.id,
+          name: guestUser.email.split('@')[0],
+          editing: null,
+        },
+      ]) as unknown,
+    });
+    // Names only: other people's emails never travel.
+    expect(JSON.stringify(ownerSocket.messages)).not.toContain(guestUser.email);
+
+    const cell = { recordId: record.id, columnId: nameColumn };
+    await guestSocket.send({ type: 'editing', tableId: table.id, cell });
+    expect(await ownerSocket.next(presence(2, true))).toMatchObject({
+      viewers: expect.arrayContaining([
+        expect.objectContaining({ userId: guestUser.id, editing: cell }),
+      ]) as unknown,
+    });
+
+    guestSocket.close();
+    await ownerSocket.next(presence(1));
+  });
 });
