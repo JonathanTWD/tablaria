@@ -37,6 +37,8 @@ interface Client {
   socket: WebSocket;
   userId: string | null;
   tables: Set<string>;
+  /** Subscriptions waiting on the access check; they count toward the limit. */
+  pending: Set<string>;
   alive: boolean;
 }
 
@@ -139,6 +141,7 @@ export class RealtimeService implements OnModuleDestroy {
       socket,
       userId: null,
       tables: new Set(),
+      pending: new Set(),
       alive: true,
     };
     this.clients.add(client);
@@ -194,9 +197,12 @@ export class RealtimeService implements OnModuleDestroy {
     }
 
     const { tableId } = message;
+    if (client.tables.has(tableId) || client.pending.has(tableId)) {
+      return;
+    }
     if (
-      client.tables.size >= REALTIME_MAX_SUBSCRIPTIONS &&
-      !client.tables.has(tableId)
+      client.tables.size + client.pending.size >=
+      REALTIME_MAX_SUBSCRIPTIONS
     ) {
       this.send(client, {
         type: 'error',
@@ -205,8 +211,12 @@ export class RealtimeService implements OnModuleDestroy {
       });
       return;
     }
+    // Reserved before the await, so a burst of subscribes can't pass the limit.
+    client.pending.add(tableId);
     // Same rule as the API: without access the table might as well not exist.
-    const role = await tableRole(this.prisma, client.userId, tableId);
+    const role = await tableRole(this.prisma, client.userId, tableId).finally(
+      () => client.pending.delete(tableId),
+    );
     if (!role) {
       this.send(client, { type: 'error', tableId, code: 'not_found' });
       return;
