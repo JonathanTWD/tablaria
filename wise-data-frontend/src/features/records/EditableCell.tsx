@@ -1,4 +1,11 @@
-import { cellValueSchema, type CellValue, type TableColumn } from "@wisedata/shared";
+import {
+  cellValueSchema,
+  stockLevel,
+  type CellValue,
+  type StockLevel,
+  type TableColumn,
+} from "@wisedata/shared";
+import { CircleAlert, TriangleAlert, type LucideIcon } from "lucide-react";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -24,6 +31,11 @@ interface EditableCellProps {
 }
 
 const numeric = (column: TableColumn) => column.type === "number" || column.type === "currency";
+
+const STOCK_ALERTS: Record<Exclude<StockLevel, "ok">, { icon: LucideIcon; className: string }> = {
+  low: { icon: TriangleAlert, className: "font-medium text-amber-700 dark:text-amber-400" },
+  out: { icon: CircleAlert, className: "font-medium text-destructive" },
+};
 
 /**
  * A cell edited in place. Booleans and selects save on change; other types
@@ -174,11 +186,19 @@ function TextualCell({ column, value, label, format, onSave }: EditableCellProps
     );
   }
 
+  const level = stockLevel(column, value);
+  const alertLevel = level === "ok" ? null : level;
+  const alert = alertLevel && STOCK_ALERTS[alertLevel];
+  const shown = format(column, value) || t("cell.empty");
+
   return (
     <button
       type="button"
       // The name includes the value, which the visible text alone would not tie to its column.
-      aria-label={t("cell.edit", { label, value: format(column, value) || t("cell.empty") })}
+      aria-label={t("cell.edit", {
+        label,
+        value: alertLevel ? t(`cell.stock.${alertLevel}`, { value: shown }) : shown,
+      })}
       ref={(button) => {
         if (button && returnFocus.current) {
           returnFocus.current = false;
@@ -189,8 +209,10 @@ function TextualCell({ column, value, label, format, onSave }: EditableCellProps
       className={cn(
         "flex h-8 w-full min-w-28 items-center rounded-md px-2 text-left text-sm transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring",
         numeric(column) && "justify-end tabular-nums",
+        alert && ["gap-1.5", alert.className],
       )}
     >
+      {alert && <alert.icon aria-hidden="true" className="size-3.5 shrink-0" />}
       <span className="truncate">{format(column, value)}</span>
     </button>
   );

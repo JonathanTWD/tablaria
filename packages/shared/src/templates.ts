@@ -10,7 +10,13 @@ export const TABLE_TEMPLATES: Record<TableTemplateId, ColumnDefinitionInput[]> =
   "basic-inventory": [
     { name: "Producto", type: "text", required: true },
     { name: "SKU", type: "text" },
-    { name: "Cantidad", type: "number", required: true, defaultValue: 0 },
+    {
+      name: "Cantidad",
+      type: "number",
+      required: true,
+      defaultValue: 0,
+      options: { alertBelow: 5 },
+    },
     { name: "Ubicación", type: "text" },
     { name: "Última revisión", type: "date" },
   ],
@@ -19,6 +25,7 @@ export const TABLE_TEMPLATES: Record<TableTemplateId, ColumnDefinitionInput[]> =
     { name: "Referencia", type: "text" },
     { name: "Categoría", type: "text" },
     { name: "Precio", type: "currency", options: { currency: "EUR" } },
+    { name: "Stock", type: "number", defaultValue: 0, options: { alertBelow: 5 } },
     {
       name: "Estado",
       type: "select",

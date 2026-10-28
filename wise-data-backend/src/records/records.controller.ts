@@ -10,18 +10,30 @@ import {
   Patch,
   Post,
   Query,
+  Res,
+  StreamableFile,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import {
   type Paginated,
   type RecordInput,
   recordInputSchema,
+  type RecordExportQuery,
+  recordExportQuerySchema,
   type RecordListQuery,
   recordListQuerySchema,
+  type RecordStats,
+  type RecordStatsQuery,
+  recordStatsQuerySchema,
   type TableRecord,
 } from '@wisedata/shared';
 import { CurrentUserId } from '../auth/decorators';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
+import type { Response } from 'express';
 import { RecordsService } from './records.service';
+
+/** Exports read a whole table, so they get a tighter limit than the API default. */
+const EXPORT_THROTTLE = { default: { limit: 10, ttl: 60_000 } };
 
 @Controller('tables/:tableId/records')
 export class RecordsController {
@@ -34,6 +46,36 @@ export class RecordsController {
     @Query(new ZodValidationPipe(recordListQuerySchema)) query: RecordListQuery,
   ): Promise<Paginated<TableRecord>> {
     return this.records.list(userId, tableId, query);
+  }
+
+  // Declared before any ':recordId' route so "export" is never read as an id.
+  @Get('export')
+  @Throttle(EXPORT_THROTTLE)
+  async export(
+    @CurrentUserId() userId: string,
+    @Param('tableId', ParseUUIDPipe) tableId: string,
+    @Query(new ZodValidationPipe(recordExportQuerySchema))
+    query: RecordExportQuery,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<StreamableFile> {
+    const file = await this.records.export(userId, tableId, query);
+    response.set({
+      'Content-Type': file.contentType,
+      // ASCII-only name, so no RFC 5987 encoding is needed.
+      'Content-Disposition': `attachment; filename="${file.fileName}"`,
+      'Cache-Control': 'no-store',
+    });
+    return new StreamableFile(file.content);
+  }
+
+  @Get('stats')
+  stats(
+    @CurrentUserId() userId: string,
+    @Param('tableId', ParseUUIDPipe) tableId: string,
+    @Query(new ZodValidationPipe(recordStatsQuerySchema))
+    query: RecordStatsQuery,
+  ): Promise<RecordStats> {
+    return this.records.stats(userId, tableId, query);
   }
 
   @Post()

@@ -7,7 +7,7 @@ import {
 } from "@wisedata/shared";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { mockApi, renderWithProviders } from "@/test/render";
 import { RecordsTable } from "./RecordsTable";
 
@@ -107,5 +107,36 @@ describe("RecordsTable", () => {
     await waitFor(() =>
       expect(screen.getByTestId("location")).toHaveTextContent("/app/tables/x?q=tal"),
     );
+  });
+
+  it("exports the current view without pagination", async () => {
+    const user = userEvent.setup();
+    const fetchMock = mockApi(() => page);
+    // jsdom has no object URLs; a subclass keeps the real URL untouched for other tests.
+    vi.stubGlobal(
+      "URL",
+      class extends URL {
+        static createObjectURL = () => "blob:x";
+        static revokeObjectURL = () => {};
+      },
+    );
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    renderWithProviders(<RecordsTable table={table} />, {
+      route: `/app/tables/x?q=tala&page=2&sort=${PRICE_ID}&order=desc`,
+    });
+
+    await user.click(await screen.findByRole("button", { name: "Exportar CSV" }));
+
+    await waitFor(() => expect(click).toHaveBeenCalledOnce());
+    const exportUrl = fetchMock.mock.calls
+      .map(([input]) => new URL(String(input), "http://localhost"))
+      .find((url) => url.pathname.endsWith("/records/export"));
+    expect(Object.fromEntries(exportUrl?.searchParams ?? [])).toEqual({
+      search: "tala",
+      sort: PRICE_ID,
+      order: "desc",
+      format: "csv",
+    });
+    click.mockRestore();
   });
 });

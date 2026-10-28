@@ -3,3 +3,9 @@ packages:
   - wise-data-backend
   - packages/*
   - e2e
+
+# Dependabot can pin versions younger than the 14-day minimumReleaseAge used
+# locally. Rolldown (Vite's bundler) ships frequent native builds; the version
+# in the lockfile already passes CI, so it may be installed before it matures.
+minimumReleaseAgeExclude:
+  - "@rolldown/*"

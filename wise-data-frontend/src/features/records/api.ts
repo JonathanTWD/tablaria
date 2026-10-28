@@ -1,5 +1,11 @@
-import type { Paginated, RecordData, TableRecord } from "@wisedata/shared";
-import { apiRequest } from "@/lib/api-client";
+import type {
+  Paginated,
+  RecordData,
+  RecordStats,
+  RecordStatsQuery,
+  TableRecord,
+} from "@wisedata/shared";
+import { apiDownload, apiRequest } from "@/lib/api-client";
 import type { RecordsView } from "./records-view";
 
 function toQueryString(view: RecordsView): string {
@@ -20,6 +26,15 @@ function toQueryString(view: RecordsView): string {
   return params.toString();
 }
 
+/** The view without pagination: an export includes every matching record. */
+function toExportQueryString(view: RecordsView): string {
+  const params = new URLSearchParams(toQueryString(view));
+  params.delete("page");
+  params.delete("pageSize");
+  params.set("format", "csv");
+  return params.toString();
+}
+
 export const recordsApi = {
   list: (tableId: string, view: RecordsView) =>
     apiRequest<Paginated<TableRecord>>(`/tables/${tableId}/records?${toQueryString(view)}`),
@@ -30,6 +45,12 @@ export const recordsApi = {
       method: "PATCH",
       body: { data },
     }),
+  exportCsv: (tableId: string, view: RecordsView) =>
+    apiDownload(`/tables/${tableId}/records/export?${toExportQueryString(view)}`, "registros.csv"),
+  stats: (tableId: string, { groupBy, sum }: RecordStatsQuery) => {
+    const params = new URLSearchParams({ groupBy, ...(sum && { sum }) });
+    return apiRequest<RecordStats>(`/tables/${tableId}/records/stats?${params}`);
+  },
   remove: (tableId: string, recordId: string) =>
     apiRequest<void>(`/tables/${tableId}/records/${recordId}`, { method: "DELETE" }),
 };

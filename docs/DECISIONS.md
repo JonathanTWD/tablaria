@@ -167,6 +167,28 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 - **Vista previa al compartir**: metaetiquetas Open Graph y de X/Twitter en `index.html` (los rastreadores no ejecutan JavaScript), con una imagen de 1200×630 generada desde `wise-data-frontend/og/og-image.html`. El favicon pasa a ser el icono de WiseData.
 - **Diagnóstico del proxy**: cada petición bloqueada por el límite de peticiones deja en el log la IP con la que se contó. Si no coincide con la IP pública del cliente, `TRUST_PROXY_HOPS` no está bien ajustado.
 
+## ADR-014: Exportación de registros
+
+- **En el servidor**: `GET /tables/:tableId/records/export` reutiliza la consulta parametrizada del listado (búsqueda, filtros y orden, con la misma lista blanca de columnas), pero sin paginar. Así se exportan todos los registros que coinciden, hasta el máximo de 10.000 por tabla, no solo la página visible. Tiene un límite propio de 10 exportaciones por minuto.
+- **CSV para Excel en español**: separador `;` y coma decimal, porque es lo que Excel espera en España y en la mayoría de locales europeos al abrir un CSV con doble clic. Las comillas siguen RFC 4180, con CRLF y BOM UTF-8 para que se vean bien los acentos y el €. Las columnas de precio llevan la moneda en la cabecera («Precio (EUR)»), los booleanos van como Sí/No y las fechas en ISO.
+- **Inyección de fórmulas**: cualquier celda o nombre de columna que empiece por `=`, `+`, `-`, `@`, tabulador o retorno lleva delante un `'`, así la hoja de cálculo lo muestra como texto. Los números negativos no se tocan, porque se escriben como números.
+- **Descarga en el cliente**: `apiDownload` usa el mismo flujo que el resto de peticiones (renovación de la sesión ante un 401) y guarda el archivo con el nombre que sugiere la API, que es un nombre ASCII derivado de la tabla y la fecha.
+- **Excel pendiente**: ExcelJS no se puede añadir hasta que las versiones que Dependabot fijó en el lockfile cumplan la antigüedad mínima de 14 días de pnpm (`minimumReleaseAge`). Para que no vuelva a pasar, Dependabot usa ahora un `cooldown` de 14 días, y `@rolldown/*` tiene una excepción porque publica builds nativos con mucha frecuencia.
+
+## ADR-015: Alertas de stock bajo
+
+- **Umbral en la columna**: el umbral vive en `options.alertBelow` de las columnas numéricas (nulo si no avisa), dentro del mismo esquema zod compartido. No hace falta migración, porque las opciones ya se guardan como JSON, y lo valida la API como cualquier otra opción. No se aplica a precios: un precio bajo no es una alerta.
+- **Una sola regla**: `stockLevel()` en `@wisedata/shared` decide si un valor está bien, bajo (por debajo del umbral) o agotado (0 o menos). La tabla lo usa para marcar las celdas y la API aplica la misma comparación en SQL.
+- **Endpoint agregado**: `GET /stock-alerts` resuelve todo en una sola consulta parametrizada: une las tablas del usuario con sus columnas numéricas con umbral y con sus registros, y compara cada valor con el umbral guardado en la propia columna (los ids de columna salen de la base de datos, nunca de la petición). Un `CASE` evita convertir a número celdas que no lo son. Devuelve los 8 más urgentes y el total, así el panel no carga todas las tablas.
+- **Panel sin saltos**: el inicio espera a las tablas y a los avisos antes de pintarse, para que la tarjeta no empuje la lista de tablas cuando ya se ve.
+- **Sin notificaciones**: los avisos se ven al abrir el panel. Emails o notificaciones push quedan fuera del MVP.
+
+## ADR-016: Gráficos del panel
+
+- **Agregación en el servidor**: `GET /tables/:tableId/records/stats?groupBy=&sum=` agrupa en PostgreSQL (`GROUP BY data -> columna`) y devuelve recuento y suma por grupo. El navegador no descarga los registros. Las columnas se validan contra las de la propia tabla: solo se agrupa por listas, Sí / No y texto, y solo se suman números y precios. Se devuelven los 8 grupos mayores y el resto sumado como «otros». El mismo endpoint servirá a la futura consulta con IA.
+- **SVG propio, sin librería**: para barras horizontales basta un `<rect>` proporcional al valor. Una librería como Recharts añadiría unos 100 KB comprimidos y otra dependencia que mantener. El gráfico se dibuja como una tabla HTML (`caption`, cabeceras y filas) con las barras decorativas (`aria-hidden`), así los lectores de pantalla leen los datos tal cual. Si en el futuro hacen falta series temporales, tooltips o varios tipos de gráfico, se adoptarán los charts de shadcn/ui (Recharts).
+- **Sin agrupar por la primera columna**: suele nombrar cada registro (producto, equipo), así que cada grupo tendría un único registro. Por defecto se agrupa por la primera lista de opciones, si no por Sí / No y, si no, por texto.
+
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
 Todas están especificadas en [MVP_PROMPT.md](MVP_PROMPT.md):

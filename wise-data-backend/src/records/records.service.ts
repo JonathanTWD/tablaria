@@ -9,17 +9,29 @@ import {
   type RecordColumn,
   type RecordData,
   recordDataSchema,
+  type RecordExportQuery,
   type RecordInput,
   type RecordListQuery,
+  type RecordStats,
+  type RecordStatsQuery,
+  type StatsGroup,
   type TableRecord,
 } from '@wisedata/shared';
 import { toTableColumn } from '../columns/column-mapper';
 import { parseOrThrow } from '../common/pipes/zod-validation.pipe';
 import { PrismaService } from '../database/prisma.service';
-import type { Prisma, Record as RecordRow } from '../generated/prisma/client';
+import { Prisma, type Record as RecordRow } from '../generated/prisma/client';
 import { touchOwnedTable } from '../tables/table-access';
 import { buildRecordQuery } from './record-query';
 import { withoutEmptyCells } from './record-data';
+import { exportFileName, toCsv } from './record-export';
+import { statsColumns, summarizeGroups } from './record-stats';
+
+export interface ExportedFile {
+  fileName: string;
+  contentType: string;
+  content: Buffer;
+}
 
 @Injectable()
 export class RecordsService {
@@ -65,6 +77,82 @@ export class RecordsService {
         pageCount: Math.ceil(count / query.pageSize),
       },
     };
+  }
+
+  /** Every record that matches the view (search, filters, sort), in column order. */
+  async export(
+    ownerId: string,
+    tableId: string,
+    query: RecordExportQuery,
+  ): Promise<ExportedFile> {
+    const table = await this.prisma.inventoryTable.findFirst({
+      where: { id: tableId, ownerId },
+      select: { name: true, columns: { orderBy: { position: 'asc' } } },
+    });
+    if (!table) {
+      throw new NotFoundException('Table not found');
+    }
+
+    const columns = table.columns.map(toTableColumn);
+    const { where, orderBy } = buildRecordQuery(tableId, columns, query);
+    const rows = await this.prisma.$queryRaw<{ data: RecordData }[]>`
+      SELECT r.data FROM records r
+      WHERE ${where}
+      ORDER BY ${orderBy}
+      LIMIT ${MAX_RECORDS_PER_TABLE}`;
+
+    return {
+      fileName: exportFileName(table.name, 'csv'),
+      contentType: 'text/csv; charset=utf-8',
+      content: Buffer.from(
+        toCsv(
+          columns,
+          rows.map(({ data }) => data),
+        ),
+        'utf8',
+      ),
+    };
+  }
+
+  /** Records grouped by a column's values, counted and optionally summed. */
+  async stats(
+    ownerId: string,
+    tableId: string,
+    query: RecordStatsQuery,
+  ): Promise<RecordStats> {
+    const table = await this.prisma.inventoryTable.findFirst({
+      where: { id: tableId, ownerId },
+      select: { columns: true, _count: { select: { records: true } } },
+    });
+    if (!table) {
+      throw new NotFoundException('Table not found');
+    }
+
+    const { groupBy, sum } = statsColumns(
+      table.columns.map(toTableColumn),
+      query,
+    );
+    // Column ids come from the table itself, and the CASE keeps the cast away
+    // from cells that are not numbers.
+    const sumSql = sum
+      ? Prisma.sql`sum(CASE WHEN jsonb_typeof(r.data -> ${sum.id}::text) = 'number'
+                        THEN (r.data ->> ${sum.id}::text)::float8 END)`
+      : Prisma.sql`NULL::float8`;
+    const rows = await this.prisma.$queryRaw<
+      { value: StatsGroup['value']; count: bigint; sum: number | null }[]
+    >`
+      SELECT r.data -> ${groupBy.id}::text AS value,
+             count(*) AS count,
+             ${sumSql} AS sum
+      FROM records r
+      WHERE r."tableId" = ${tableId}::uuid
+      GROUP BY 1
+      ORDER BY ${sum ? Prisma.sql`3 DESC NULLS LAST,` : Prisma.empty} 2 DESC, 1 ASC NULLS LAST`;
+
+    return summarizeGroups(
+      rows.map((row) => ({ ...row, count: Number(row.count) })),
+      table._count.records,
+    );
   }
 
   create(

@@ -10,7 +10,9 @@
     "filters": "Filtros",
     "filtersActive_one": "Filtros ({{count}} activo)",
     "filtersActive_other": "Filtros ({{count}} activos)",
-    "add": "Nuevo registro"
+    "add": "Nuevo registro",
+    "export": "Exportar CSV",
+    "exportError": "No se pudo exportar. {{message}}"
   },
   "table": {
     "caption": "Registros de {{name}}",
@@ -23,6 +25,10 @@
   "cell": {
     "edit": "{{label}}: {{value}}",
     "empty": "vacío",
+    "stock": {
+      "low": "{{value}}, bajo mínimo",
+      "out": "{{value}}, agotado"
+    },
     "label": "{{column}} de {{row}}",
     "invalidHint": "Ese valor no encaja con la columna. Corrígelo o pulsa Escape para cancelar.",
     "invalid": "El valor no encaja con la columna «{{column}}»; se ha descartado.",

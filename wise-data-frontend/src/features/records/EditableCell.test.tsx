@@ -72,4 +72,20 @@ describe("EditableCell", () => {
 
     expect(onSave).toHaveBeenCalledExactlyOnceWith(true);
   });
+
+  it("tells which quantities are below the column's threshold", () => {
+    const stock = column({ type: "number", options: { alertBelow: 5 } });
+    const { rerender } = render(<Cell column={stock} value={3} onSave={vi.fn()} />);
+    expect(screen.getByRole("button")).toHaveAccessibleName("Precio de Taladro: 3, bajo mínimo");
+
+    rerender(<Cell column={stock} value={0} onSave={vi.fn()} />);
+    expect(screen.getByRole("button")).toHaveAccessibleName("Precio de Taladro: 0, agotado");
+
+    rerender(<Cell column={stock} value={5} onSave={vi.fn()} />);
+    expect(screen.getByRole("button")).toHaveAccessibleName("Precio de Taladro: 5");
+
+    const negativesOnly = column({ type: "number", options: { alertBelow: 0 } });
+    rerender(<Cell column={negativesOnly} value={0} onSave={vi.fn()} />);
+    expect(screen.getByRole("button")).toHaveAccessibleName("Precio de Taladro: 0");
+  });
 });
