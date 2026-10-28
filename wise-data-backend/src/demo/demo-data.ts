@@ -120,7 +120,7 @@ export const DEMO_TABLES: DemoTable[] = [
         Referencia: 'ES-005',
         Categoría: 'Escaleras',
         Precio: 79,
-        Stock: 1,
+        Stock: 6,
         Estado: 'Descatalogado',
         Destacado: false,
       },

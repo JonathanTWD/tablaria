@@ -179,7 +179,8 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 
 - **Umbral en la columna**: el umbral vive en `options.alertBelow` de las columnas numéricas (nulo si no avisa), dentro del mismo esquema zod compartido. No hace falta migración, porque las opciones ya se guardan como JSON, y lo valida la API como cualquier otra opción. No se aplica a precios: un precio bajo no es una alerta.
 - **Una sola regla**: `stockLevel()` en `@wisedata/shared` decide si un valor está bien, bajo (por debajo del umbral) o agotado (0 o menos). La tabla lo usa para marcar las celdas y la API aplica la misma comparación en SQL.
-- **Endpoint agregado**: `GET /stock-alerts` busca las columnas con umbral de las tablas del usuario y hace una consulta parametrizada por columna (`(data ->> id)::float8 < umbral`, con el id de la columna validado desde la base de datos, nunca desde la petición). Devuelve los 8 más urgentes y el total, así el panel no carga todas las tablas. Las columnas con umbral son pocas por usuario (máximo 50 por tabla), así que no hace falta un índice específico.
+- **Endpoint agregado**: `GET /stock-alerts` resuelve todo en una sola consulta parametrizada: une las tablas del usuario con sus columnas numéricas con umbral y con sus registros, y compara cada valor con el umbral guardado en la propia columna (los ids de columna salen de la base de datos, nunca de la petición). Un `CASE` evita convertir a número celdas que no lo son. Devuelve los 8 más urgentes y el total, así el panel no carga todas las tablas.
+- **Panel sin saltos**: el inicio espera a las tablas y a los avisos antes de pintarse, para que la tarjeta no empuje la lista de tablas cuando ya se ve.
 - **Sin notificaciones**: los avisos se ven al abrir el panel. Emails o notificaciones push quedan fuera del MVP.
 
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)

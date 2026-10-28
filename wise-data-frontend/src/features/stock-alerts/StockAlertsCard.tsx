@@ -1,27 +1,24 @@
-import { useQuery } from "@tanstack/react-query";
-import type { StockAlert } from "@wisedata/shared";
+import { stockLevelFor, type StockAlert, type StockAlerts } from "@wisedata/shared";
 import { CircleAlert, TriangleAlert } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { cn } from "@/lib/utils";
-import { stockAlertsQuery } from "./queries";
 
-/** Records running low; hidden while loading and when nothing is below its threshold. */
-export function StockAlertsCard() {
+/** Records running low; hidden when nothing is below its threshold. */
+export function StockAlertsCard({ alerts }: { alerts: StockAlerts | undefined }) {
   const { t } = useTranslation("app");
-  const alerts = useQuery(stockAlertsQuery);
 
-  if (alerts.isError) {
+  if (!alerts) {
     return (
       <p role="status" className="mt-8 text-sm text-muted-foreground">
         {t("dashboard.alerts.loadError")}
       </p>
     );
   }
-  if (!alerts.data || alerts.data.total === 0) {
+  if (alerts.total === 0) {
     return null;
   }
-  const { items, total } = alerts.data;
+  const { items, total } = alerts;
 
   return (
     <section
@@ -54,7 +51,7 @@ export function StockAlertsCard() {
 function AlertRow({ alert }: { alert: StockAlert }) {
   const { t, i18n } = useTranslation(["app", "records"]);
   const number = new Intl.NumberFormat(i18n.language);
-  const out = alert.value <= 0;
+  const out = stockLevelFor(alert.value, alert.alertBelow) === "out";
   const Icon = out ? CircleAlert : TriangleAlert;
 
   return (

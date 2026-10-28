@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import type { TableSummary } from "@wisedata/shared";
+import type { StockAlerts, TableSummary } from "@wisedata/shared";
 import { Plus, Table2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { displayName } from "@/features/auth/display-name";
 import { useSession } from "@/features/auth/session";
+import { stockAlertsQuery } from "@/features/stock-alerts/queries";
 import { StockAlertsCard } from "@/features/stock-alerts/StockAlertsCard";
 import { CreateTableDialog } from "@/features/tables/CreateTableDialog";
 import { tablesQuery } from "@/features/tables/queries";
@@ -18,6 +19,10 @@ export default function DashboardPage() {
   const { t } = useTranslation(["app", "tables"]);
   const { data: user } = useSession();
   const tables = useQuery(tablesQuery);
+  // The overview waits for the alerts too, so their card never pushes the tables down.
+  const alerts = useQuery(stockAlertsQuery);
+  const loading = tables.isPending || (tables.isSuccess && alerts.isPending);
+  const ready = tables.isSuccess && !alerts.isPending;
   const name = user ? displayName(user) : "";
 
   const createButton = (
@@ -37,7 +42,7 @@ export default function DashboardPage() {
         {tables.data && tables.data.length > 0 && <CreateTableDialog trigger={createButton} />}
       </div>
 
-      {tables.isPending && (
+      {loading && (
         <div aria-busy="true" className="mt-8">
           <Skeleton className="h-24 w-full rounded-xl" />
           <Skeleton className="mt-10 h-6 w-40" />
@@ -59,7 +64,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {tables.data?.length === 0 && (
+      {ready && tables.data.length === 0 && (
         <section
           aria-labelledby="tables-empty"
           className="mt-10 rounded-xl border border-dashed border-border px-6 py-14 sm:px-10"
@@ -77,12 +82,21 @@ export default function DashboardPage() {
         </section>
       )}
 
-      {tables.data && tables.data.length > 0 && <TablesOverview tables={tables.data} />}
+      {ready && tables.data.length > 0 && (
+        <TablesOverview tables={tables.data} alerts={alerts.data} />
+      )}
     </>
   );
 }
 
-function TablesOverview({ tables }: { tables: TableSummary[] }) {
+function TablesOverview({
+  tables,
+  alerts,
+}: {
+  tables: TableSummary[];
+  /** Undefined when the alerts failed to load. */
+  alerts: StockAlerts | undefined;
+}) {
   const { t, i18n } = useTranslation(["app", "tables"]);
   const recordCount = tables.reduce((total, table) => total + table.recordCount, 0);
   const metrics = [
@@ -111,7 +125,7 @@ function TablesOverview({ tables }: { tables: TableSummary[] }) {
         ))}
       </dl>
 
-      <StockAlertsCard />
+      <StockAlertsCard alerts={alerts} />
 
       <section aria-labelledby="tables-title" className="mt-10">
         <h2 id="tables-title" className="text-lg font-semibold tracking-tight">

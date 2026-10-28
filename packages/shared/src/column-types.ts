@@ -197,10 +197,17 @@ export interface UpdateColumnResponse {
 export type StockLevel = "ok" | "low" | "out";
 
 /**
- * Where a value stands against its column's alert threshold: below it is
- * "low", or "out" at 0 or less. Null when the column sets no threshold.
- * Matches the comparison the API runs for the dashboard alerts.
+ * Where a value stands against an alert threshold: below it is "low", or
+ * "out" at 0 or less. Matches the comparison the API runs for the alerts.
  */
+export function stockLevelFor(value: number, alertBelow: number): StockLevel {
+  if (value >= alertBelow) {
+    return "ok";
+  }
+  return value <= 0 ? "out" : "low";
+}
+
+/** A cell's stock level, or null when its column sets no threshold. */
 export function stockLevel(
   column: ColumnDefinition,
   value: CellValue | undefined,
@@ -208,8 +215,5 @@ export function stockLevel(
   if (column.type !== "number" || !column.options || typeof value !== "number") {
     return null;
   }
-  if (value >= column.options.alertBelow) {
-    return "ok";
-  }
-  return value <= 0 ? "out" : "low";
+  return stockLevelFor(value, column.options.alertBelow);
 }

@@ -5,7 +5,7 @@ import {
   type StockLevel,
   type TableColumn,
 } from "@wisedata/shared";
-import { CircleAlert, TriangleAlert } from "lucide-react";
+import { CircleAlert, TriangleAlert, type LucideIcon } from "lucide-react";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -32,7 +32,7 @@ interface EditableCellProps {
 
 const numeric = (column: TableColumn) => column.type === "number" || column.type === "currency";
 
-const STOCK_ALERTS: Record<Exclude<StockLevel, "ok">, { icon: typeof TriangleAlert; className: string }> = {
+const STOCK_ALERTS: Record<Exclude<StockLevel, "ok">, { icon: LucideIcon; className: string }> = {
   low: { icon: TriangleAlert, className: "font-medium text-amber-700 dark:text-amber-400" },
   out: { icon: CircleAlert, className: "font-medium text-destructive" },
 };
