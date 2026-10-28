@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { House, Plus, Settings, Table2 } from "lucide-react";
-import { Suspense, useState } from "react";
+import { type CSSProperties, type RefObject, Suspense, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, Outlet, useLocation } from "react-router";
 import { FullPageLoader } from "@/components/FullPageLoader";
@@ -44,13 +44,15 @@ const NAV_ITEMS = [
 
 const SIDEBAR_STORAGE_KEY = "wisedata:sidebar-open";
 
+/** The saved choice; without one, expanded only where the content still has room (≥ 1024 px). */
 function readSidebarOpen(): boolean {
+  let saved: string | null = null;
   try {
-    return localStorage.getItem(SIDEBAR_STORAGE_KEY) !== "false";
+    saved = localStorage.getItem(SIDEBAR_STORAGE_KEY);
   } catch {
-    // Storage blocked (private mode, site data disabled): start expanded.
-    return true;
+    // Storage blocked (private mode, site data disabled): fall back to the screen width.
   }
+  return saved === null ? window.matchMedia("(min-width: 1024px)").matches : saved === "true";
 }
 
 function saveSidebarOpen(open: boolean) {
@@ -148,6 +150,15 @@ function TablesNav() {
               </DropdownMenuContent>
             </DropdownMenu>
           </SidebarMenuItem>
+          <SidebarMenuItem>
+            <CreateTableDialog
+              trigger={
+                <SidebarMenuButton tooltip={t("create.open")} aria-label={t("create.open")}>
+                  <Plus aria-hidden="true" />
+                </SidebarMenuButton>
+              }
+            />
+          </SidebarMenuItem>
         </SidebarMenu>
       </SidebarGroup>
     );
@@ -229,13 +240,14 @@ function AppSidebar() {
   );
 }
 
-function AppHeader() {
+function AppHeader({ triggerRef }: { triggerRef: RefObject<HTMLButtonElement | null> }) {
   const { t } = useTranslation(["app", "common"]);
   const { open, openMobile, isMobile } = useSidebar();
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border bg-background/90 px-3 backdrop-blur sm:px-6">
       <SidebarTrigger
+        ref={triggerRef}
         className="size-9"
         aria-label={t("sidebar.toggle")}
         aria-expanded={isMobile ? openMobile : open}
@@ -252,16 +264,20 @@ export default function AppLayout() {
   const { t } = useTranslation("app");
   const mainRef = useFocusOnNavigate<HTMLElement>();
   const [sidebarOpen, setSidebarOpen] = useState(readSidebarOpen);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   return (
     <SidebarProvider
       open={sidebarOpen}
       onOpenChange={(open) => {
+        if (!open && document.activeElement?.closest('[data-sidebar="sidebar"]')) {
+          triggerRef.current?.focus();
+        }
         setSidebarOpen(open);
         saveSidebarOpen(open);
       }}
       // Same width as before the collapsible sidebar, so the page layouts keep their measurements.
-      style={{ "--sidebar-width": "15rem" } as React.CSSProperties}
+      style={{ "--sidebar-width": "15rem" } as CSSProperties}
       className="min-h-dvh bg-background"
     >
       <a
@@ -274,7 +290,7 @@ export default function AppLayout() {
       <AppSidebar />
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <AppHeader />
+        <AppHeader triggerRef={triggerRef} />
         <DemoBanner />
 
         <main
