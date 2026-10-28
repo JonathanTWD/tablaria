@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Ellipsis, Pencil, Trash2 } from "lucide-react";
+import { hasRole } from "@wisedata/shared";
+import { ArrowLeft, Ellipsis, LogOut, Pencil, Trash2, UserPlus } from "lucide-react";
 import { Suspense, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, NavLink, Outlet, useParams } from "react-router";
@@ -14,6 +15,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
+import { LeaveTableDialog } from "@/features/sharing/LeaveTableDialog";
+import { ShareDialog } from "@/features/sharing/ShareDialog";
 import { DeleteTableDialog } from "@/features/tables/DeleteTableDialog";
 import { EditTableDialog } from "@/features/tables/EditTableDialog";
 import { tableQuery } from "@/features/tables/queries";
@@ -27,7 +30,7 @@ export default function TablePage() {
   const { t, i18n } = useTranslation(["tables", "records"]);
   const { tableId = "" } = useParams();
   const table = useQuery(tableQuery(tableId));
-  const [dialog, setDialog] = useState<"edit" | "delete" | null>(null);
+  const [dialog, setDialog] = useState<"share" | "edit" | "delete" | "leave" | null>(null);
 
   const backLink = (
     <Link
@@ -79,11 +82,16 @@ export default function TablePage() {
   }
 
   const { data } = table;
+  const manages = hasRole(data.role, "ADMIN");
   const meta = [
+    // Tables shared with the user say so, with what they can do.
+    !manages && t("page.sharedWithYou", { role: t(`share.roles.${data.role}`) }),
     t("count.columns", { count: data.columnCount }),
     t("count.records", { count: data.recordCount }),
     t("edited", { time: formatRelativeTime(data.updatedAt, i18n.language) }),
-  ].join(" · ");
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     // Full width for wide tables, bounded so ultrawide screens don't spread a few columns apart.
@@ -110,15 +118,28 @@ export default function TablePage() {
             <Ellipsis aria-hidden="true" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-60">
-            <DropdownMenuItem onClick={() => setDialog("edit")}>
-              <Pencil aria-hidden="true" />
-              {t("edit.open")}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem variant="destructive" onClick={() => setDialog("delete")}>
-              <Trash2 aria-hidden="true" />
-              {t("delete.open")}
-            </DropdownMenuItem>
+            {manages ? (
+              <>
+                <DropdownMenuItem onClick={() => setDialog("share")}>
+                  <UserPlus aria-hidden="true" />
+                  {t("page.share")}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setDialog("edit")}>
+                  <Pencil aria-hidden="true" />
+                  {t("edit.open")}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem variant="destructive" onClick={() => setDialog("delete")}>
+                  <Trash2 aria-hidden="true" />
+                  {t("delete.open")}
+                </DropdownMenuItem>
+              </>
+            ) : (
+              <DropdownMenuItem variant="destructive" onClick={() => setDialog("leave")}>
+                <LogOut aria-hidden="true" />
+                {t("page.leave")}
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -150,6 +171,19 @@ export default function TablePage() {
         <Outlet context={data} />
       </Suspense>
 
+      {manages ? (
+        <ShareDialog
+          table={data}
+          open={dialog === "share"}
+          onOpenChange={(open) => setDialog(open ? "share" : null)}
+        />
+      ) : (
+        <LeaveTableDialog
+          table={data}
+          open={dialog === "leave"}
+          onOpenChange={(open) => setDialog(open ? "leave" : null)}
+        />
+      )}
       <EditTableDialog
         table={data}
         open={dialog === "edit"}

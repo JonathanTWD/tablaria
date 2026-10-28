@@ -217,3 +217,48 @@ function TextualCell({ column, value, label, format, onSave }: EditableCellProps
     </button>
   );
 }
+
+/** What viewers see: the value as text, with the same stock warnings, and no editing. */
+export function ReadOnlyCell({
+  column,
+  value,
+  format,
+}: Pick<EditableCellProps, "column" | "value" | "format">) {
+  const { t } = useTranslation("records");
+  if (column.type === "select") {
+    const choice = column.options.choices.find((item) => item.label === value);
+    return (
+      <span className="flex h-8 min-w-28 items-center px-2">
+        {choice && (
+          <span
+            className={cn("truncate rounded-md px-1.5 py-0.5 text-xs", SELECT_CHIP_CLASSES[choice.color])}
+          >
+            {choice.label}
+          </span>
+        )}
+      </span>
+    );
+  }
+  const level = stockLevel(column, value);
+  const alertLevel = level === "ok" ? null : level;
+  const alert = alertLevel && STOCK_ALERTS[alertLevel];
+  const shown = format(column, value);
+
+  return (
+    <span
+      className={cn(
+        "flex h-8 min-w-28 items-center px-2 text-sm",
+        numeric(column) && "justify-end tabular-nums",
+        alert && ["gap-1.5", alert.className],
+      )}
+    >
+      {alert && <alert.icon aria-hidden="true" className="size-3.5 shrink-0" />}
+      <span className="truncate" aria-hidden={alertLevel ? true : undefined}>
+        {shown}
+      </span>
+      {alertLevel && (
+        <span className="sr-only">{t(`cell.stock.${alertLevel}`, { value: shown })}</span>
+      )}
+    </span>
+  );
+}

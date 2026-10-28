@@ -2,7 +2,14 @@
 
 ## Sin publicar
 
-- **Compartir tablas, API** (fase 9, parte 2a): invitaciones por email a una tabla con rol de lector o editor; aceptarlas desde la cuenta invitada; cambiar o quitar permisos; salir de una tabla compartida; y el listado «Compartidas conmigo». Cada tabla indica el rol del usuario. La interfaz llega en la parte 2b.
+- **Compartir tablas** (fase 9, parte 2):
+  - **Invitar:** con el menú «Compartir» de una tabla se invita a cualquiera por email como lector o editor, y desde ahí se ven las personas con acceso, se cambia su permiso, se les quita el acceso o se anulan invitaciones pendientes.
+  - **Aceptar:** el enlace del email lleva a una página para aceptar la invitación, pasando antes por el inicio de sesión si hace falta.
+  - **Compartidas conmigo:** estas tablas aparecen en la barra lateral y en el inicio, y se puede salir de ellas.
+  - **Según el rol:**
+    - el lector ve y exporta, pero no puede editar;
+    - el editor cambia registros, pero no la tabla ni sus columnas;
+    - los avisos de stock incluyen las tablas compartidas.
 - **Base para compartir y organizaciones** (fase 9, parte 1): las tablas pasan a pertenecer a una organización, y cada cuenta tiene un espacio personal al que la migración mueve sus tablas. Ahora el acceso a una tabla se decide en un único sitio: el rol en su organización o el compartido directamente (lector, editor, administrador o propietario). Desde fuera no cambia nada todavía; compartir llega en la parte 2.
 - **Pantallas grandes**: la app ya no limita todas las páginas a 1024 px.
   - La tabla de registros usa todo el ancho: a 1707 px pasa de 960 a 1403 px y deja de necesitar scroll horizontal.

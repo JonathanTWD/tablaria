@@ -52,8 +52,31 @@
       "loadError": "No se pudo cargar el resumen."
     },
     "tablesTitle": "Tus tablas",
+    "sharedTitle": "Compartidas contigo",
+    "sharedBy": "De {{name}} · {{role}}",
     "loadError": "No se pudieron cargar tus tablas.",
     "retry": "Reintentar"
+  },
+  "invitation": {
+    "heading": "Te han invitado a una tabla",
+    "summary": "{{inviter}} te invita a {{action}} la tabla «{{table}}».",
+    "someone": "Alguien",
+    "actions": {
+      "VIEWER": "ver",
+      "EDITOR": "ver y editar"
+    },
+    "expires": "La invitación caduca {{time}}.",
+    "accept": "Aceptar y abrir la tabla",
+    "decline": "Ahora no",
+    "accepted": "Ya tienes acceso a «{{table}}»",
+    "notFoundTitle": "Esta invitación ya no es válida",
+    "notFoundDescription": "Puede que haya caducado, que ya la hayas aceptado o que la hayan anulado. Pide a quien te invitó que te envíe otra.",
+    "wrongAccountTitle": "Esta invitación es para otra cuenta",
+    "wrongAccountDescription": "Has entrado como {{email}}. Cierra sesión y entra con la cuenta a la que llegó el email.",
+    "missingToken": "Falta el código de la invitación. Abre el enlace completo del email.",
+    "goHome": "Ir al inicio",
+    "logout": "Cerrar sesión",
+    "error": "No se pudo cargar la invitación. Inténtalo de nuevo."
   },
   "settings": {
     "title": "Ajustes",

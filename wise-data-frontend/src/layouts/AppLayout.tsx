@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { House, Plus, Settings, Table2 } from "lucide-react";
+import { House, Plus, Settings, Table2, Users } from "lucide-react";
 import { type CSSProperties, type RefObject, Suspense, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, Outlet, useLocation } from "react-router";
@@ -33,6 +33,7 @@ import {
 import { useFocusOnNavigate } from "@/hooks/use-focus-on-navigate";
 import { DemoBanner } from "@/features/auth/DemoBanner";
 import { UserMenu } from "@/features/auth/UserMenu";
+import { sharedTablesQuery } from "@/features/sharing/queries";
 import { CreateTableDialog } from "@/features/tables/CreateTableDialog";
 import { tablesQuery } from "@/features/tables/queries";
 import { ThemeToggle } from "@/features/theme/ThemeToggle";
@@ -112,6 +113,7 @@ function MainNav() {
 function TablesNav() {
   const { t } = useTranslation("tables");
   const tables = useQuery(tablesQuery);
+  const shared = useQuery(sharedTablesQuery);
   const { pathname } = useLocation();
   const { state, isMobile } = useSidebar();
   const close = useCloseOnPhone();
@@ -147,6 +149,20 @@ function TablesNav() {
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuGroup>
+                {shared.data && shared.data.length > 0 && (
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel>{t("sidebar.shared")}</DropdownMenuLabel>
+                    {shared.data.map((table) => (
+                      <DropdownMenuItem
+                        key={table.id}
+                        render={<Link to={`/app/tables/${table.id}`} />}
+                      >
+                        <Users aria-hidden="true" />
+                        <span className="truncate">{table.name}</span>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuGroup>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </SidebarMenuItem>
@@ -165,8 +181,8 @@ function TablesNav() {
   }
 
   return (
-    <SidebarGroup className="min-h-0 flex-1">
-      <nav aria-labelledby="sidebar-tables-label" className="flex min-h-0 flex-1 flex-col">
+    <SidebarGroup>
+      <nav aria-labelledby="sidebar-tables-label">
         {/* Not a heading: it would precede the page's h1 in the outline. */}
         <SidebarGroupLabel id="sidebar-tables-label" render={<p />}>
           {t("sidebar.title")}
@@ -179,7 +195,7 @@ function TablesNav() {
             </SidebarGroupAction>
           }
         />
-        <SidebarGroupContent className="min-h-0 overflow-y-auto">
+        <SidebarGroupContent>
           {tables.isError && (
             <p className="px-2 py-2 text-xs text-muted-foreground">{t("sidebar.loadError")}</p>
           )}
@@ -196,6 +212,50 @@ function TablesNav() {
                     }
                   >
                     <Table2 aria-hidden="true" />
+                    <span>{table.name}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              );
+            })}
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </nav>
+    </SidebarGroup>
+  );
+}
+
+/** Tables other people shared with the user; hidden when there are none. */
+function SharedTablesNav() {
+  const { t } = useTranslation("tables");
+  const shared = useQuery(sharedTablesQuery);
+  const { pathname } = useLocation();
+  const { state, isMobile } = useSidebar();
+  const close = useCloseOnPhone();
+
+  // Collapsed, they are listed in the "Tablas" menu.
+  if (!shared.data?.length || (state === "collapsed" && !isMobile)) {
+    return null;
+  }
+  return (
+    <SidebarGroup>
+      <nav aria-labelledby="sidebar-shared-label">
+        <SidebarGroupLabel id="sidebar-shared-label" render={<p />}>
+          {t("sidebar.shared")}
+        </SidebarGroupLabel>
+        <SidebarGroupContent>
+          <SidebarMenu>
+            {shared.data.map((table) => {
+              const to = `/app/tables/${table.id}`;
+              const current = isCurrent(pathname, to, false);
+              return (
+                <SidebarMenuItem key={table.id}>
+                  <SidebarMenuButton
+                    isActive={current}
+                    render={
+                      <Link to={to} onClick={close} aria-current={current ? "page" : undefined} />
+                    }
+                  >
+                    <Users aria-hidden="true" />
                     <span>{table.name}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -231,6 +291,7 @@ function AppSidebar() {
       <SidebarContent>
         <MainNav />
         <TablesNav />
+        <SharedTablesNav />
       </SidebarContent>
       <SidebarFooter>
         <UserMenu />
