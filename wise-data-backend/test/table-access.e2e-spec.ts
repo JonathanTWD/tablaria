@@ -226,4 +226,41 @@ describe('Table access by role (e2e)', () => {
       share(context.table.id, context.guestId, 'ADMIN'),
     ).rejects.toThrow();
   });
+
+  it('keeps table management to admins, whichever way the access came', async () => {
+    const context = await setup();
+    const strangerContext = context.guest;
+    const editor = await createSignedInClient(app);
+    const organization = await prisma.organization.create({
+      data: {
+        name: 'Ferretería López',
+        memberships: {
+          create: { userId: await userId(editor), role: 'EDITOR' },
+        },
+      },
+    });
+    await prisma.inventoryTable.update({
+      where: { id: context.table.id },
+      data: { organizationId: organization.id },
+    });
+    const base = `/api/tables/${context.table.id}`;
+    const columnIds = context.table.columns.map(({ id }) => id);
+
+    await editor.get(`${base}/columns`).expect(200);
+    await editor
+      .patch(`${base}/columns/${columnIds[0]}`)
+      .send({ name: 'Nombre' })
+      .expect(403);
+    await editor
+      .patch(`${base}/columns/order`)
+      .send({ columnIds: [...columnIds].reverse() })
+      .expect(403);
+    await editor.delete(`${base}/columns/${columnIds[1]}`).expect(403);
+    await editor.delete(base).expect(403);
+
+    await strangerContext
+      .delete(`${base}/records/${context.record.id}`)
+      .expect(404);
+    await strangerContext.delete(`${base}/columns/${columnIds[1]}`).expect(404);
+  });
 });
