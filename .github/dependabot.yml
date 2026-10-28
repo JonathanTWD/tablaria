@@ -26,6 +26,9 @@ updates:
         update-types: [version-update:semver-major]
       - dependency-name: "@prisma/*"
         update-types: [version-update:semver-major]
+      # Types must describe the Node that runs the code (see engines), not a newer one.
+      - dependency-name: "@types/node"
+        update-types: [version-update:semver-major]
   - package-ecosystem: github-actions
     directory: /
     target-branch: develop
