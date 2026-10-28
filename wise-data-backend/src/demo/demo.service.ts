@@ -13,6 +13,7 @@ import { toColumnData } from '../columns/column-mapper';
 import { PrismaService } from '../database/prisma.service';
 import { withoutEmptyCells } from '../records/record-data';
 import type { Prisma, User } from '../generated/prisma/client';
+import { personalOrganizationId } from '../tables/table-access';
 import { DEMO_TABLES, type DemoTable } from './demo-data';
 
 export const DEMO_TTL_MS = 24 * 60 * 60 * 1000;
@@ -57,9 +58,10 @@ export class DemoService {
           demoExpiresAt: new Date(now.getTime() + DEMO_TTL_MS),
         },
       });
+      const organizationId = await personalOrganizationId(tx, user.id);
       // Lists show the most recently edited table first, so create the first one last.
       for (const table of [...DEMO_TABLES].reverse()) {
-        await createDemoTable(tx, user.id, table);
+        await createDemoTable(tx, organizationId, user.id, table);
       }
       return user;
     });
@@ -81,7 +83,8 @@ export class DemoService {
 
 async function createDemoTable(
   tx: Prisma.TransactionClient,
-  ownerId: string,
+  organizationId: string,
+  userId: string,
   table: DemoTable,
 ): Promise<void> {
   const definitions: ColumnDefinition[] = TABLE_TEMPLATES[table.templateId].map(
@@ -89,7 +92,8 @@ async function createDemoTable(
   );
   const created = await tx.inventoryTable.create({
     data: {
-      ownerId,
+      organizationId,
+      createdById: userId,
       name: table.name,
       description: table.description,
       columns: {

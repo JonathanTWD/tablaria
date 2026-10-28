@@ -95,6 +95,13 @@ describe('Demo accounts (e2e)', () => {
   it('deletes expired demo accounts with all their data', async () => {
     const { user } = await startDemo();
     // Past expiry plus one access-token lifetime, so no token can still be valid.
+    const tableIds = (
+      await prisma.inventoryTable.findMany({
+        where: { createdById: user.id },
+        select: { id: true },
+      })
+    ).map(({ id }) => id);
+    expect(tableIds.length).toBeGreaterThan(0);
     await prisma.user.update({
       where: { id: user.id },
       data: { demoExpiresAt: new Date(Date.now() - 16 * 60 * 1000) },
@@ -103,8 +110,9 @@ describe('Demo accounts (e2e)', () => {
     await startDemo();
 
     expect(await prisma.user.findUnique({ where: { id: user.id } })).toBeNull();
+    // The personal space goes with the user, and its tables with it.
     expect(
-      await prisma.inventoryTable.count({ where: { ownerId: user.id } }),
+      await prisma.inventoryTable.count({ where: { id: { in: tableIds } } }),
     ).toBe(0);
   });
 
