@@ -10,7 +10,9 @@
     "filters": "Filtros",
     "filtersActive_one": "Filtros ({{count}} activo)",
     "filtersActive_other": "Filtros ({{count}} activos)",
-    "add": "Nuevo registro"
+    "add": "Nuevo registro",
+    "export": "Exportar CSV",
+    "exportError": "No se pudo exportar. {{message}}"
   },
   "table": {
     "caption": "Registros de {{name}}",

@@ -26,7 +26,7 @@ La especificación completa del MVP está en [MVP_PROMPT.md](MVP_PROMPT.md).
 
 ### Prioridades tras el MVP
 
-1. **Exportar** a CSV o Excel, respetando la vista actual (búsqueda y filtros).
+1. **Exportar**, respetando la vista actual (búsqueda, filtros y orden). El CSV ya está hecho; falta Excel (`.xlsx` con ExcelJS), que se añadirá cuando las versiones recientes del lockfile cumplan la antigüedad mínima de pnpm.
 2. **Alertas de stock bajo** (umbral por columna numérica) y **gráficos** en el dashboard.
 3. **Importar** CSV o Excel con un asistente paso a paso: subir el archivo, indicar el formato, emparejar columnas, revisar las opciones nuevas y validar antes de importar. Usará la misma conversión y validación que la API. Se importan formatos neutros (CSV, Excel, JSON), no SQL de cada motor.
 4. **Preguntas sobre los datos con IA**: el modelo consulta la API mediante herramientas (filtros validados y un endpoint de agregaciones), nunca con SQL libre. Las herramientas solo leen.
