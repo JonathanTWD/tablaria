@@ -68,7 +68,7 @@ export function ColumnList({ table }: { table: TableDetail }) {
           <Columns3 aria-hidden="true" className="mx-auto size-7 text-primary" strokeWidth={1.5} />
           <h3 className="mt-3 font-semibold tracking-tight">{t("columns.emptyTitle")}</h3>
           <p className="mx-auto mt-1 max-w-sm text-sm leading-6 text-muted-foreground">
-            {t("columns.emptyDescription")}
+            {canManage ? t("columns.emptyDescription") : t("columns.emptyReadOnly")}
           </p>
           {canManage && <div className="mt-5">{addButton}</div>}
         </div>

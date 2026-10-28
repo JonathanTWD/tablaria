@@ -103,6 +103,7 @@
     "add": "Añadir columna",
     "emptyTitle": "Esta tabla aún no tiene columnas",
     "emptyDescription": "Añade la primera para empezar a guardar datos: nombre, cantidad, precio, fecha…",
+    "emptyReadOnly": "Quien la compartió todavía no ha añadido columnas.",
     "required": "Obligatoria",
     "default": "Por defecto: {{value}}",
     "alertBelow": "Aviso por debajo de {{value}}",
