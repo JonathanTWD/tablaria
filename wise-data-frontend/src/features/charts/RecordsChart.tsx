@@ -15,6 +15,7 @@ import { SELECT_FILL_CLASSES } from "@/features/columns/column-ui";
 import { useCellFormatter } from "@/features/columns/format-value";
 import { recordStatsQuery } from "@/features/records/queries";
 import { tableQuery } from "@/features/tables/queries";
+import { cn } from "@/lib/utils";
 import { BarChart, type BarChartRow } from "./BarChart";
 import { defaultGroupBy, groupableColumns, summableColumns } from "./chart-columns";
 
@@ -105,7 +106,8 @@ export function RecordsChart({ tables }: { tables: TableSummary[] }) {
     for (const group of stats.data.groups) {
       const value = sum ? (group.sum ?? 0) : group.count;
       rows.push({
-        key: String(group.value),
+        // JSON keeps the text "null" apart from an empty group.
+        key: JSON.stringify(group.value),
         label: group.value === null ? t("dashboard.charts.empty") : format(groupBy, group.value),
         value,
         display: display(value),
@@ -189,7 +191,11 @@ export function RecordsChart({ tables }: { tables: TableSummary[] }) {
             </>
           )}
         </div>
-        <div aria-busy={stats.isFetching} className="mt-5">
+        {/* Groups of the previous choice stay visible, dimmed, until the new ones arrive. */}
+        <div
+          aria-busy={stats.isFetching}
+          className={cn("mt-5 transition-opacity", stats.isPlaceholderData && "opacity-50")}
+        >
           {body}
         </div>
       </div>

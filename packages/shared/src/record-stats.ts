@@ -1,10 +1,19 @@
 import { z } from "zod";
 import type { ColumnType } from "./column-types.js";
 
-/** Columns whose values make meaningful groups: few distinct values per table. */
+/**
+ * Columns whose values make meaningful groups, best first: lists (few,
+ * colored values), then yes/no, then free text.
+ */
 export const STATS_GROUP_TYPES = ["select", "boolean", "text"] as const satisfies ColumnType[];
 /** Columns that can be added up within each group. */
 export const STATS_SUM_TYPES = ["number", "currency"] as const satisfies ColumnType[];
+
+const isOneOf = (types: readonly ColumnType[], type: ColumnType) => types.includes(type);
+
+export const canGroupBy = (column: { type: ColumnType }) =>
+  isOneOf(STATS_GROUP_TYPES, column.type);
+export const canSum = (column: { type: ColumnType }) => isOneOf(STATS_SUM_TYPES, column.type);
 
 /** Groups shown one by one; the rest are added up together. */
 export const STATS_MAX_GROUPS = 8;

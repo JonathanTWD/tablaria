@@ -1,29 +1,21 @@
-import {
-  STATS_GROUP_TYPES,
-  STATS_SUM_TYPES,
-  type ColumnType,
-  type TableColumn,
-} from "@wisedata/shared";
-
-const isOneOf = (types: readonly ColumnType[], column: TableColumn) =>
-  types.includes(column.type);
+import { canGroupBy, canSum, STATS_GROUP_TYPES, type TableColumn } from "@wisedata/shared";
 
 /**
  * Columns worth grouping by. The first one is left out: it usually names each
  * record (product, equipment…), so every group would hold a single record.
  */
 export function groupableColumns(columns: TableColumn[]): TableColumn[] {
-  return columns.slice(1).filter((column) => isOneOf(STATS_GROUP_TYPES, column));
+  return columns.slice(1).filter(canGroupBy);
 }
 
 export function summableColumns(columns: TableColumn[]): TableColumn[] {
-  return columns.filter((column) => isOneOf(STATS_SUM_TYPES, column));
+  return columns.filter(canSum);
 }
 
-/** Lists group best (few, colored values), then yes/no, then free text. */
+/** The groupable column of the most useful type (`STATS_GROUP_TYPES` order). */
 export function defaultGroupBy(columns: TableColumn[]): TableColumn | undefined {
   const groupable = groupableColumns(columns);
-  return (["select", "boolean", "text"] as const)
-    .map((type) => groupable.find((column) => column.type === type))
-    .find(Boolean);
+  return STATS_GROUP_TYPES.map((type) => groupable.find((column) => column.type === type)).find(
+    Boolean,
+  );
 }

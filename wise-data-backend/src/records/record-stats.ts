@@ -1,18 +1,13 @@
 import { BadRequestException } from '@nestjs/common';
 import {
+  canGroupBy,
+  canSum,
   type RecordStats,
   type RecordStatsQuery,
-  STATS_GROUP_TYPES,
   STATS_MAX_GROUPS,
-  STATS_SUM_TYPES,
   type StatsGroup,
   type TableColumn,
 } from '@wisedata/shared';
-
-const isOneOf = <T extends string>(
-  list: readonly T[],
-  value: string,
-): value is T => (list as readonly string[]).includes(value);
 
 /** The columns the query names, checked against the table's own columns. */
 export function statsColumns(
@@ -20,14 +15,14 @@ export function statsColumns(
   query: RecordStatsQuery,
 ): { groupBy: TableColumn; sum: TableColumn | null } {
   const groupBy = columns.find(({ id }) => id === query.groupBy);
-  if (!groupBy || !isOneOf(STATS_GROUP_TYPES, groupBy.type)) {
+  if (!groupBy || !canGroupBy(groupBy)) {
     throw new BadRequestException('Invalid groupBy column');
   }
   if (query.sum === undefined) {
     return { groupBy, sum: null };
   }
   const sum = columns.find(({ id }) => id === query.sum);
-  if (!sum || !isOneOf(STATS_SUM_TYPES, sum.type)) {
+  if (!sum || !canSum(sum)) {
     throw new BadRequestException('Invalid sum column');
   }
   return { groupBy, sum };

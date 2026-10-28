@@ -39,7 +39,11 @@ export function BarChart({
       <tbody>
         {rows.map((row) => (
           <tr key={row.key}>
-            <th scope="row" className="w-2/5 truncate pr-3 text-left font-normal sm:w-1/3">
+            <th
+              scope="row"
+              title={row.label}
+              className="w-2/5 truncate pr-3 text-left font-normal sm:w-1/3"
+            >
               {row.label}
             </th>
             <td>
