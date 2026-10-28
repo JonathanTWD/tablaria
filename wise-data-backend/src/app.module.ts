@@ -11,6 +11,7 @@ import { DatabaseModule } from './database/database.module';
 import { HealthModule } from './health/health.module';
 import { MailModule } from './mail/mail.module';
 import { RecordsModule } from './records/records.module';
+import { RealtimeModule } from './realtime/realtime.module';
 import { SharingModule } from './sharing/sharing.module';
 import { StockAlertsModule } from './stock-alerts/stock-alerts.module';
 import { TablesModule } from './tables/tables.module';
@@ -28,6 +29,7 @@ import { TablesModule } from './tables/tables.module';
     RecordsModule,
     StockAlertsModule,
     SharingModule,
+    RealtimeModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: LoggingThrottlerGuard },

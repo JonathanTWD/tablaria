@@ -26,6 +26,7 @@ import type { Env } from '../config/env.schema';
 import { PrismaService } from '../database/prisma.service';
 import type { Invitation, Prisma } from '../generated/prisma/client';
 import { Mailer } from '../mail/mailer';
+import { RealtimeService } from '../realtime/realtime.service';
 import { requireTableRole, ROLE_RANK, tableRole } from '../tables/table-access';
 import { invitationEmail } from './sharing-emails';
 
@@ -63,6 +64,7 @@ export class SharingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly mailer: Mailer,
+    private readonly realtime: RealtimeService,
     config: ConfigService<Env, true>,
   ) {
     this.appUrl = config.get('APP_URL', { infer: true });
@@ -179,6 +181,7 @@ export class SharingService {
       url: `${this.appUrl}/invitations?token=${encodeURIComponent(token)}`,
       days: INVITATION_TTL_DAYS,
     });
+    this.realtime.publish(tableId, 'sharing');
     return toPendingInvitation(invitation);
   }
 
@@ -195,6 +198,7 @@ export class SharingService {
     if (count === 0) {
       throw new NotFoundException('Invitation not found');
     }
+    this.realtime.publish(tableId, 'sharing');
   }
 
   async updateShare(
@@ -215,6 +219,9 @@ export class SharingService {
       where: { tableId_userId: { tableId, userId: memberId } },
       include: { user: { select: { email: true } } },
     });
+    // "table": the member's open page refetches it and gets their new role.
+    this.realtime.publish(tableId, 'table');
+    this.realtime.publish(tableId, 'sharing');
     return {
       userId: share.userId,
       email: share.user.email,
@@ -238,6 +245,8 @@ export class SharingService {
     if (count === 0) {
       throw new NotFoundException('Share not found');
     }
+    this.realtime.revoke(tableId, memberId);
+    this.realtime.publish(tableId, 'sharing');
   }
 
   async preview(userId: string, token: string): Promise<InvitationPreview> {
@@ -291,6 +300,7 @@ export class SharingService {
         });
       }
     });
+    this.realtime.publish(invitation.tableId, 'sharing');
     return { tableId: invitation.tableId };
   }
 
