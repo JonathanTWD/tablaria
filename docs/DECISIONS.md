@@ -167,6 +167,14 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 - **Vista previa al compartir**: metaetiquetas Open Graph y de X/Twitter en `index.html` (los rastreadores no ejecutan JavaScript), con una imagen de 1200×630 generada desde `wise-data-frontend/og/og-image.html`. El favicon pasa a ser el icono de WiseData.
 - **Diagnóstico del proxy**: cada petición bloqueada por el límite de peticiones deja en el log la IP con la que se contó. Si no coincide con la IP pública del cliente, `TRUST_PROXY_HOPS` no está bien ajustado.
 
+## ADR-014: Exportación de registros
+
+- **En el servidor**: `GET /tables/:tableId/records/export` reutiliza la consulta parametrizada del listado (búsqueda, filtros y orden, con la misma lista blanca de columnas), pero sin paginar. Así se exportan todos los registros que coinciden, hasta el máximo de 10.000 por tabla, no solo la página visible. Tiene un límite propio de 10 exportaciones por minuto.
+- **CSV para Excel en español**: separador `;` y coma decimal, porque es lo que Excel espera en España y en la mayoría de locales europeos al abrir un CSV con doble clic. Las comillas siguen RFC 4180, con CRLF y BOM UTF-8 para que se vean bien los acentos y el €. Las columnas de precio llevan la moneda en la cabecera («Precio (EUR)»), los booleanos van como Sí/No y las fechas en ISO.
+- **Inyección de fórmulas**: cualquier celda o nombre de columna que empiece por `=`, `+`, `-`, `@`, tabulador o retorno lleva delante un `'`, así la hoja de cálculo lo muestra como texto. Los números negativos no se tocan, porque se escriben como números.
+- **Descarga en el cliente**: `apiDownload` usa el mismo flujo que el resto de peticiones (renovación de la sesión ante un 401) y guarda el archivo con el nombre que sugiere la API, que es un nombre ASCII derivado de la tabla y la fecha.
+- **Excel pendiente**: ExcelJS no se puede añadir hasta que las versiones que Dependabot fijó en el lockfile cumplan la antigüedad mínima de 14 días de pnpm (`minimumReleaseAge`). Para que no vuelva a pasar, Dependabot usa ahora un `cooldown` de 14 días, y `@rolldown/*` tiene una excepción porque publica builds nativos con mucha frecuencia.
+
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
 Todas están especificadas en [MVP_PROMPT.md](MVP_PROMPT.md):
