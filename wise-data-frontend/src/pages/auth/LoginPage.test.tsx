@@ -4,10 +4,15 @@ import { describe, expect, it } from "vitest";
 import { mockApi, renderWithProviders } from "@/test/render";
 import LoginPage from "./LoginPage";
 
+/** Paths the page requested, in order. The session probe (/auth/me) is part of it. */
+function requestedPaths(fetchMock: ReturnType<typeof mockApi>) {
+  return fetchMock.mock.calls.map(([input]) => String(input));
+}
+
 describe("LoginPage", () => {
   it("explains what is missing before calling the API", async () => {
     const user = userEvent.setup();
-    const fetchMock = mockApi(() => ({}));
+    const fetchMock = mockApi(() => 401);
     renderWithProviders(<LoginPage />);
 
     await user.click(screen.getByRole("button", { name: "Iniciar sesión" }));
@@ -15,7 +20,7 @@ describe("LoginPage", () => {
     expect(await screen.findByText(/Introduce un email válido/)).toBeInTheDocument();
     expect(screen.getByText("Introduce tu contraseña.")).toBeInTheDocument();
     expect(screen.getByLabelText("Email")).toHaveAttribute("aria-invalid", "true");
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(requestedPaths(fetchMock)).not.toContain("/api/auth/login");
   });
 
   it("reports wrong credentials without trying to refresh the session", async () => {
@@ -28,7 +33,10 @@ describe("LoginPage", () => {
     await user.click(screen.getByRole("button", { name: "Iniciar sesión" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/email o la contraseña/i);
-    expect(fetchMock).toHaveBeenCalledOnce();
-    expect(String(fetchMock.mock.calls[0][0])).toBe("/api/auth/login");
+    const paths = requestedPaths(fetchMock);
+    const login = paths.indexOf("/api/auth/login");
+    expect(paths.filter((path) => path === "/api/auth/login")).toHaveLength(1);
+    // A 401 from login means wrong credentials, never an expired session.
+    expect(paths.slice(login + 1)).not.toContain("/api/auth/refresh");
   });
 });
