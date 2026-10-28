@@ -251,6 +251,9 @@ export class SharingService {
         invitedBy: { select: { email: true } },
       },
     });
+    if (!details.table) {
+      throw invitationNotFound();
+    }
     return {
       tableName: details.table.name,
       invitedBy: details.invitedBy?.email ?? null,
@@ -291,19 +294,20 @@ export class SharingService {
     return { tableId: invitation.tableId };
   }
 
-  private async findUsable(token: string): Promise<Invitation> {
+  /** A pending invitation whose table still exists. */
+  private async findUsable(token: string): Promise<UsableInvitation> {
     const invitation = await this.prisma.invitation.findUnique({
       where: { tokenHash: hashToken(token) },
     });
     if (
-      !invitation ||
+      !invitation?.tableId ||
       invitation.acceptedAt ||
       invitation.revokedAt ||
       invitation.expiresAt <= new Date()
     ) {
       throw invitationNotFound();
     }
-    return invitation;
+    return { ...invitation, tableId: invitation.tableId };
   }
 
   private async requireRecipient(
@@ -340,6 +344,8 @@ export class SharingService {
     }
   }
 }
+
+type UsableInvitation = Invitation & { tableId: string };
 
 function invitationNotFound() {
   return new NotFoundException('Invitation not found or expired');

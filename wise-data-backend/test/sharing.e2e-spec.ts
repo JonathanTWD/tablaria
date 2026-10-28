@@ -272,4 +272,30 @@ describe('Sharing tables (e2e)', () => {
     }
     await invite(owner, table.id, email, 'VIEWER', 429);
   });
+
+  it('keeps counting invitations after their table is deleted', async () => {
+    const { owner } = await setup();
+    const email = uniqueEmail();
+    const newTable = async () =>
+      (
+        (await owner.post('/api/tables').send({ name: 'Temporal' }).expect(201))
+          .body as TableDetail
+      ).id;
+
+    const first = await newTable();
+    for (let attempt = 0; attempt < 3; attempt++) {
+      await invite(owner, first, email, 'VIEWER');
+    }
+    const token = await tokenFor(email);
+    await owner.delete(`/api/tables/${first}`).expect(204);
+
+    const second = await newTable();
+    await invite(owner, second, email, 'VIEWER');
+    await invite(owner, second, email, 'VIEWER');
+    await invite(owner, second, email, 'VIEWER', 429);
+
+    // The invitation of the deleted table can no longer be used.
+    const invited = await createSignedInClient(app);
+    await invited.post('/api/invitations/accept').send({ token }).expect(404);
+  });
 });
