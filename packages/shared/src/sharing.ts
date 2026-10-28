@@ -6,6 +6,11 @@ import type { TableSummary } from "./tables.js";
 export const TABLE_ROLES = ["VIEWER", "EDITOR", "ADMIN", "OWNER"] as const;
 export type TableRole = (typeof TABLE_ROLES)[number];
 
+/** Whether `role` is at least `minimum` (e.g. an ADMIN can do what an EDITOR can). */
+export function hasRole(role: TableRole, minimum: TableRole): boolean {
+  return TABLE_ROLES.indexOf(role) >= TABLE_ROLES.indexOf(minimum);
+}
+
 /** Sharing a single table never grants more than editing its records. */
 export const SHARE_ROLES = ["VIEWER", "EDITOR"] as const;
 export type ShareRole = (typeof SHARE_ROLES)[number];

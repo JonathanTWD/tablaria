@@ -7,7 +7,13 @@ import {
   type SortingState,
   type Updater,
 } from "@tanstack/react-table";
-import type { RecordFilter, TableColumn, TableDetail, TableRecord } from "@wisedata/shared";
+import {
+  hasRole,
+  type RecordFilter,
+  type TableColumn,
+  type TableDetail,
+  type TableRecord,
+} from "@wisedata/shared";
 import {
   ArrowDown,
   ArrowUp,
@@ -40,7 +46,7 @@ import { useCellFormatter, type CellFormatter } from "@/features/columns/format-
 import { apiErrorMessage } from "@/lib/error-message";
 import { cn } from "@/lib/utils";
 import { DeleteRecordDialog } from "./DeleteRecordDialog";
-import { EditableCell } from "./EditableCell";
+import { EditableCell, ReadOnlyCell } from "./EditableCell";
 import { ExportButton } from "./ExportButton";
 import { FiltersSheet } from "./FiltersSheet";
 import { RecordDialog } from "./RecordDialog";
@@ -82,6 +88,9 @@ export function RecordsTable({ table }: { table: TableDetail }) {
   const view = applicableView(urlView, columns);
   const records = useQuery(recordsQuery(table.id, view));
   const update = useUpdateRecord(table.id);
+  // The API enforces these too; the interface just doesn't offer what would be refused.
+  const canEdit = hasRole(table.role, "EDITOR");
+  const canManage = hasRole(table.role, "ADMIN");
   const format = useCellFormatter();
   const [dialog, setDialog] = useState<DialogState>({ kind: null });
 
@@ -142,9 +151,11 @@ export function RecordsTable({ table }: { table: TableDetail }) {
         title={t("empty.noColumnsTitle")}
         description={t("empty.noColumnsDescription")}
         action={
-          <Link to="columns" className={cn(buttonVariants(), "h-9")}>
-            {t("empty.noColumnsAction")}
-          </Link>
+          canManage && (
+            <Link to="columns" className={cn(buttonVariants(), "h-9")}>
+              {t("empty.noColumnsAction")}
+            </Link>
+          )
         }
       />
     );
@@ -152,6 +163,9 @@ export function RecordsTable({ table }: { table: TableDetail }) {
 
   return (
     <section aria-label={t("tabs.records")} className="mt-4">
+      {!canEdit && (
+        <p className="mb-3 text-sm text-muted-foreground">{t("readOnly")}</p>
+      )}
       <div className="flex flex-wrap items-center gap-2">
         <SearchField
           initial={view.search}
@@ -163,10 +177,12 @@ export function RecordsTable({ table }: { table: TableDetail }) {
           onApply={(filters) => setView({ filters })}
         />
         <ExportButton tableId={table.id} view={view} />
-        <Button className="h-9 sm:ml-auto" onClick={() => setDialog({ kind: "create" })}>
-          <Plus aria-hidden="true" />
-          {t("toolbar.add")}
-        </Button>
+        {canEdit && (
+          <Button className="h-9 sm:ml-auto" onClick={() => setDialog({ kind: "create" })}>
+            <Plus aria-hidden="true" />
+            {t("toolbar.add")}
+          </Button>
+        )}
       </div>
 
       {view.filters.length > 0 && (
@@ -237,9 +253,11 @@ export function RecordsTable({ table }: { table: TableDetail }) {
                     </th>
                   );
                 })}
-                <th scope="col" className="w-12 px-1.5">
-                  <span className="sr-only">{t("table.actions")}</span>
-                </th>
+                {canEdit && (
+                  <th scope="col" className="w-12 px-1.5">
+                    <span className="sr-only">{t("table.actions")}</span>
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody>
@@ -277,45 +295,55 @@ export function RecordsTable({ table }: { table: TableDetail }) {
                           >
                             {/* On phones the fixed column must leave room for the cell being edited. */}
                             <div className={cn(index === 0 && "max-w-36 sm:max-w-56 lg:max-w-none")}>
-                              <EditableCell
-                                column={column}
-                                value={record.data[column.id]}
-                                label={t("cell.label", { column: column.name, row: label })}
-                                format={format}
-                                onSave={(value) => save(record, column, value)}
-                              />
+                              {canEdit ? (
+                                <EditableCell
+                                  column={column}
+                                  value={record.data[column.id]}
+                                  label={t("cell.label", { column: column.name, row: label })}
+                                  format={format}
+                                  onSave={(value) => save(record, column, value)}
+                                />
+                              ) : (
+                                <ReadOnlyCell
+                                  column={column}
+                                  value={record.data[column.id]}
+                                  format={format}
+                                />
+                              )}
                             </div>
                           </td>
                         ))}
-                        <td className="px-1.5 py-1 text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger
-                              render={
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  aria-label={t("table.rowActions", { label })}
-                                />
-                              }
-                            >
-                              <Ellipsis aria-hidden="true" />
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-52">
-                              <DropdownMenuItem onClick={() => setDialog({ kind: "edit", record })}>
-                                <Pencil aria-hidden="true" />
-                                {t("table.edit")}
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                variant="destructive"
-                                onClick={() => setDialog({ kind: "delete", record })}
+                        {canEdit && (
+                          <td className="px-1.5 py-1 text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger
+                                render={
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    aria-label={t("table.rowActions", { label })}
+                                  />
+                                }
                               >
-                                <Trash2 aria-hidden="true" />
-                                {t("table.delete")}
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </td>
+                                <Ellipsis aria-hidden="true" />
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-52">
+                                <DropdownMenuItem onClick={() => setDialog({ kind: "edit", record })}>
+                                  <Pencil aria-hidden="true" />
+                                  {t("table.edit")}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  variant="destructive"
+                                  onClick={() => setDialog({ kind: "delete", record })}
+                                >
+                                  <Trash2 aria-hidden="true" />
+                                  {t("table.delete")}
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </td>
+                        )}
                       </tr>
                     );
                   })}

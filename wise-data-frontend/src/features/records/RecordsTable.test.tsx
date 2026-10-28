@@ -140,4 +140,30 @@ describe("RecordsTable", () => {
     });
     click.mockRestore();
   });
+
+  it("shows viewers the records without any way to change them", async () => {
+    mockApi(() => page);
+    renderWithProviders(<RecordsTable table={{ ...table, role: "VIEWER" }} />, {
+      route: "/app/tables/x",
+    });
+
+    expect(await screen.findByText("Taladro")).toBeInTheDocument();
+    expect(screen.getByText(/Solo lectura/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Nuevo registro/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Precio de Taladro/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Acciones/ })).not.toBeInTheDocument();
+    // Exporting is reading, so viewers keep it.
+    expect(screen.getByRole("button", { name: /Exportar CSV/ })).toBeInTheDocument();
+  });
+
+  it("lets editors change records", async () => {
+    mockApi(() => page);
+    renderWithProviders(<RecordsTable table={{ ...table, role: "EDITOR" }} />, {
+      route: "/app/tables/x",
+    });
+
+    expect(await screen.findByRole("button", { name: /Precio de Taladro/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Nuevo registro/ })).toBeInTheDocument();
+    expect(screen.queryByText(/Solo lectura/)).not.toBeInTheDocument();
+  });
 });

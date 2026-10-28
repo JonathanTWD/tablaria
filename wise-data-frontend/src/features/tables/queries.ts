@@ -20,6 +20,8 @@ export const tableKeys = {
   records: (tableId: string) => [...tableKeys.all, "records", tableId] as const,
   // Apart from `records`: those queries all hold record pages, which edits patch in place.
   stats: (tableId: string) => [...tableKeys.all, "stats", tableId] as const,
+  shared: () => [...tableKeys.all, "shared"] as const,
+  sharing: (tableId: string) => [...tableKeys.all, "sharing", tableId] as const,
 };
 
 /** Every table of the user, most recently edited first. */
