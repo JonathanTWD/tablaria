@@ -46,6 +46,9 @@ import { useCellFormatter, type CellFormatter } from "@/features/columns/format-
 import { apiErrorMessage } from "@/lib/error-message";
 import { cn } from "@/lib/utils";
 import { DeleteRecordDialog } from "./DeleteRecordDialog";
+import { useSession } from "@/features/auth/session";
+import { presenceColor } from "@/features/realtime/presence-colors";
+import { useTablePresence } from "@/features/realtime/realtime-context";
 import { EditableCell, ReadOnlyCell } from "./EditableCell";
 import { ExportButton } from "./ExportButton";
 import { FiltersSheet } from "./FiltersSheet";
@@ -88,6 +91,15 @@ export function RecordsTable({ table }: { table: TableDetail }) {
   const view = applicableView(urlView, columns);
   const records = useQuery(recordsQuery(table.id, view));
   const update = useUpdateRecord(table.id);
+  const { t: tTables } = useTranslation("tables");
+  const { data: user } = useSession();
+  const { viewers, setEditing } = useTablePresence(table.id);
+  /** "recordId:columnId" → the other person editing that cell. */
+  const editedByOthers = new Map(
+    viewers
+      .filter((viewer) => viewer.editing && viewer.userId !== user?.id)
+      .map((viewer) => [`${viewer.editing?.recordId}:${viewer.editing?.columnId}`, viewer]),
+  );
   // The API enforces these too; the interface just doesn't offer what would be refused.
   const canEdit = hasRole(table.role, "EDITOR");
   const canManage = hasRole(table.role, "ADMIN");
@@ -280,11 +292,15 @@ export function RecordsTable({ table }: { table: TableDetail }) {
                         key={row.id}
                         className="group border-b border-border last:border-b-0 hover:bg-muted/30"
                       >
-                        {columns.map((column, index) => (
+                        {columns.map((column, index) => {
+                          const editor = editedByOthers.get(`${record.id}:${column.id}`);
+                          const editorName = editor && (editor.name ?? tTables("presence.guest"));
+                          return (
                           <td
                             key={column.id}
                             className={cn(
                               "px-1.5 py-1 align-middle",
+                              editor && ["relative ring-2 ring-inset", presenceColor(editor.userId).ring],
                               // Opaque, so scrolled cells never show through the fixed column.
                               index === 0 &&
                                 cn(
@@ -302,6 +318,7 @@ export function RecordsTable({ table }: { table: TableDetail }) {
                                   label={t("cell.label", { column: column.name, row: label })}
                                   format={format}
                                   onSave={(value) => save(record, column, value)}
+                                  presence={{ recordId: record.id, setEditing }}
                                 />
                               ) : (
                                 <ReadOnlyCell
@@ -311,8 +328,22 @@ export function RecordsTable({ table }: { table: TableDetail }) {
                                 />
                               )}
                             </div>
+                            {editor && (
+                              <span
+                                className={cn(
+                                  "pointer-events-none absolute -top-2 right-1 z-20 max-w-24 truncate rounded px-1 text-[10px] leading-4 font-medium text-white",
+                                  presenceColor(editor.userId).avatar,
+                                )}
+                              >
+                                <span aria-hidden="true">{editorName}</span>
+                                <span className="sr-only">
+                                  {tTables("presence.editingCell", { name: editorName })}
+                                </span>
+                              </span>
+                            )}
                           </td>
-                        ))}
+                          );
+                        })}
                         {canEdit && (
                           <td className="px-1.5 py-1 text-right">
                             <DropdownMenu>

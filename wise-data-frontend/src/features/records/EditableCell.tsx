@@ -1,12 +1,13 @@
 import {
   cellValueSchema,
+  type PresenceCell,
   stockLevel,
   type CellValue,
   type StockLevel,
   type TableColumn,
 } from "@wisedata/shared";
 import { CircleAlert, TriangleAlert, type LucideIcon } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import {
@@ -28,6 +29,8 @@ interface EditableCellProps {
   label: string;
   format: CellFormatter;
   onSave: (value: CellValue) => void;
+  /** Lets the others see this cell is being edited (realtime presence). */
+  presence?: { recordId: string; setEditing: (cell: PresenceCell | null) => void };
 }
 
 const numeric = (column: TableColumn) => column.type === "number" || column.type === "currency";
@@ -113,9 +116,20 @@ function SelectCell({ column, value, label, onSave }: EditableCellProps) {
   );
 }
 
-function TextualCell({ column, value, label, format, onSave }: EditableCellProps) {
+function TextualCell({ column, value, label, format, onSave, presence }: EditableCellProps) {
   const { t } = useTranslation("records");
   const [draft, setDraft] = useState<string | null>(null);
+  const editing = draft !== null;
+  const recordId = presence?.recordId;
+  const setEditing = presence?.setEditing;
+  // Presence lives on the server: announce the open field and withdraw it when it closes.
+  useEffect(() => {
+    if (!editing || !recordId || !setEditing) {
+      return;
+    }
+    setEditing({ recordId, columnId: column.id });
+    return () => setEditing(null);
+  }, [editing, recordId, setEditing, column.id]);
   const [invalid, setInvalid] = useState(false);
   // Set when editing ends from the keyboard, so focus returns to the cell button.
   const returnFocus = useRef(false);

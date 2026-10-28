@@ -2,6 +2,8 @@
 
 ## Sin publicar
 
+- **Presencia**: la cabecera de la tabla muestra avatares de quién más la tiene abierta, con su nombre al pasar el ratón. La celda que alguien está editando se resalta para los demás con su color y su nombre. Para los lectores de pantalla se anuncia quién está en la tabla y quién edita cada celda.
+- **«Compartir» visible**: el botón para compartir pasa del menú de los tres puntos a la cabecera de la tabla.
 - **Tiempo real**:
   - los cambios de otras personas en una tabla aparecen solos, sin recargar: registros, columnas, el nombre de la tabla, los permisos o su borrado;
   - la cabecera de la tabla indica «En directo»;

@@ -1,5 +1,7 @@
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import type {
+  PresenceCell,
+  PresenceViewer,
   RealtimeClientMessage,
   RealtimeScope,
   RealtimeServerMessage,
@@ -54,6 +56,9 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
   const socketRef = useRef<WebSocket | null>(null);
   /** Table id → how many components want it. */
   const wantedRef = useRef(new Map<string, number>());
+  /** Table id → the cell this tab is editing, re-sent after reconnecting. */
+  const editingRef = useRef(new Map<string, PresenceCell>());
+  const [presence, setPresence] = useState<ReadonlyMap<string, PresenceViewer[]>>(new Map());
 
   useEffect(() => {
     let stopped = false;
@@ -99,6 +104,10 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
           setStatus("live");
           for (const tableId of wantedRef.current.keys()) {
             send({ type: "subscribe", tableId });
+            const cell = editingRef.current.get(tableId);
+            if (cell) {
+              send({ type: "editing", tableId, cell });
+            }
             // Changes made while offline were missed: refetch everything shown.
             if (reconnected) {
               refresh(queryClient, tableId, "columns");
@@ -109,12 +118,16 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
           refresh(queryClient, message.tableId, message.scope);
         } else if (message.type === "revoked") {
           refresh(queryClient, message.tableId, "deleted");
+        } else if (message.type === "presence") {
+          setPresence((current) => new Map(current).set(message.tableId, message.viewers));
         }
       };
       socket.onclose = () => {
         if (socketRef.current === socket) {
           socketRef.current = null;
         }
+        // Who's there is unknown while offline; it comes back with the reconnection.
+        setPresence(new Map());
         scheduleRetry();
       };
     };
@@ -148,11 +161,30 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
         return;
       }
       wanted.delete(tableId);
+      editingRef.current.delete(tableId);
       message("unsubscribe");
+      setPresence((current) => {
+        const next = new Map(current);
+        next.delete(tableId);
+        return next;
+      });
     };
   }, []);
 
+  const setEditing = useCallback((tableId: string, cell: PresenceCell | null) => {
+    if (cell) {
+      editingRef.current.set(tableId, cell);
+    } else {
+      editingRef.current.delete(tableId);
+    }
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+      socketRef.current.send(JSON.stringify({ type: "editing", tableId, cell }));
+    }
+  }, []);
+
   return (
-    <RealtimeContext.Provider value={{ status, subscribe }}>{children}</RealtimeContext.Provider>
+    <RealtimeContext.Provider value={{ status, presence, subscribe, setEditing }}>
+      {children}
+    </RealtimeContext.Provider>
   );
 }
