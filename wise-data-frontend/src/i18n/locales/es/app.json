@@ -42,5 +42,9 @@
       "logout": "Cerrar sesión"
     }
   },
-  "logoutError": "No se pudo cerrar la sesión. Inténtalo de nuevo."
+  "logoutError": "No se pudo cerrar la sesión. Inténtalo de nuevo.",
+  "demoBanner": {
+    "text": "Estás en una cuenta de demostración: se borrará con todos sus datos {{time}}.",
+    "exit": "Salir de la demo"
+  }
 }

@@ -17,6 +17,7 @@ import { PasswordInput } from "@/features/auth/components/PasswordInput";
 import { SubmitButton } from "@/components/form/SubmitButton";
 import { emailErrorMessage, passwordErrorMessage } from "@/features/auth/field-errors";
 import { useStartSession } from "@/features/auth/session";
+import { TryDemoButton } from "@/features/auth/TryDemoButton";
 import { ApiError } from "@/lib/api-client";
 import { apiErrorMessage, genericErrorMessage } from "@/lib/error-message";
 
@@ -106,6 +107,14 @@ export default function LoginPage() {
           <SubmitButton pending={login.isPending}>{t("login.submit")}</SubmitButton>
         </FieldGroup>
       </form>
+
+      <div className="mt-8 flex items-center gap-3 text-xs text-muted-foreground" aria-hidden="true">
+        <span className="h-px flex-1 bg-border" />
+        {t("login.or")}
+        <span className="h-px flex-1 bg-border" />
+      </div>
+      <p className="mt-4 text-sm text-muted-foreground">{t("login.demoHint")}</p>
+      <TryDemoButton variant="outline" className="mt-3 h-11 w-full text-[0.95rem]" />
 
       <p className="mt-8 text-sm text-muted-foreground">
         {t("login.noAccount")}{" "}

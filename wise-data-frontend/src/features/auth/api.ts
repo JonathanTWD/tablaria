@@ -34,5 +34,6 @@ export const authApi = {
       ...publicRequest,
       body,
     }),
+  demo: () => apiRequest<AuthUser>("/auth/demo", publicRequest),
   logout: () => apiRequest<void>("/auth/logout", publicRequest),
 };

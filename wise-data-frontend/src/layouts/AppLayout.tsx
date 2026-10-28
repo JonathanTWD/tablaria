@@ -13,6 +13,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { DemoBanner } from "@/features/auth/DemoBanner";
 import { UserMenu } from "@/features/auth/UserMenu";
 import { CreateTableDialog } from "@/features/tables/CreateTableDialog";
 import { tablesQuery } from "@/features/tables/queries";
@@ -155,6 +156,7 @@ export default function AppLayout() {
           </Link>
           <ThemeToggle className="ml-auto" />
         </header>
+        <DemoBanner />
 
         <main
           ref={mainRef}

@@ -29,5 +29,14 @@
     "description": "Comprueba tu conexión a internet. Si funciona, puede que el servicio esté reiniciándose: vuelve a intentarlo en unos segundos.",
     "retry": "Reintentar"
   },
-  "close": "Cerrar"
+  "close": "Cerrar",
+  "demo": {
+    "try": "Probar la demo",
+    "starting": "Preparando tu demo…",
+    "waking": "Despertando el servidor…",
+    "busy": "Ahora mismo hay demasiadas demos abiertas. Prueba de nuevo en unos minutos.",
+    "name": "visitante",
+    "account": "Cuenta de demostración"
+  },
+  "waking": "Despertando el servidor. La primera visita puede tardar hasta un minuto."
 }

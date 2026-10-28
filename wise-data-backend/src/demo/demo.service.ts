@@ -56,7 +56,8 @@ export class DemoService {
           demoExpiresAt: new Date(now.getTime() + DEMO_TTL_MS),
         },
       });
-      for (const table of DEMO_TABLES) {
+      // Lists show the most recently edited table first, so create the first one last.
+      for (const table of [...DEMO_TABLES].reverse()) {
         await createDemoTable(tx, user.id, table);
       }
       return user;

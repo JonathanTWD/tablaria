@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { displayEmail } from "@/features/auth/display-name";
 import { useLogout, useSession } from "@/features/auth/session";
 import { useTheme } from "@/features/theme/theme-context";
 import { THEME_OPTIONS } from "@/features/theme/theme-options";
@@ -60,7 +61,7 @@ export default function SettingsPage() {
         <dl className="grid gap-4 text-sm sm:grid-cols-2">
           <div>
             <dt className="text-muted-foreground">{t("settings.account.email")}</dt>
-            <dd className="mt-1 font-medium break-all">{user.email}</dd>
+            <dd className="mt-1 font-medium break-all">{displayEmail(user)}</dd>
           </div>
           <div>
             <dt className="text-muted-foreground">{t("settings.account.memberSince")}</dt>
