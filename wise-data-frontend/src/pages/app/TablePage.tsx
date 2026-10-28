@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
+import { type RealtimeStatus, useRealtimeTable } from "@/features/realtime/realtime-context";
 import { LeaveTableDialog } from "@/features/sharing/LeaveTableDialog";
 import { ShareDialog } from "@/features/sharing/ShareDialog";
 import { DeleteTableDialog } from "@/features/tables/DeleteTableDialog";
@@ -30,6 +31,7 @@ export default function TablePage() {
   const { t, i18n } = useTranslation(["tables", "records"]);
   const { tableId = "" } = useParams();
   const table = useQuery(tableQuery(tableId));
+  const realtime = useRealtimeTable(tableId);
   const [dialog, setDialog] = useState<"share" | "edit" | "delete" | "leave" | null>(null);
 
   const backLink = (
@@ -101,7 +103,10 @@ export default function TablePage() {
 
       <div className="mt-4 flex items-start justify-between gap-4 lg:mt-0">
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight break-words">{data.name}</h1>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <h1 className="text-2xl font-semibold tracking-tight break-words">{data.name}</h1>
+            <RealtimeBadge status={realtime} />
+          </div>
           {data.description && (
             <p className="mt-1.5 max-w-prose text-sm leading-6 text-muted-foreground">
               {data.description}
@@ -195,5 +200,26 @@ export default function TablePage() {
         onOpenChange={(open) => setDialog(open ? "delete" : null)}
       />
     </div>
+  );
+}
+
+/** Whether changes by others show up on their own; nothing while first connecting. */
+function RealtimeBadge({ status }: { status: RealtimeStatus }) {
+  const { t } = useTranslation("tables");
+  if (status === "connecting") {
+    return null;
+  }
+  const live = status === "live";
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">
+      <span
+        aria-hidden="true"
+        className={cn(
+          "size-1.5 rounded-full",
+          live ? "bg-green-500 motion-safe:animate-pulse" : "bg-amber-500",
+        )}
+      />
+      {live ? t("page.live") : t("page.offline")}
+    </span>
   );
 }

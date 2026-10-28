@@ -24,7 +24,7 @@ La especificación completa del MVP está en [MVP_PROMPT.md](MVP_PROMPT.md).
    2. compartir tablas desde el espacio personal, con invitaciones y «Compartidas conmigo»;
    3. organizaciones con miembros y roles;
    4. interfaz de organizaciones y ejemplos en la demo.
-2. **Tiempo real básico**: gateway WebSocket que emite eventos de registro creado/editado/borrado por tabla; el frontend invalida o actualiza la caché de TanStack Query. Política "último en guardar gana".
+2. **Tiempo real básico** (hecho, ADR-020): avisos por WebSocket de cada cambio en una tabla (registros, columnas, la propia tabla o sus permisos). El navegador vuelve a pedir lo afectado, y el último en guardar gana.
 3. **Presencia**: quién está viendo la tabla y qué celda está editando cada usuario.
 4. **Bloqueo o resolución de conflictos por celda**, solo si se demuestra necesario.
 

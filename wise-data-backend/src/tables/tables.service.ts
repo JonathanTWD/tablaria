@@ -18,6 +18,7 @@ import type { z } from 'zod';
 import { toColumnData, toTableColumn } from '../columns/column-mapper';
 import { PrismaService } from '../database/prisma.service';
 import type { InventoryTable } from '../generated/prisma/client';
+import { RealtimeService } from '../realtime/realtime.service';
 import {
   accessibleTables,
   personalOrganizationId,
@@ -38,7 +39,10 @@ type TableWithCounts = InventoryTable & {
 
 @Injectable()
 export class TablesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly realtime: RealtimeService,
+  ) {}
 
   /** The tables of the user's personal space. */
   async list(userId: string): Promise<TableSummary[]> {
@@ -136,6 +140,7 @@ export class TablesService {
       where: { id: tableId },
       data: patch,
     });
+    this.realtime.publish(tableId, 'table');
     return this.get(userId, tableId);
   }
 
@@ -143,6 +148,7 @@ export class TablesService {
     await requireTableRole(this.prisma, userId, tableId, 'ADMIN');
     // Columns, records and shares go with it (ON DELETE CASCADE).
     await this.prisma.inventoryTable.delete({ where: { id: tableId } });
+    this.realtime.publish(tableId, 'deleted');
   }
 }
 

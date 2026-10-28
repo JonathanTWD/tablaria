@@ -20,6 +20,7 @@ import {
 import { toTableColumn } from '../columns/column-mapper';
 import { parseOrThrow } from '../common/pipes/zod-validation.pipe';
 import { PrismaService } from '../database/prisma.service';
+import { RealtimeService } from '../realtime/realtime.service';
 import { Prisma, type Record as RecordRow } from '../generated/prisma/client';
 import { accessibleTables, touchTable } from '../tables/table-access';
 import { buildRecordQuery } from './record-query';
@@ -35,7 +36,10 @@ export interface ExportedFile {
 
 @Injectable()
 export class RecordsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly realtime: RealtimeService,
+  ) {}
 
   async list(
     userId: string,
@@ -155,12 +159,12 @@ export class RecordsService {
     );
   }
 
-  create(
+  async create(
     userId: string,
     tableId: string,
     input: RecordInput,
   ): Promise<TableRecord> {
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       // Also blocks column changes (type conversions) until this write ends.
       await touchTable(tx, userId, tableId, 'EDITOR');
 
@@ -179,15 +183,17 @@ export class RecordsService {
       });
       return toTableRecord(record);
     });
+    this.realtime.publish(tableId, 'records');
+    return result;
   }
 
-  update(
+  async update(
     userId: string,
     tableId: string,
     recordId: string,
     input: RecordInput,
   ): Promise<TableRecord> {
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       await touchTable(tx, userId, tableId, 'EDITOR');
 
       const stored = await tx.record.findFirst({
@@ -213,6 +219,8 @@ export class RecordsService {
       });
       return toTableRecord(record);
     });
+    this.realtime.publish(tableId, 'records');
+    return result;
   }
 
   async remove(
@@ -229,6 +237,7 @@ export class RecordsService {
         throw new NotFoundException('Record not found');
       }
     });
+    this.realtime.publish(tableId, 'records');
   }
 }
 

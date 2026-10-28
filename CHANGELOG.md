@@ -2,6 +2,11 @@
 
 ## Sin publicar
 
+- **Tiempo real**:
+  - los cambios de otras personas en una tabla aparecen solos, sin recargar: registros, columnas, el nombre de la tabla, los permisos o su borrado;
+  - la cabecera de la tabla indica «En directo»;
+  - si la conexión se corta, muestra «Reconectando…», vuelve a conectar sola y se pone al día;
+  - quien pierde el acceso deja de recibir avisos al instante.
 - **Compartir tablas** (fase 9, parte 2):
   - **Invitar:** con el menú «Compartir» de una tabla se invita a cualquiera por email como lector o editor, y desde ahí se ven las personas con acceso, se cambia su permiso, se les quita el acceso o se anulan invitaciones pendientes.
   - **Aceptar:** el enlace del email lleva a una página para aceptar la invitación, pasando antes por el inicio de sesión si hace falta.

@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useFocusOnNavigate } from "@/hooks/use-focus-on-navigate";
 import { DemoBanner } from "@/features/auth/DemoBanner";
+import { RealtimeProvider } from "@/features/realtime/RealtimeProvider";
 import { UserMenu } from "@/features/auth/UserMenu";
 import { sharedTablesQuery } from "@/features/sharing/queries";
 import { CreateTableDialog } from "@/features/tables/CreateTableDialog";
@@ -360,10 +361,13 @@ export default function AppLayout() {
           tabIndex={-1}
           className="w-full px-4 py-8 outline-none sm:px-8"
         >
-          {/* Keeps the sidebar and header on screen while a page's code loads. */}
-          <Suspense fallback={<FullPageLoader className="min-h-64" />}>
-            <Outlet />
-          </Suspense>
+          {/* One connection for the whole session, whatever page is loading. */}
+          <RealtimeProvider>
+            {/* Keeps the sidebar and header on screen while a page's code loads. */}
+            <Suspense fallback={<FullPageLoader className="min-h-64" />}>
+              <Outlet />
+            </Suspense>
+          </RealtimeProvider>
         </main>
       </div>
     </SidebarProvider>

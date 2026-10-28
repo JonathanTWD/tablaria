@@ -94,13 +94,14 @@ Así está publicada la demo; los motivos están en [ADR-013](docs/DECISIONS.md)
   - **Proxy:** `TRUST_PROXY_HOPS=1`.
   - **Correo:** `MAIL_TRANSPORT=resend`, `RESEND_API_KEY` y `MAIL_FROM`.
   - **Migraciones:** el contenedor aplica las pendientes antes de arrancar.
+  - **Tiempo real:** `REALTIME_URL=wss://<api>.onrender.com/api/realtime`. La rewrite del Static Site no transporta WebSockets de forma fiable, así que el navegador se conecta directamente a la API ([ADR-020](docs/DECISIONS.md)).
 - **Web (Render Static Site)**:
   - **Build:** `corepack enable && pnpm install --frozen-lockfile && pnpm --filter @wisedata/shared build && pnpm --filter wise-data-frontend build`.
   - **Publicación:** carpeta `wise-data-frontend/dist`, con `NODE_VERSION=22`.
   - **Rewrites:**
     - `/api/*` → `https://<api>.onrender.com/api/*`, de tipo Rewrite y la primera de la lista;
     - `/*` → `/index.html`.
-  - **Cabeceras:** las mismas que [nginx.conf.template](wise-data-frontend/nginx.conf.template), con la CSP incluida.
+  - **Cabeceras:** las mismas que [nginx.conf.template](wise-data-frontend/nginx.conf.template), con la CSP incluida. Añade `wss://<api>.onrender.com` a `connect-src` para el tiempo real.
 - **Dominio**:
   - **Raíz:** un registro `A` a la IP que indica Render.
   - **`www`:** un `CNAME` al Static Site.

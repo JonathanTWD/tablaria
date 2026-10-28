@@ -36,6 +36,8 @@ export default defineConfig(({ mode }) => {
           target: API_PROXY_TARGET,
           changeOrigin: true,
           xfwd: true,
+          // Realtime updates use a WebSocket under /api.
+          ws: true,
         },
       },
     },

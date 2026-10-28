@@ -264,6 +264,22 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 
 **Consecuencias**: el aislamiento pasa de ser «mis tablas» a «tablas a las que tengo acceso por organización o porque me las compartieron». Cada ruta lleva tests e2e por vía de acceso y por rol, y cada PR de la fase pasa la revisión de seguridad.
 
+## ADR-020: Tiempo real
+
+- **Avisos, no datos**: el servidor solo dice «la tabla X cambió en registros, columnas, tabla, permisos o se borró». El navegador vuelve a pedir lo afectado a la API, que comprueba el acceso en cada petición. Así ningún mensaje puede filtrar datos, y se reutiliza la caché de TanStack Query. Si dos personas editan la misma celda, el último en guardar gana.
+- **`ws` sin capa de Nest**: `@nestjs/websockets` solo tiene versión estable para Nest 12, y aquí usamos Nest 11. `ws` es una única dependencia sin subdependencias, y el servidor se monta en el mismo servidor HTTP, en `/api/realtime`.
+- **Conexión directa a la API con ticket**:
+  - En producción la web sirve `/api` mediante una rewrite del Static Site de Render, que no garantiza transportar WebSockets (`REALTIME_URL` apunta directamente a la API). En el dominio de la API no existe la cookie de sesión.
+  - Por eso el navegador pide por la API normal (`POST /realtime/ticket`, con cookie) un ticket aleatorio, de un solo uso y válido 30 s, y lo envía como primer mensaje. El ticket nunca va en la URL.
+  - En desarrollo y en Docker, con `REALTIME_URL` sin definir, la conexión va por el propio origen gracias al proxy de Vite o de nginx.
+- **Mismas reglas de acceso**:
+  - suscribirse a una tabla usa la misma regla que la API;
+  - al quitar un permiso, el servidor corta esa suscripción y avisa con `revoked`;
+  - se comprueba el `Origin` de la conexión;
+  - límites: 1 KB por mensaje, 20 tablas por conexión y 10 conexiones por usuario;
+  - un ping cada 30 s descarta las conexiones muertas.
+- **Una sola instancia**: los tickets y las suscripciones viven en memoria. Con varias instancias haría falta un bus (Redis pub/sub) para repartir los avisos; ahora no es necesario.
+
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
 Todas están especificadas en [MVP_PROMPT.md](MVP_PROMPT.md):
