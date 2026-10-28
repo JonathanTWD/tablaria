@@ -41,6 +41,7 @@ import { apiErrorMessage } from "@/lib/error-message";
 import { cn } from "@/lib/utils";
 import { DeleteRecordDialog } from "./DeleteRecordDialog";
 import { EditableCell } from "./EditableCell";
+import { ExportButton } from "./ExportButton";
 import { FiltersSheet } from "./FiltersSheet";
 import { RecordDialog } from "./RecordDialog";
 import { RecordsPagination } from "./RecordsPagination";
@@ -145,6 +146,7 @@ export function RecordsTable({ table }: { table: TableDetail }) {
           filters={view.filters}
           onApply={(filters) => setView({ filters })}
         />
+        <ExportButton tableId={table.id} view={view} />
         <Button className="h-9 sm:ml-auto" onClick={() => setDialog({ kind: "create" })}>
           <Plus aria-hidden="true" />
           {t("toolbar.add")}

@@ -59,10 +59,11 @@ async function readErrorBody(response: Response): Promise<ApiErrorBody | null> {
   }
 }
 
-export async function apiRequest<T>(
+/** Sends the request, refreshing the session once on a 401, and throws ApiError unless it succeeds. */
+async function fetchWithSession(
   path: string,
   { method = "GET", body, skipRefresh = false }: RequestOptions = {},
-): Promise<T> {
+): Promise<Response> {
   let response = await send(path, method, body);
 
   if (response.status === 401 && !skipRefresh && (await refreshSession())) {
@@ -73,8 +74,31 @@ export async function apiRequest<T>(
     const sessionExpired = response.status === 401 && !skipRefresh;
     throw new ApiError(response.status, await readErrorBody(response), sessionExpired);
   }
+  return response;
+}
+
+export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const response = await fetchWithSession(path, options);
   if (response.status === 204) {
     return undefined as T;
   }
   return (await response.json()) as T;
+}
+
+/** Downloads a file from the API and saves it under the name the API suggests. */
+export async function apiDownload(path: string, fallbackName: string): Promise<void> {
+  const response = await fetchWithSession(path);
+  const disposition = response.headers.get("Content-Disposition") ?? "";
+  const fileName = /filename="([^"]+)"/.exec(disposition)?.[1] ?? fallbackName;
+
+  const url = URL.createObjectURL(await response.blob());
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  // Firefox ignores clicks on detached links, and revoking the URL in the same
+  // tick can cancel the download in Firefox and Safari.
+  document.body.append(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url));
 }
