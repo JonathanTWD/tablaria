@@ -183,6 +183,12 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 - **Panel sin saltos**: el inicio espera a las tablas y a los avisos antes de pintarse, para que la tarjeta no empuje la lista de tablas cuando ya se ve.
 - **Sin notificaciones**: los avisos se ven al abrir el panel. Emails o notificaciones push quedan fuera del MVP.
 
+## ADR-016: Gráficos del panel
+
+- **Agregación en el servidor**: `GET /tables/:tableId/records/stats?groupBy=&sum=` agrupa en PostgreSQL (`GROUP BY data -> columna`) y devuelve recuento y suma por grupo. El navegador no descarga los registros. Las columnas se validan contra las de la propia tabla: solo se agrupa por listas, Sí / No y texto, y solo se suman números y precios. Se devuelven los 8 grupos mayores y el resto sumado como «otros». El mismo endpoint servirá a la futura consulta con IA.
+- **SVG propio, sin librería**: para barras horizontales basta un `<rect>` proporcional al valor. Una librería como Recharts añadiría unos 100 KB comprimidos y otra dependencia que mantener. El gráfico se dibuja como una tabla HTML (`caption`, cabeceras y filas) con las barras decorativas (`aria-hidden`), así los lectores de pantalla leen los datos tal cual. Si en el futuro hacen falta series temporales, tooltips o varios tipos de gráfico, se adoptarán los charts de shadcn/ui (Recharts).
+- **Sin agrupar por la primera columna**: suele nombrar cada registro (producto, equipo), así que cada grupo tendría un único registro. Por defecto se agrupa por la primera lista de opciones, si no por Sí / No y, si no, por texto.
+
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
 Todas están especificadas en [MVP_PROMPT.md](MVP_PROMPT.md):
