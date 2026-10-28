@@ -18,6 +18,8 @@ export const tableKeys = {
   list: () => [...tableKeys.all, "list"] as const,
   detail: (tableId: string) => [...tableKeys.all, "detail", tableId] as const,
   records: (tableId: string) => [...tableKeys.all, "records", tableId] as const,
+  // Apart from `records`: those queries all hold record pages, which edits patch in place.
+  stats: (tableId: string) => [...tableKeys.all, "stats", tableId] as const,
 };
 
 /** Every table of the user, most recently edited first. */
@@ -41,6 +43,7 @@ function refreshTable(queryClient: QueryClient, tableId: string) {
   return Promise.all([
     queryClient.invalidateQueries({ queryKey: tableKeys.detail(tableId) }),
     queryClient.invalidateQueries({ queryKey: tableKeys.records(tableId) }),
+    queryClient.invalidateQueries({ queryKey: tableKeys.stats(tableId) }),
     queryClient.invalidateQueries({ queryKey: tableKeys.list() }),
   ]);
 }
@@ -74,6 +77,7 @@ export function useDeleteTable(tableId: string) {
     onSuccess: () => {
       queryClient.removeQueries({ queryKey: tableKeys.detail(tableId) });
       queryClient.removeQueries({ queryKey: tableKeys.records(tableId) });
+      queryClient.removeQueries({ queryKey: tableKeys.stats(tableId) });
       return queryClient.invalidateQueries({ queryKey: tableKeys.list() });
     },
   });
