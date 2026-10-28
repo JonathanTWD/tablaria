@@ -18,7 +18,7 @@ import {
 import { parseOrThrow } from '../common/pipes/zod-validation.pipe';
 import { PrismaService } from '../database/prisma.service';
 import { Prisma } from '../generated/prisma/client';
-import { touchOwnedTable } from '../tables/table-access';
+import { accessibleTables, touchTable } from '../tables/table-access';
 import { toColumnData, toTableColumn } from './column-mapper';
 import { convertCellValue } from './convert-value';
 
@@ -26,9 +26,9 @@ import { convertCellValue } from './convert-value';
 export class ColumnsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async list(ownerId: string, tableId: string): Promise<TableColumn[]> {
+  async list(userId: string, tableId: string): Promise<TableColumn[]> {
     const table = await this.prisma.inventoryTable.findFirst({
-      where: { id: tableId, ownerId },
+      where: { id: tableId, ...accessibleTables(userId) },
       select: { columns: { orderBy: { position: 'asc' } } },
     });
     if (!table) {
@@ -38,13 +38,13 @@ export class ColumnsService {
   }
 
   create(
-    ownerId: string,
+    userId: string,
     tableId: string,
     definition: ColumnDefinition,
   ): Promise<TableColumn> {
     return withUniqueColumnName(() =>
       this.prisma.$transaction(async (tx) => {
-        await touchOwnedTable(tx, ownerId, tableId);
+        await touchTable(tx, userId, tableId, 'ADMIN');
 
         const { _count, _max } = await tx.column.aggregate({
           where: { tableId },
@@ -76,14 +76,14 @@ export class ColumnsService {
   }
 
   update(
-    ownerId: string,
+    userId: string,
     tableId: string,
     columnId: string,
     patch: UpdateColumnInput,
   ): Promise<UpdateColumnResponse> {
     return withUniqueColumnName(() =>
       this.prisma.$transaction(async (tx) => {
-        await touchOwnedTable(tx, ownerId, tableId);
+        await touchTable(tx, userId, tableId, 'ADMIN');
 
         const stored = await tx.column.findFirst({
           where: { id: columnId, tableId },
@@ -113,12 +113,12 @@ export class ColumnsService {
   }
 
   reorder(
-    ownerId: string,
+    userId: string,
     tableId: string,
     columnIds: string[],
   ): Promise<TableColumn[]> {
     return this.prisma.$transaction(async (tx) => {
-      await touchOwnedTable(tx, ownerId, tableId);
+      await touchTable(tx, userId, tableId, 'ADMIN');
 
       const existing = await tx.column.findMany({
         where: { tableId },
@@ -145,12 +145,12 @@ export class ColumnsService {
   }
 
   async remove(
-    ownerId: string,
+    userId: string,
     tableId: string,
     columnId: string,
   ): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
-      await touchOwnedTable(tx, ownerId, tableId);
+      await touchTable(tx, userId, tableId, 'ADMIN');
 
       const { count } = await tx.column.deleteMany({
         where: { id: columnId, tableId },

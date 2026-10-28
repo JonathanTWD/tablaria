@@ -13,6 +13,14 @@ enum EmailTokenType {
   RESET_PASSWORD
 }
 
+/// Rank: VIEWER < EDITOR < ADMIN < OWNER. Table shares only grant VIEWER or EDITOR.
+enum Role {
+  VIEWER
+  EDITOR
+  ADMIN
+  OWNER
+}
+
 enum ColumnType {
   text
   number
@@ -32,9 +40,12 @@ model User {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  refreshTokens RefreshToken[]
-  emailTokens   EmailToken[]
-  tables        InventoryTable[]
+  refreshTokens        RefreshToken[]
+  emailTokens          EmailToken[]
+  personalOrganization Organization?
+  memberships          Membership[]
+  tableShares          TableShare[]
+  createdTables        InventoryTable[]
 
   @@index([demoExpiresAt])
   @@map("users")
@@ -73,19 +84,67 @@ model EmailToken {
   @@map("email_tokens")
 }
 
+/// Every table belongs to an organization. Each user has a personal one (personalForId),
+/// deleted with the user; shared work lives in organizations with several members.
+model Organization {
+  id            String   @id @default(uuid()) @db.Uuid
+  name          String
+  personalForId String?  @unique @db.Uuid
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  personalFor User?            @relation(fields: [personalForId], references: [id], onDelete: Cascade)
+  memberships Membership[]
+  tables      InventoryTable[]
+
+  @@map("organizations")
+}
+
+model Membership {
+  organizationId String   @db.Uuid
+  userId         String   @db.Uuid
+  role           Role
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([organizationId, userId])
+  @@index([userId])
+  @@map("memberships")
+}
+
+/// Access to a single table for someone outside its organization.
+model TableShare {
+  tableId   String   @db.Uuid
+  userId    String   @db.Uuid
+  role      Role
+  createdAt DateTime @default(now())
+
+  table InventoryTable @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  user  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([tableId, userId])
+  @@index([userId])
+  @@map("table_shares")
+}
+
 model InventoryTable {
-  id          String   @id @default(uuid()) @db.Uuid
-  ownerId     String   @db.Uuid
-  name        String
-  description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
+  createdById    String?  @db.Uuid
+  name           String
+  description    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  owner   User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  columns Column[]
-  records Record[]
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy    User?        @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  columns      Column[]
+  records      Record[]
+  shares       TableShare[]
 
-  @@index([ownerId, updatedAt])
+  @@index([organizationId, updatedAt])
   @@map("inventory_tables")
 }
 

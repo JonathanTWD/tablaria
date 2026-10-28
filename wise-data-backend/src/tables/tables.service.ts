@@ -16,6 +16,11 @@ import type { z } from 'zod';
 import { toColumnData, toTableColumn } from '../columns/column-mapper';
 import { PrismaService } from '../database/prisma.service';
 import type { InventoryTable } from '../generated/prisma/client';
+import {
+  accessibleTables,
+  personalOrganizationId,
+  requireTableRole,
+} from './table-access';
 
 type CreateTable = z.output<typeof createTableSchema>;
 type UpdateTable = z.output<typeof updateTableSchema>;
@@ -32,18 +37,20 @@ type TableWithCounts = InventoryTable & {
 export class TablesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async list(ownerId: string): Promise<TableSummary[]> {
+  /** The tables of the user's personal space. */
+  async list(userId: string): Promise<TableSummary[]> {
+    const organizationId = await personalOrganizationId(this.prisma, userId);
     const tables = await this.prisma.inventoryTable.findMany({
-      where: { ownerId },
+      where: { organizationId },
       orderBy: { updatedAt: 'desc' },
       include: WITH_COUNTS,
     });
     return tables.map(toTableSummary);
   }
 
-  async get(ownerId: string, tableId: string): Promise<TableDetail> {
+  async get(userId: string, tableId: string): Promise<TableDetail> {
     const table = await this.prisma.inventoryTable.findFirst({
-      where: { id: tableId, ownerId },
+      where: { id: tableId, ...accessibleTables(userId) },
       include: { ...WITH_COUNTS, columns: { orderBy: { position: 'asc' } } },
     });
     if (!table) {
@@ -55,7 +62,7 @@ export class TablesService {
     };
   }
 
-  async create(ownerId: string, input: CreateTable): Promise<TableDetail> {
+  async create(userId: string, input: CreateTable): Promise<TableDetail> {
     const columns = input.templateId
       ? TABLE_TEMPLATES[input.templateId].map((column) =>
           columnDefinitionSchema.parse(column),
@@ -63,15 +70,19 @@ export class TablesService {
       : [];
 
     const table = await this.prisma.$transaction(async (tx) => {
-      // Locking the owner serializes concurrent creates, so the limit holds.
-      await tx.$executeRaw`SELECT 1 FROM users WHERE id = ${ownerId}::uuid FOR UPDATE`;
-      const owned = await tx.inventoryTable.count({ where: { ownerId } });
-      if (owned >= MAX_TABLES_PER_USER) {
+      const organizationId = await personalOrganizationId(tx, userId);
+      // Locking the organization serializes concurrent creates, so the limit holds.
+      await tx.$executeRaw`SELECT 1 FROM organizations WHERE id = ${organizationId}::uuid FOR UPDATE`;
+      const count = await tx.inventoryTable.count({
+        where: { organizationId },
+      });
+      if (count >= MAX_TABLES_PER_USER) {
         throw new UnprocessableEntityException('Table limit reached');
       }
       return tx.inventoryTable.create({
         data: {
-          ownerId,
+          organizationId,
+          createdById: userId,
           name: input.name,
           description: input.description ?? null,
           columns: {
@@ -83,32 +94,26 @@ export class TablesService {
         },
       });
     });
-    return this.get(ownerId, table.id);
+    return this.get(userId, table.id);
   }
 
   async update(
-    ownerId: string,
+    userId: string,
     tableId: string,
     patch: UpdateTable,
   ): Promise<TableDetail> {
-    const { count } = await this.prisma.inventoryTable.updateMany({
-      where: { id: tableId, ownerId },
+    await requireTableRole(this.prisma, userId, tableId, 'ADMIN');
+    await this.prisma.inventoryTable.update({
+      where: { id: tableId },
       data: patch,
     });
-    if (count === 0) {
-      throw new NotFoundException('Table not found');
-    }
-    return this.get(ownerId, tableId);
+    return this.get(userId, tableId);
   }
 
-  async remove(ownerId: string, tableId: string): Promise<void> {
-    // Columns and records go with it (ON DELETE CASCADE).
-    const { count } = await this.prisma.inventoryTable.deleteMany({
-      where: { id: tableId, ownerId },
-    });
-    if (count === 0) {
-      throw new NotFoundException('Table not found');
-    }
+  async remove(userId: string, tableId: string): Promise<void> {
+    await requireTableRole(this.prisma, userId, tableId, 'ADMIN');
+    // Columns, records and shares go with it (ON DELETE CASCADE).
+    await this.prisma.inventoryTable.delete({ where: { id: tableId } });
   }
 }
 

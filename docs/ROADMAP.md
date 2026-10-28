@@ -19,7 +19,11 @@ La especificación completa del MVP está en [MVP_PROMPT.md](MVP_PROMPT.md).
 - [x] **Fase 8.5 — Pantallas grandes**: la app aprovecha el ancho (tabla a ancho completo, inicio con columna lateral) la landing se adapta a monitores de 27" y más, y la barra lateral se pliega a iconos.
 ### Colaboración (en este orden)
 
-1. **Tablas compartidas**: invitaciones, roles por tabla (lectura/edición) y ownership ampliado en el backend.
+1. **Compartir tablas y organizaciones** (fase 9, ADR-019): sirve tanto a particulares como a equipos. Se entrega en este orden:
+   1. modelo de datos, migración y una puerta de acceso común;
+   2. compartir tablas desde el espacio personal, con invitaciones y «Compartidas conmigo»;
+   3. organizaciones con miembros y roles;
+   4. interfaz de organizaciones y ejemplos en la demo.
 2. **Tiempo real básico**: gateway WebSocket que emite eventos de registro creado/editado/borrado por tabla; el frontend invalida o actualiza la caché de TanStack Query. Política "último en guardar gana".
 3. **Presencia**: quién está viendo la tabla y qué celda está editando cada usuario.
 4. **Bloqueo o resolución de conflictos por celda**, solo si se demuestra necesario.
