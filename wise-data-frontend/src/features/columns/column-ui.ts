@@ -45,6 +45,20 @@ export const SELECT_SWATCH_CLASSES: Record<SelectColor, string> = {
   pink: "bg-pink-500",
 };
 
+/** Bar fills in charts, the same hues as the swatches. */
+export const SELECT_FILL_CLASSES: Record<SelectColor, string> = {
+  gray: "fill-zinc-500",
+  red: "fill-red-500",
+  orange: "fill-orange-500",
+  amber: "fill-amber-500",
+  green: "fill-green-500",
+  teal: "fill-teal-500",
+  blue: "fill-blue-500",
+  indigo: "fill-indigo-500",
+  purple: "fill-purple-500",
+  pink: "fill-pink-500",
+};
+
 /** Offered first in the currency picker; any ISO 4217 code is valid for the API. */
 export const COMMON_CURRENCIES = [
   "EUR",

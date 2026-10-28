@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { displayName } from "@/features/auth/display-name";
 import { useSession } from "@/features/auth/session";
+import { RecordsChart } from "@/features/charts/RecordsChart";
 import { stockAlertsQuery } from "@/features/stock-alerts/queries";
 import { StockAlertsCard } from "@/features/stock-alerts/StockAlertsCard";
 import { CreateTableDialog } from "@/features/tables/CreateTableDialog";
@@ -161,6 +162,8 @@ function TablesOverview({
           ))}
         </ul>
       </section>
+
+      <RecordsChart tables={tables} />
     </>
   );
 }

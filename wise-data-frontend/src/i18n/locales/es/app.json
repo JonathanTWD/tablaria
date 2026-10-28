@@ -31,6 +31,22 @@
       "more": "Y {{count}} más. Ábrelos desde sus tablas.",
       "loadError": "No se pudieron cargar los avisos de stock."
     },
+    "charts": {
+      "title": "Resumen",
+      "description": "Agrupa los registros de una tabla por una columna y compáralos de un vistazo.",
+      "table": "Tabla",
+      "groupBy": "Agrupar por",
+      "measure": "Medir",
+      "count": "Número de registros",
+      "sum": "Suma de {{name}}",
+      "empty": "Sin valor",
+      "others_one": "Otro valor",
+      "others_other": "Otros {{count}} valores",
+      "caption": "{{measure}} por {{group}} en {{table}}",
+      "noGroupable": "Esta tabla no tiene columnas para agrupar. Añade una lista de opciones, una columna Sí / No o de texto.",
+      "noRecords": "Esta tabla aún no tiene registros.",
+      "loadError": "No se pudo cargar el resumen."
+    },
     "tablesTitle": "Tus tablas",
     "loadError": "No se pudieron cargar tus tablas.",
     "retry": "Reintentar"

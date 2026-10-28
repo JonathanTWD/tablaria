@@ -5,3 +5,4 @@ export * from "./tables.js";
 export * from "./templates.js";
 export * from "./records.js";
 export * from "./stock-alerts.js";
+export * from "./record-stats.js";
