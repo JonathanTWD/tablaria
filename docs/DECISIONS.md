@@ -175,6 +175,13 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 - **Descarga en el cliente**: `apiDownload` usa el mismo flujo que el resto de peticiones (renovación de la sesión ante un 401) y guarda el archivo con el nombre que sugiere la API, que es un nombre ASCII derivado de la tabla y la fecha.
 - **Excel pendiente**: ExcelJS no se puede añadir hasta que las versiones que Dependabot fijó en el lockfile cumplan la antigüedad mínima de 14 días de pnpm (`minimumReleaseAge`). Para que no vuelva a pasar, Dependabot usa ahora un `cooldown` de 14 días, y `@rolldown/*` tiene una excepción porque publica builds nativos con mucha frecuencia.
 
+## ADR-015: Alertas de stock bajo
+
+- **Umbral en la columna**: el umbral vive en `options.alertBelow` de las columnas numéricas (nulo si no avisa), dentro del mismo esquema zod compartido. No hace falta migración, porque las opciones ya se guardan como JSON, y lo valida la API como cualquier otra opción. No se aplica a precios: un precio bajo no es una alerta.
+- **Una sola regla**: `stockLevel()` en `@wisedata/shared` decide si un valor está bien, bajo (por debajo del umbral) o agotado (0 o menos). La tabla lo usa para marcar las celdas y la API aplica la misma comparación en SQL.
+- **Endpoint agregado**: `GET /stock-alerts` busca las columnas con umbral de las tablas del usuario y hace una consulta parametrizada por columna (`(data ->> id)::float8 < umbral`, con el id de la columna validado desde la base de datos, nunca desde la petición). Devuelve los 8 más urgentes y el total, así el panel no carga todas las tablas. Las columnas con umbral son pocas por usuario (máximo 50 por tabla), así que no hace falta un índice específico.
+- **Sin notificaciones**: los avisos se ven al abrir el panel. Emails o notificaciones push quedan fuera del MVP.
+
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
 Todas están especificadas en [MVP_PROMPT.md](MVP_PROMPT.md):
