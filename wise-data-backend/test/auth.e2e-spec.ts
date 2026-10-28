@@ -74,6 +74,7 @@ describe('Auth (e2e)', () => {
         id: expect.any(String) as string,
         email,
         emailVerifiedAt: expect.any(String) as string,
+        demoExpiresAt: null,
         createdAt: expect.any(String) as string,
       });
 

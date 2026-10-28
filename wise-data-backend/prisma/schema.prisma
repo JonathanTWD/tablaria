@@ -27,6 +27,8 @@ model User {
   email           String    @unique
   passwordHash    String
   emailVerifiedAt DateTime?
+  // Set only for demo accounts, which are deleted with all their data after this date.
+  demoExpiresAt   DateTime?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
@@ -34,6 +36,7 @@ model User {
   emailTokens   EmailToken[]
   tables        InventoryTable[]
 
+  @@index([demoExpiresAt])
   @@map("users")
 }
 

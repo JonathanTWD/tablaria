@@ -11,9 +11,8 @@
   "hero": {
     "title": "Tu inventario, en tablas hechas a tu medida.",
     "description": "Crea las columnas que necesita tu negocio y encuentra cualquier producto en segundos. Sin fórmulas ni hojas que se rompen.",
-    "primary": "Crear cuenta gratis",
-    "secondary": "Prueba la tabla",
-    "free": "Gratis, sin tarjeta y sin instalar nada."
+    "secondary": "Crear cuenta",
+    "free": "La demo entra al instante con tablas de ejemplo, sin registrarte. Gratis y sin instalar nada."
   },
   "demo": {
     "label": "Tabla de ejemplo: {{name}}",

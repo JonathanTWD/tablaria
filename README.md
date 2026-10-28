@@ -2,6 +2,8 @@
 
 Gestión de inventario flexible: cada usuario crea sus propias tablas, define columnas con tipo y trabaja con sus registros como en una hoja de cálculo, pero con validación, búsqueda, filtros y orden en el servidor.
 
+**Demo en directo: [wise-data.es](https://wise-data.es).** Pulsa «Probar la demo» y entrarás sin registrarte en una cuenta temporal con tablas de ejemplo, que se borra a las 24 h.
+
 ## Funcionalidades
 
 - **Cuentas**: registro con verificación por email, inicio de sesión, recuperación de contraseña y sesiones con cookies httpOnly y refresh tokens rotatorios.
@@ -40,7 +42,7 @@ Las cookies de sesión son `Secure`: funcionan con HTTPS y en `http://localhost`
 
 ## Desarrollo
 
-Requisitos: Node.js ≥ 22.12, pnpm 10 (`corepack enable`) y Docker.
+Requisitos: Node.js ≥ 22.22, pnpm 10 (`corepack enable`) y Docker.
 
 ```bash
 cp .env.example .env
@@ -80,6 +82,29 @@ El frontend llama siempre a rutas relativas `/api/...`. En desarrollo Vite las r
 | `pnpm --filter wise-data-backend db:migrate` | Crea y aplica migraciones en desarrollo |
 | `pnpm --filter wise-data-backend db:deploy` | Aplica migraciones pendientes (CI y producción) |
 | `pnpm --filter wise-data-backend db:studio` | Abre Prisma Studio |
+
+## Despliegue (Render + Neon + Resend)
+
+Así está publicada la demo; los motivos están en [ADR-013](docs/DECISIONS.md).
+
+- **Base de datos (Neon)**: un proyecto en la misma región que Render. Las tablas las crea la API al arrancar.
+- **API (Render Web Service, runtime Docker)**:
+  - **Imagen:** Dockerfile `wise-data-backend/Dockerfile`, con contexto `.` y health check en `/api/health`.
+  - **Variables obligatorias:** `NODE_ENV=production`, `DATABASE_URL`, `JWT_ACCESS_SECRET`, `APP_URL` y `CORS_ORIGINS` (la URL pública de la web).
+  - **Proxy:** `TRUST_PROXY_HOPS=1`.
+  - **Correo:** `MAIL_TRANSPORT=resend`, `RESEND_API_KEY` y `MAIL_FROM`.
+  - **Migraciones:** el contenedor aplica las pendientes antes de arrancar.
+- **Web (Render Static Site)**:
+  - **Build:** `corepack enable && pnpm install --frozen-lockfile && pnpm --filter @wisedata/shared build && pnpm --filter wise-data-frontend build`.
+  - **Publicación:** carpeta `wise-data-frontend/dist`, con `NODE_VERSION=22`.
+  - **Rewrites:**
+    - `/api/*` → `https://<api>.onrender.com/api/*`, de tipo Rewrite y la primera de la lista;
+    - `/*` → `/index.html`.
+  - **Cabeceras:** las mismas que [nginx.conf.template](wise-data-frontend/nginx.conf.template), con la CSP incluida.
+- **Dominio**:
+  - **Raíz:** un registro `A` a la IP que indica Render.
+  - **`www`:** un `CNAME` al Static Site.
+  - **Resend:** sus registros DNS en `mail.<dominio>`.
 
 ## Tests
 

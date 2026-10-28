@@ -14,7 +14,7 @@ La especificación completa del MVP está en [MVP_PROMPT.md](MVP_PROMPT.md).
 
 ## Después del MVP
 
-- **Despliegue (fase 7)**: demo pública como pieza principal del portfolio, con un modo demo para entrar sin registrarse y con datos de ejemplo. Candidato gratuito: Render (frontend y API) más PostgreSQL en Neon y email con la API de Resend. El `docker-compose.prod.yml` sigue siendo la vía para ejecutarlo en local.
+- [x] **Fase 7 — Despliegue y demo**: publicado en https://wise-data.es (Render + Neon + Resend). Botón "Probar la demo" con cuentas temporales y datos de ejemplo, migraciones al arrancar la API, aviso mientras el servidor gratuito despierta y vista previa al compartir el enlace.
 ### Colaboración (en este orden)
 
 1. **Tablas compartidas**: invitaciones, roles por tabla (lectura/edición) y ownership ampliado en el backend.

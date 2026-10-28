@@ -23,18 +23,6 @@ services:
       timeout: 5s
       retries: 10
 
-  # Applies pending migrations, then exits; the API waits for it.
-  migrate:
-    build:
-      context: .
-      dockerfile: wise-data-backend/Dockerfile
-      target: migrate
-    environment: *api-env
-    depends_on:
-      db:
-        condition: service_healthy
-    restart: "no"
-
   api:
     build:
       context: .
@@ -52,14 +40,16 @@ services:
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?set JWT_ACCESS_SECRET}
       # Empty means "on in production"; see .env.prod.example before turning it off.
       COOKIE_SECURE: ${COOKIE_SECURE:-}
+      DEMO_ENABLED: ${DEMO_ENABLED:-true}
       MAIL_TRANSPORT: ${MAIL_TRANSPORT:-smtp}
       MAIL_FROM: ${MAIL_FROM:-WiseData <no-reply@wisedata.local>}
       SMTP_HOST: ${SMTP_HOST:-mailpit}
       SMTP_PORT: ${SMTP_PORT:-1025}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
+    # The API applies pending migrations itself before it starts listening.
     depends_on:
-      migrate:
-        condition: service_completed_successfully
+      db:
+        condition: service_healthy
 
   web:
     build:

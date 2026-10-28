@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import type { Env } from '../config/env.schema';
+import { DemoService } from '../demo/demo.service';
 import { UsersModule } from '../users/users.module';
 import { ACCESS_TOKEN_TTL_SECONDS } from './auth.constants';
 import { AuthController } from './auth.controller';
@@ -29,6 +30,7 @@ import { SessionService } from './session.service';
   controllers: [AuthController],
   providers: [
     AuthService,
+    DemoService,
     EmailTokenService,
     PasswordService,
     SessionService,

@@ -43,6 +43,14 @@ export const envSchema = z
     SMTP_HOST: z.string().min(1).default('127.0.0.1'),
     SMTP_PORT: z.coerce.number().int().positive().default(1025),
     RESEND_API_KEY: z.preprocess(emptyAsUnset, z.string().min(1).optional()),
+    // "Try the demo": temporary accounts with example data. On unless set to false.
+    DEMO_ENABLED: z.preprocess(
+      emptyAsUnset,
+      z
+        .enum(['true', 'false'])
+        .default('true')
+        .transform((value) => value === 'true'),
+    ),
     // Secure session cookies; defaults to on in production. Turn off only to
     // serve over plain HTTP on a host other than localhost (e.g. a LAN server).
     COOKIE_SECURE: z.preprocess(
