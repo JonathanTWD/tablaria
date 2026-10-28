@@ -3,7 +3,7 @@ import type { Prisma, Role } from '../generated/prisma/client';
 
 type Db = Prisma.TransactionClient;
 
-const ROLE_RANK: Record<Role, number> = {
+export const ROLE_RANK: Record<Role, number> = {
   VIEWER: 1,
   EDITOR: 2,
   ADMIN: 3,

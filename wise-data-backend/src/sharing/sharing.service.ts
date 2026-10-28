@@ -26,7 +26,7 @@ import type { Env } from '../config/env.schema';
 import { PrismaService } from '../database/prisma.service';
 import type { Invitation, Prisma } from '../generated/prisma/client';
 import { Mailer } from '../mail/mailer';
-import { requireTableRole, tableRole } from '../tables/table-access';
+import { requireTableRole, ROLE_RANK, tableRole } from '../tables/table-access';
 import { invitationEmail } from './sharing-emails';
 
 const INVITATION_TTL_MS = INVITATION_TTL_DAYS * 24 * 60 * 60 * 1000;
@@ -38,8 +38,6 @@ const INVITATION_TTL_MS = INVITATION_TTL_DAYS * 24 * 60 * 60 * 1000;
 const EMAILS_PER_RECIPIENT_PER_HOUR = 5;
 const INVITATIONS_PER_SENDER_PER_HOUR = 30;
 const ONE_HOUR_MS = 60 * 60 * 1000;
-
-const ROLE_RANK = { VIEWER: 1, EDITOR: 2, ADMIN: 3, OWNER: 4 } as const;
 
 /** Pending: neither accepted nor revoked, and not expired. */
 function pending(now = new Date()): Prisma.InvitationWhereInput {
