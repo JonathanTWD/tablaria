@@ -34,6 +34,7 @@ import {
   setSessionCookies,
 } from './auth-cookies';
 import {
+  DEMO_THROTTLE,
   REFRESH_COOKIE,
   REFRESH_THROTTLE,
   SENSITIVE_THROTTLE,
@@ -103,6 +104,18 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response,
   ): Promise<AuthUser> {
     const { user, tokens } = await this.auth.login(body);
+    setSessionCookies(response, tokens, this.secureCookies);
+    return user;
+  }
+
+  @Public()
+  @Throttle(DEMO_THROTTLE)
+  @Post('demo')
+  @HttpCode(HttpStatus.CREATED)
+  async demo(
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<AuthUser> {
+    const { user, tokens } = await this.auth.startDemo();
     setSessionCookies(response, tokens, this.secureCookies);
     return user;
   }

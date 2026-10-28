@@ -17,6 +17,11 @@ export const SENSITIVE_THROTTLE = {
   default: { limit: 5, ttl: ONE_MINUTE_MS },
 };
 
+/** Each demo creates an account and three tables, so it is the tightest limit. */
+export const DEMO_THROTTLE = {
+  default: { limit: 3, ttl: ONE_MINUTE_MS },
+};
+
 export const REFRESH_THROTTLE = {
   default: { limit: 30, ttl: ONE_MINUTE_MS },
 };

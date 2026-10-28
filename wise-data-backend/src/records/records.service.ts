@@ -19,6 +19,7 @@ import { PrismaService } from '../database/prisma.service';
 import type { Prisma, Record as RecordRow } from '../generated/prisma/client';
 import { touchOwnedTable } from '../tables/table-access';
 import { buildRecordQuery } from './record-query';
+import { withoutEmptyCells } from './record-data';
 
 @Injectable()
 export class RecordsService {
@@ -149,13 +150,6 @@ async function loadColumns(
 ): Promise<RecordColumn[]> {
   const columns = await tx.column.findMany({ where: { tableId } });
   return columns.map(toTableColumn);
-}
-
-/** Empty cells are stored as absent keys, never as null. */
-function withoutEmptyCells(data: RecordData): Prisma.InputJsonObject {
-  return Object.fromEntries(
-    Object.entries(data).filter(([, value]) => value !== null),
-  );
 }
 
 function toTableRecord(record: RecordRow): TableRecord {
