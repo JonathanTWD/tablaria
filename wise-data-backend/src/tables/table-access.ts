@@ -29,7 +29,7 @@ export function accessibleTables(
  * The user's role in a table: the higher of their role in its organization and
  * a direct share. Null when they have no access at all.
  */
-async function tableRole(
+export async function tableRole(
   db: Db,
   userId: string,
   tableId: string,

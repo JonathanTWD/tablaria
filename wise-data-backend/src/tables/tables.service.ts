@@ -7,7 +7,9 @@ import {
   columnDefinitionSchema,
   type createTableSchema,
   MAX_TABLES_PER_USER,
+  type SharedTableSummary,
   TABLE_TEMPLATES,
+  type TableRole,
   type TableDetail,
   type TableSummary,
   type updateTableSchema,
@@ -20,6 +22,7 @@ import {
   accessibleTables,
   personalOrganizationId,
   requireTableRole,
+  tableRole,
 } from './table-access';
 
 type CreateTable = z.output<typeof createTableSchema>;
@@ -45,7 +48,32 @@ export class TablesService {
       orderBy: { updatedAt: 'desc' },
       include: WITH_COUNTS,
     });
-    return tables.map(toTableSummary);
+    // The personal space belongs to its user alone.
+    return tables.map((table) => toTableSummary(table, 'OWNER'));
+  }
+
+  /** Tables other people shared with the user directly, most recently edited first. */
+  async listShared(userId: string): Promise<SharedTableSummary[]> {
+    const tables = await this.prisma.inventoryTable.findMany({
+      where: {
+        shares: { some: { userId } },
+        // Tables of the user's own organizations are listed with those.
+        organization: { memberships: { none: { userId } } },
+      },
+      orderBy: { updatedAt: 'desc' },
+      include: {
+        ...WITH_COUNTS,
+        shares: { where: { userId }, select: { role: true } },
+        organization: {
+          select: { name: true, personalFor: { select: { email: true } } },
+        },
+      },
+    });
+    return tables.map((table) => ({
+      ...toTableSummary(table, table.shares[0].role),
+      sharedBy:
+        table.organization.personalFor?.email ?? table.organization.name,
+    }));
   }
 
   async get(userId: string, tableId: string): Promise<TableDetail> {
@@ -53,11 +81,12 @@ export class TablesService {
       where: { id: tableId, ...accessibleTables(userId) },
       include: { ...WITH_COUNTS, columns: { orderBy: { position: 'asc' } } },
     });
-    if (!table) {
+    const role = table && (await tableRole(this.prisma, userId, tableId));
+    if (!table || !role) {
       throw new NotFoundException('Table not found');
     }
     return {
-      ...toTableSummary(table),
+      ...toTableSummary(table, role),
       columns: table.columns.map(toTableColumn),
     };
   }
@@ -117,8 +146,9 @@ export class TablesService {
   }
 }
 
-function toTableSummary(table: TableWithCounts): TableSummary {
+function toTableSummary(table: TableWithCounts, role: TableRole): TableSummary {
   return {
+    role,
     id: table.id,
     name: table.name,
     description: table.description,

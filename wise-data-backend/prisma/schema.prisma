@@ -46,6 +46,7 @@ model User {
   memberships          Membership[]
   tableShares          TableShare[]
   createdTables        InventoryTable[]
+  sentInvitations      Invitation[]
 
   @@index([demoExpiresAt])
   @@map("users")
@@ -143,6 +144,7 @@ model InventoryTable {
   columns      Column[]
   records      Record[]
   shares       TableShare[]
+  invitations  Invitation[]
 
   @@index([organizationId, updatedAt])
   @@map("inventory_tables")
@@ -182,4 +184,27 @@ model Record {
   @@index([tableId, createdAt])
   @@index([data], type: Gin)
   @@map("records")
+}
+
+/// An emailed invitation to a table. Only the token's hash is stored; rows are
+/// kept after acceptance or revocation so sending limits count every email.
+model Invitation {
+  id          String    @id @default(uuid()) @db.Uuid
+  tableId     String    @db.Uuid
+  email       String
+  role        Role
+  tokenHash   String    @unique
+  invitedById String?   @db.Uuid
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  table     InventoryTable @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  invitedBy User?          @relation(fields: [invitedById], references: [id], onDelete: SetNull)
+
+  @@index([tableId])
+  @@index([email, createdAt])
+  @@index([invitedById, createdAt])
+  @@map("invitations")
 }
