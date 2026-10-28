@@ -45,6 +45,7 @@ export function toAuthUser(user: User): AuthUser {
     id: user.id,
     email: user.email,
     emailVerifiedAt: user.emailVerifiedAt?.toISOString() ?? null,
+    demoExpiresAt: user.demoExpiresAt?.toISOString() ?? null,
     createdAt: user.createdAt.toISOString(),
   };
 }

@@ -6,6 +6,7 @@ import { Link } from "react-router";
 import { FormAlert } from "@/components/form/FormAlert";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { displayName } from "@/features/auth/display-name";
 import { useSession } from "@/features/auth/session";
 import { CreateTableDialog } from "@/features/tables/CreateTableDialog";
 import { tablesQuery } from "@/features/tables/queries";
@@ -16,7 +17,7 @@ export default function DashboardPage() {
   const { t } = useTranslation(["app", "tables"]);
   const { data: user } = useSession();
   const tables = useQuery(tablesQuery);
-  const name = user?.email.split("@")[0] ?? "";
+  const name = user ? displayName(user) : "";
 
   const createButton = (
     <Button className="h-9">

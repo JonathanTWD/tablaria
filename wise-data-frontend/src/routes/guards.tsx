@@ -10,7 +10,7 @@ export function RequireAuth() {
   const location = useLocation();
 
   if (isPending) {
-    return <FullPageLoader />;
+    return <FullPageLoader waitingForApi />;
   }
   if (isError) {
     return <ServerUnavailable onRetry={() => void refetch()} />;
@@ -28,7 +28,7 @@ export function GuestOnly() {
   const [searchParams] = useSearchParams();
 
   if (isPending) {
-    return <FullPageLoader />;
+    return <FullPageLoader waitingForApi />;
   }
   if (user) {
     return <Navigate to={safeRedirect(searchParams.get("redirect"))} replace />;

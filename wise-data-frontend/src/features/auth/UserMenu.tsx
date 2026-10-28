@@ -10,6 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { displayEmail, displayName } from "./display-name";
 import { useLogout, useSession } from "./session";
 
 export function UserMenu() {
@@ -33,10 +34,10 @@ export function UserMenu() {
       >
         <Avatar className="size-8">
           <AvatarFallback className="bg-primary/12 text-xs font-semibold text-primary">
-            {user.email.slice(0, 2).toUpperCase()}
+            {displayName(user).slice(0, 2).toUpperCase()}
           </AvatarFallback>
         </Avatar>
-        <span className="min-w-0 flex-1 truncate">{user.email}</span>
+        <span className="min-w-0 flex-1 truncate">{displayEmail(user)}</span>
         <ChevronsUpDown aria-hidden="true" className="size-4 text-muted-foreground" />
       </DropdownMenuTrigger>
       <DropdownMenuContent side="top" align="start" className="w-(--anchor-width)">

@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { GridBackdrop } from "@/components/GridBackdrop";
 import { buttonVariants } from "@/components/ui/button-variants";
+import { TryDemoButton } from "@/features/auth/TryDemoButton";
 import { cn } from "@/lib/utils";
 import { DemoInventoryTable } from "../DemoInventoryTable";
 import { useDemoDataset } from "../use-demo-dataset";
@@ -26,15 +27,13 @@ export function HeroSection() {
             {t("hero.description")}
           </p>
           <div className="mt-9 flex flex-wrap items-center gap-3">
-            <Link to="/register" className={cn(buttonVariants(), "h-11 px-5 text-[0.95rem]")}>
-              {t("hero.primary")}
-            </Link>
-            <a
-              href="#demo"
+            <TryDemoButton className="h-11 px-5 text-[0.95rem]" />
+            <Link
+              to="/register"
               className={cn(buttonVariants({ variant: "outline" }), "h-11 px-5 text-[0.95rem]")}
             >
               {t("hero.secondary")}
-            </a>
+            </Link>
           </div>
           <p className="mt-4 text-sm text-muted-foreground">{t("hero.free")}</p>
         </div>

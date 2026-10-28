@@ -19,6 +19,7 @@ describe('validateEnv', () => {
       MAIL_TRANSPORT: 'smtp',
       SMTP_HOST: '127.0.0.1',
       SMTP_PORT: 1025,
+      DEMO_ENABLED: true,
     });
   });
 

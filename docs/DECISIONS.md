@@ -145,6 +145,28 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
   - Para crear o editar un registro entero hay un diálogo validado con el mismo esquema que usa la API.
 - **Pestañas**: la página de una tabla tiene dos rutas anidadas, `/app/tables/:id` (registros) y `/app/tables/:id/columns` (columnas), que comparten la cabecera.
 
+## ADR-013: Despliegue y modo demo
+
+- **Plataforma**:
+  - **Web:** Render Static Site. Reescribe `/api/*` hacia la API, así que todo queda en el mismo origen y las cookies funcionan sin tocar CORS.
+  - **API:** Render Web Service con el Dockerfile.
+  - **Base de datos:** Neon. La PostgreSQL gratuita de Render caduca.
+  - **Correo:** Resend, desde `mail.wise-data.es`.
+  - **Dominio:** `wise-data.es`, en IONOS.
+  - **Lo que hay que configurar a mano en Render:** las cabeceras de seguridad (CSP incluida) en el panel del Static Site y `TRUST_PROXY_HOPS` en la API.
+- **Migraciones al arrancar**:
+  - El plan gratuito de Render no tiene paso previo al despliegue. Por eso el contenedor ejecuta `prisma migrate deploy` antes de `node dist/main`, y la CLI de Prisma pasa a ser dependencia de producción.
+  - Sin migraciones pendientes, este paso no hace nada.
+  - Con una sola instancia no hay carreras. Con varias, habría que volver a un paso de migración aparte.
+- **Modo demo** (`POST /api/auth/demo`, activado salvo `DEMO_ENABLED=false`):
+  - **Cuenta:** cada visitante recibe su propia cuenta, ya verificada y con un email `@demo.invalid`. Es un dominio reservado, así que nunca coincide con un buzón real y no se envían correos a esa dirección.
+  - **Datos de ejemplo:** tres tablas creadas desde las plantillas y validadas con las mismas reglas que la API.
+  - **Caducidad:** a las 24 h (`demoExpiresAt`) la cuenta se borra en cascada con todos sus datos. La limpieza se hace al crear la siguiente demo, sin cron, que en un servidor que se duerme no serviría.
+  - **Límites:** 300 cuentas demo activas a la vez (503 si se supera) y 3 demos por minuto por IP.
+- **Servidor dormido**: si la carga inicial o "Probar la demo" tardan más de 3 s, la interfaz explica que el servidor está despertando, en lugar de mostrar solo un spinner.
+- **Vista previa al compartir**: metaetiquetas Open Graph y de X/Twitter en `index.html` (los rastreadores no ejecutan JavaScript), con una imagen de 1200×630 generada desde `wise-data-frontend/og/og-image.html`. El favicon pasa a ser el icono de WiseData.
+- **Diagnóstico del proxy**: cada petición bloqueada por el límite de peticiones deja en el log la IP con la que se contó. Si no coincide con la IP pública del cliente, `TRUST_PROXY_HOPS` no está bien ajustado.
+
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
 Todas están especificadas en [MVP_PROMPT.md](MVP_PROMPT.md):

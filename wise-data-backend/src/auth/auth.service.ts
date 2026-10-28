@@ -2,6 +2,7 @@ import {
   ForbiddenException,
   Injectable,
   Logger,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -13,6 +14,7 @@ import type {
   VerifyEmailInput,
 } from '@wisedata/shared';
 import type { Env } from '../config/env.schema';
+import { DemoService } from '../demo/demo.service';
 import { EmailTokenType, Prisma, type User } from '../generated/prisma/client';
 import { type MailMessage, Mailer } from '../mail/mailer';
 import { toAuthUser, UsersService } from '../users/users.service';
@@ -34,16 +36,19 @@ export interface AuthenticatedSession {
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
   private readonly appUrl: string;
+  private readonly demoEnabled: boolean;
 
   constructor(
     private readonly users: UsersService,
     private readonly passwords: PasswordService,
     private readonly emailTokens: EmailTokenService,
     private readonly sessions: SessionService,
+    private readonly demo: DemoService,
     private readonly mailer: Mailer,
     config: ConfigService<Env, true>,
   ) {
     this.appUrl = config.get('APP_URL', { infer: true });
+    this.demoEnabled = config.get('DEMO_ENABLED', { infer: true });
   }
 
   /**
@@ -55,6 +60,10 @@ export class AuthService {
     const passwordHash = await this.passwords.hash(password);
     const existing = await this.users.findByEmail(email);
 
+    // Demo addresses are not real mailboxes; answer as usual without sending anything.
+    if (existing?.demoExpiresAt) {
+      return;
+    }
     if (existing?.emailVerifiedAt) {
       await this.sendEmail({
         to: existing.email,
@@ -127,10 +136,22 @@ export class AuthService {
     return { user: toAuthUser(user), tokens };
   }
 
+  /** Signs the visitor into a new, temporary demo account with example tables. */
+  async startDemo(): Promise<AuthenticatedSession> {
+    if (!this.demoEnabled) {
+      throw new NotFoundException();
+    }
+    const user = await this.demo.createAccount();
+    const tokens = await this.sessions.start(user.id);
+    return { user: toAuthUser(user), tokens };
+  }
+
   async refresh(refreshToken: string): Promise<AuthenticatedSession> {
     const { userId, tokens } = await this.sessions.rotate(refreshToken);
     const user = await this.users.findById(userId);
-    if (!user) {
+    // An expired demo account gets no new access tokens, so by the time it is
+    // deleted (see DemoService) no token for it can still be valid.
+    if (!user || (user.demoExpiresAt && user.demoExpiresAt <= new Date())) {
       throw new UnauthorizedException('Invalid session');
     }
     return { user: toAuthUser(user), tokens };
@@ -150,8 +171,10 @@ export class AuthService {
 
   async forgotPassword(email: string): Promise<void> {
     const user = await this.users.findByEmail(email);
+    // Demo addresses are not real mailboxes.
     if (
       !user ||
+      user.demoExpiresAt ||
       (await this.emailLimitReached(user, EmailTokenType.RESET_PASSWORD))
     ) {
       return;

@@ -55,6 +55,8 @@ export interface AuthUser {
   id: string;
   email: string;
   emailVerifiedAt: string | null;
+  /** Set for demo accounts: they are deleted, with all their data, at this time. */
+  demoExpiresAt: string | null;
   createdAt: string;
 }
 
