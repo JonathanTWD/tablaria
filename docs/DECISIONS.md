@@ -218,6 +218,47 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
   Las demás dependencias del componente (`Sheet`, `Tooltip`, `Button`…) ya estaban en el proyecto.
 - **Atajo `Ctrl/⌘ + B`**: es el del componente. En Firefox ese atajo abre la barra de marcadores, y dentro de la app queda bloqueado. Como lleva tecla modificadora, no choca con WCAG 2.1.4.
 
+## ADR-019: Compartir tablas y organizaciones
+
+**Contexto**: hoy cada tabla tiene un `ownerId`, y unas 40 consultas en 6 servicios comprueban la propiedad. WiseData tiene que servir tanto a particulares, que comparten alguna tabla suelta, como a equipos, que trabajan con todas.
+
+**Decisión**:
+- **Dos formas de dar acceso**:
+  - **compartir una tabla** con personas concretas, como lector o editor;
+  - **organizaciones**, con miembros y roles (`OWNER`, `ADMIN`, `EDITOR` o `VIEWER`) que ven todas sus tablas.
+- **Espacio personal**: cada usuario tiene una organización `personal`, que se crea al registrarse y no admite miembros. Las tablas de ese espacio se comparten tabla a tabla. La migración crea una por usuario y mueve allí sus tablas.
+- **Modelo**:
+  - `organizations`: `id`, `name` y `personal`;
+  - `memberships`: organización, usuario y rol;
+  - `table_shares`: tabla, usuario y rol (`VIEWER` o `EDITOR`);
+  - `invitations`: el destino (una tabla o una organización), email, rol, hash del token, caducidad, quién invita y cuándo se aceptó;
+  - `inventory_tables.ownerId` se sustituye por `organizationId`, más `createdById` para saber quién la creó.
+- **Una sola puerta de acceso**:
+  - el rol de un usuario en una tabla es el mayor entre su rol en la organización de la tabla y el que le dieron al compartirla;
+  - un único servicio lo resuelve y exige un rol mínimo;
+  - a quien no tiene acceso se le responde 404, igual que si la tabla no existiera; a quien tiene acceso sin permiso suficiente, 403;
+  - ningún servicio vuelve a filtrar por `ownerId` por su cuenta.
+- **Permisos**:
+  - `VIEWER` lee y exporta;
+  - `EDITOR` además crea, edita y borra registros;
+  - `ADMIN` (o el dueño en su espacio personal) además gestiona la tabla, sus columnas, los permisos compartidos y los miembros;
+  - `OWNER` además puede borrar la organización.
+
+  Compartir una tabla da como mucho rol de editor, y siempre queda al menos un `OWNER`.
+- **Invitaciones**, el mismo flujo para tablas y organizaciones:
+  - el token es aleatorio y en base de datos solo se guarda su hash; caduca a los 7 días y es de un solo uso;
+  - solo puede aceptarla la cuenta cuyo email coincide con el invitado;
+  - las respuestas no revelan si un email tiene cuenta;
+  - límites: 25 personas por tabla compartida o por organización, 20 invitaciones pendientes por destino y 10 organizaciones por usuario.
+- **Rutas**:
+  - las de tablas, registros y columnas siguen siendo `/tables/:id/...`;
+  - las tablas compartidas conmigo se listan en `/tables/shared`;
+  - el listado y la creación de tablas de una organización van en `/organizations/:orgId/tables`;
+  - los permisos compartidos van bajo `/tables/:id/shares`, y los miembros bajo `/organizations/:orgId/members`.
+- **Demo**: incluye una tabla compartida y una organización de ejemplo con miembros ficticios que no pueden iniciar sesión.
+
+**Consecuencias**: el aislamiento pasa de ser «mis tablas» a «tablas a las que tengo acceso por organización o porque me las compartieron». Cada ruta lleva tests e2e por vía de acceso y por rol, y cada PR de la fase pasa la revisión de seguridad.
+
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
 Todas están especificadas en [MVP_PROMPT.md](MVP_PROMPT.md):
