@@ -46,10 +46,15 @@ export default function DashboardPage() {
       {loading && (
         <div aria-busy="true" className="mt-8">
           <Skeleton className="h-24 w-full rounded-xl" />
-          <Skeleton className="mt-10 h-6 w-40" />
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <Skeleton className="h-28 rounded-xl" />
-            <Skeleton className="h-28 rounded-xl" />
+          <div className="mt-8 grid gap-8 @5xl:grid-cols-[minmax(0,1fr)_26rem] @7xl:grid-cols-[minmax(0,1fr)_30rem]">
+            <div>
+              <Skeleton className="h-6 w-40" />
+              <div className="mt-4 grid gap-3 @xl:grid-cols-2 @7xl:grid-cols-3">
+                <Skeleton className="h-28 rounded-xl" />
+                <Skeleton className="h-28 rounded-xl" />
+              </div>
+            </div>
+            <Skeleton className="hidden h-64 rounded-xl @5xl:block" />
           </div>
         </div>
       )}

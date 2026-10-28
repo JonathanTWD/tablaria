@@ -86,7 +86,8 @@ export default function TablePage() {
   ].join(" · ");
 
   return (
-    <>
+    // Full width for wide tables, bounded so ultrawide screens don't spread a few columns apart.
+    <div className="mx-auto w-full max-w-[160rem]">
       <title>{`${data.name} | WiseData`}</title>
       {backLink}
 
@@ -159,6 +160,6 @@ export default function TablePage() {
         open={dialog === "delete"}
         onOpenChange={(open) => setDialog(open ? "delete" : null)}
       />
-    </>
+    </div>
   );
 }

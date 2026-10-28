@@ -20,7 +20,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { type FocusEvent, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { toast } from "sonner";
@@ -61,6 +61,19 @@ interface DialogState {
 
 /** The first column (the record's name) stays visible while the table scrolls sideways. */
 const STICKY_CELL = "sticky left-0 z-10 shadow-[inset_-1px_0_0_var(--border)]";
+
+/**
+ * The browser scrolls a cell focused from the keyboard to the scroller's edge,
+ * which is under the sticky first column. Padding the scroll area by that
+ * column's width before the browser scrolls (it does so after this event)
+ * keeps the focused cell next to it instead.
+ */
+function keepFocusBesideStickyColumn(event: FocusEvent<HTMLDivElement>) {
+  const sticky = event.target.closest("tr")?.firstElementChild;
+  if (sticky) {
+    event.currentTarget.style.scrollPaddingLeft = `${sticky.getBoundingClientRect().width}px`;
+  }
+}
 
 export function RecordsTable({ table }: { table: TableDetail }) {
   const { t } = useTranslation("records");
@@ -184,6 +197,7 @@ export function RecordsTable({ table }: { table: TableDetail }) {
             records.isPlaceholderData && "opacity-60",
           )}
           aria-busy={records.isFetching}
+          onFocus={keepFocusBesideStickyColumn}
         >
           <table className="w-full border-collapse text-sm">
             <caption className="sr-only">{t("table.caption", { name: table.name })}</caption>
@@ -261,13 +275,16 @@ export function RecordsTable({ table }: { table: TableDetail }) {
                                 ),
                             )}
                           >
-                            <EditableCell
-                              column={column}
-                              value={record.data[column.id]}
-                              label={t("cell.label", { column: column.name, row: label })}
-                              format={format}
-                              onSave={(value) => save(record, column, value)}
-                            />
+                            {/* On phones the fixed column must leave room for the cell being edited. */}
+                            <div className={cn(index === 0 && "max-w-36 sm:max-w-56 lg:max-w-none")}>
+                              <EditableCell
+                                column={column}
+                                value={record.data[column.id]}
+                                label={t("cell.label", { column: column.name, row: label })}
+                                format={format}
+                                onSave={(value) => save(record, column, value)}
+                              />
+                            </div>
                           </td>
                         ))}
                         <td className="px-1.5 py-1 text-right">
