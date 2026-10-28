@@ -9,6 +9,7 @@ import {
   type RecordColumn,
   type RecordData,
   recordDataSchema,
+  type RecordExportQuery,
   type RecordInput,
   type RecordListQuery,
   type TableRecord,
@@ -20,6 +21,13 @@ import type { Prisma, Record as RecordRow } from '../generated/prisma/client';
 import { touchOwnedTable } from '../tables/table-access';
 import { buildRecordQuery } from './record-query';
 import { withoutEmptyCells } from './record-data';
+import { exportFileName, toCsv } from './record-export';
+
+export interface ExportedFile {
+  fileName: string;
+  contentType: string;
+  content: Buffer;
+}
 
 @Injectable()
 export class RecordsService {
@@ -64,6 +72,41 @@ export class RecordsService {
         total: count,
         pageCount: Math.ceil(count / query.pageSize),
       },
+    };
+  }
+
+  /** Every record that matches the view (search, filters, sort), in column order. */
+  async export(
+    ownerId: string,
+    tableId: string,
+    query: RecordExportQuery,
+  ): Promise<ExportedFile> {
+    const table = await this.prisma.inventoryTable.findFirst({
+      where: { id: tableId, ownerId },
+      select: { name: true, columns: { orderBy: { position: 'asc' } } },
+    });
+    if (!table) {
+      throw new NotFoundException('Table not found');
+    }
+
+    const columns = table.columns.map(toTableColumn);
+    const { where, orderBy } = buildRecordQuery(tableId, columns, query);
+    const rows = await this.prisma.$queryRaw<{ data: RecordData }[]>`
+      SELECT r.data FROM records r
+      WHERE ${where}
+      ORDER BY ${orderBy}
+      LIMIT ${MAX_RECORDS_PER_TABLE}`;
+
+    return {
+      fileName: exportFileName(table.name, 'csv'),
+      contentType: 'text/csv; charset=utf-8',
+      content: Buffer.from(
+        toCsv(
+          columns,
+          rows.map(({ data }) => data),
+        ),
+        'utf8',
+      ),
     };
   }
 

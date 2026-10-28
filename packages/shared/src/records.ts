@@ -162,3 +162,13 @@ export const recordListQuerySchema = z.object({
 });
 
 export type RecordListQuery = z.output<typeof recordListQuerySchema>;
+
+export const RECORD_EXPORT_FORMATS = ["csv"] as const;
+export type RecordExportFormat = (typeof RECORD_EXPORT_FORMATS)[number];
+
+/** Same view as the listing (search, filters, sort) without pagination: every match is exported. */
+export const recordExportQuerySchema = recordListQuerySchema
+  .omit({ page: true, pageSize: true })
+  .extend({ format: z.enum(RECORD_EXPORT_FORMATS).default("csv") });
+
+export type RecordExportQuery = z.output<typeof recordExportQuerySchema>;

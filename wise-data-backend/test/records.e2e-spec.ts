@@ -322,11 +322,49 @@ describe('Records (e2e)', () => {
       ).toEqual(['Martillo 50% dto', 'alicates']);
     });
 
+    it('exports every matching record as CSV, in the order shown', async () => {
+      const { client, ids, url } = await seed();
+      const filters = JSON.stringify([
+        { columnId: ids.status, op: 'in', values: ['Disponible'] },
+      ]);
+
+      const response = await client
+        .get(`${url}/export`)
+        .query({ format: 'csv', sort: ids.price, order: 'desc', filters })
+        .buffer(true)
+        .parse((res, done) => {
+          let body = '';
+          res.on('data', (chunk: Buffer) => (body += chunk.toString('utf8')));
+          res.on('end', () => done(null, body));
+        })
+        .expect(200);
+
+      expect(response.headers['content-type']).toBe('text/csv; charset=utf-8');
+      expect(response.headers['content-disposition']).toMatch(
+        /^attachment; filename="productos-\d{4}-\d{2}-\d{2}\.csv"$/,
+      );
+      // Byte order mark, ";" and decimal commas: what Excel in Spanish opens directly.
+      expect((response.body as string).split('\r\n')).toEqual([
+        `${String.fromCharCode(0xfeff)}Nombre;Stock;Precio (EUR);Alta;Estado;Activo`,
+        'Taladro;4;89,9;2026-01-10;Disponible;Sí',
+        'Martillo 50% dto;30;12,5;2026-03-02;Disponible;No',
+        '',
+      ]);
+    });
+
+    it("doesn't export another user's table", async () => {
+      const { url } = await seed();
+      const other = await createSignedInClient(app);
+
+      await other.get(`${url}/export`).expect(404);
+    });
+
     it('rejects invalid queries', async () => {
       const { client, ids, url } = await seed();
       const bad = (query: object) => client.get(url).query(query).expect(400);
 
       await bad({ pageSize: 101 });
+      await client.get(`${url}/export`).query({ format: 'pdf' }).expect(400);
       await bad({ sort: randomUUID() });
       await bad({ filters: 'not json' });
       await bad({
