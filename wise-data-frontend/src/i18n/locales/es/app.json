@@ -3,8 +3,12 @@
     "label": "Navegación principal",
     "dashboard": "Inicio",
     "settings": "Ajustes",
-    "openMenu": "Abrir menú",
     "skipToContent": "Saltar al contenido"
+  },
+  "sidebar": {
+    "title": "Barra lateral",
+    "description": "Navegación de WiseData: inicio, ajustes y tus tablas.",
+    "toggle": "Mostrar u ocultar la barra lateral"
   },
   "userMenu": {
     "label": "Menú de la cuenta",

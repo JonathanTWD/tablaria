@@ -8,6 +8,7 @@
   - Ajustes y columnas mantienen un ancho cómodo de lectura.
   - En escritorio, la cabecera de la tabla es más compacta, y la primera columna se queda fija al desplazar la tabla en horizontal.
 - **Landing en monitores grandes**: el contenido crece de 1280 a 1792 px y los títulos aumentan con `clamp()` a partir de unos 2050 px de ancho. En un monitor de 27" (2560 px) el contenido pasa a ocupar el 70 % del ancho, frente al 50 % de antes. En pantallas altas, la cabecera ocupa la mayor parte de la primera pantalla. En portátiles y móviles se ve igual que antes.
+- **Barra lateral plegable**: se pliega a una tira de iconos con el botón de la cabecera, con `Ctrl/⌘ + B` o pulsando su borde. Tiene tooltips con el nombre de cada icono. Las tablas se agrupan en un menú «Tablas», y la elección se recuerda en el navegador. Plegada, la tabla de un portátil de 1707 px pasa de 1403 a 1595 px. En móvil sigue siendo un panel que se abre por encima.
 
 ## v1.2.0 — Exportación, alertas y gráficos
 

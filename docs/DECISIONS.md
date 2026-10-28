@@ -204,6 +204,20 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
   Hasta unos 1780 px la landing no cambia; a partir de ahí, el contenedor y los títulos crecen en proporción, mientras los párrafos conservan su ancho máximo de lectura.
 - **Orden de lectura**: en pantallas anchas, «Bajo mínimo» y el gráfico pasan a una columna lateral colocada con grid. El orden del DOM (avisos, tablas, gráfico) no cambia, así que el foco y los lectores de pantalla siguen el mismo orden en todos los tamaños.
 
+## ADR-018: Barra lateral plegable
+
+- **Componente `Sidebar` de shadcn (Base UI)**, en modo `icon`: plegada, deja una tira de 3rem con iconos y tooltips en lugar de desaparecer. Así navegar sigue costando un clic.
+- **Tablas agrupadas en un menú**: con la barra plegada, todas las tablas tendrían el mismo icono, así que se juntan en un solo botón «Tablas» que abre un menú con la lista.
+- **Estado en `localStorage`** (`wisedata:sidebar-open`) en lugar de la cookie `sidebar_state` del componente original. Es una app de navegador sin renderizado en servidor, y la cookie solo viajaría a la API en cada petición.
+- **Instalación manual**: `shadcn add sidebar` intentaba volver a resolver dependencias y chocaba con la antigüedad mínima de pnpm. Por eso `sidebar.tsx` se copió del registro, cambiando solo:
+  - las rutas de importación;
+  - la cookie, que se quita;
+  - los textos para lectores de pantalla, que ahora llegan traducidos desde la app;
+  - `useIsMobile`, que se reescribe con `useSyncExternalStore`.
+
+  Las demás dependencias del componente (`Sheet`, `Tooltip`, `Button`…) ya estaban en el proyecto.
+- **Atajo `Ctrl/⌘ + B`**: es el del componente. En Firefox ese atajo abre la barra de marcadores, y dentro de la app queda bloqueado. Como lleva tecla modificadora, no choca con WCAG 2.1.4.
+
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
 Todas están especificadas en [MVP_PROMPT.md](MVP_PROMPT.md):
