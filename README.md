@@ -40,7 +40,7 @@ Las cookies de sesión son `Secure`: funcionan con HTTPS y en `http://localhost`
 
 ## Desarrollo
 
-Requisitos: Node.js ≥ 22.12, pnpm 10 (`corepack enable`) y Docker.
+Requisitos: Node.js ≥ 22.22, pnpm 10 (`corepack enable`) y Docker.
 
 ```bash
 cp .env.example .env

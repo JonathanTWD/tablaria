@@ -3,7 +3,7 @@
   "private": true,
   "packageManager": "pnpm@10.28.1",
   "engines": {
-    "node": ">=22.12"
+    "node": ">=22.22"
   },
   "scripts": {
     "build": "pnpm --filter @wisedata/shared build && pnpm --filter wise-data-backend --filter wise-data-frontend build",
