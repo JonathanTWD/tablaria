@@ -22,6 +22,9 @@ import {
   recordExportQuerySchema,
   type RecordListQuery,
   recordListQuerySchema,
+  type RecordStats,
+  type RecordStatsQuery,
+  recordStatsQuerySchema,
   type TableRecord,
 } from '@wisedata/shared';
 import { CurrentUserId } from '../auth/decorators';
@@ -63,6 +66,16 @@ export class RecordsController {
       'Cache-Control': 'no-store',
     });
     return new StreamableFile(file.content);
+  }
+
+  @Get('stats')
+  stats(
+    @CurrentUserId() userId: string,
+    @Param('tableId', ParseUUIDPipe) tableId: string,
+    @Query(new ZodValidationPipe(recordStatsQuerySchema))
+    query: RecordStatsQuery,
+  ): Promise<RecordStats> {
+    return this.records.stats(userId, tableId, query);
   }
 
   @Post()
