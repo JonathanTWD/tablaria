@@ -126,6 +126,7 @@ describe('Stock alerts (e2e)', () => {
 
     const other = await createSignedInClient(app);
     expect(await alerts(other)).toEqual({ total: 0, items: [] });
+    await createClient(app).get('/api/stock-alerts').expect(401);
   });
 
   it('greets demo visitors with a few alerts to look at', async () => {
