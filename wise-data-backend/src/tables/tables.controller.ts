@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import {
   createTableSchema,
+  type SharedTableSummary,
   type TableDetail,
   type TableSummary,
   updateTableSchema,
@@ -28,6 +29,12 @@ export class TablesController {
   @Get()
   list(@CurrentUserId() userId: string): Promise<TableSummary[]> {
     return this.tables.list(userId);
+  }
+
+  // Declared before ':tableId' so "shared" is never read as an id.
+  @Get('shared')
+  listShared(@CurrentUserId() userId: string): Promise<SharedTableSummary[]> {
+    return this.tables.listShared(userId);
   }
 
   @Post()

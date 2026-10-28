@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { TableColumn } from "./column-types.js";
+import type { TableRole } from "./sharing.js";
 import { TABLE_TEMPLATE_IDS } from "./templates.js";
 
 export const MAX_TABLES_PER_USER = 100;
@@ -41,6 +42,8 @@ export interface TableSummary {
   recordCount: number;
   createdAt: string;
   updatedAt: string;
+  /** The current user's role, which decides what the interface lets them do. */
+  role: TableRole;
 }
 
 export interface TableDetail extends TableSummary {

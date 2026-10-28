@@ -255,6 +255,11 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
   - las tablas compartidas conmigo se listan en `/tables/shared`;
   - el listado y la creación de tablas de una organización van en `/organizations/:orgId/tables`;
   - los permisos compartidos van bajo `/tables/:id/shares`, y los miembros bajo `/organizations/:orgId/members`.
+- **Antiabuso** (añadido en la parte 2):
+  - las cuentas demo no pueden invitar, porque la demo es pública y no debe servir para enviar emails a terceros;
+  - cada dirección recibe como mucho 5 invitaciones por hora, y cada usuario envía como mucho 30. Cuentan también las reenviadas y las revocadas, que se marcan en lugar de borrarse;
+  - el nombre de la tabla y el remitente se escapan en el HTML del email;
+  - el token viaja en el cuerpo de `POST /invitations/preview` y `POST /invitations/accept`, nunca en una URL que pueda quedar en los logs.
 - **Demo**: incluye una tabla compartida y una organización de ejemplo con miembros ficticios que no pueden iniciar sesión.
 
 **Consecuencias**: el aislamiento pasa de ser «mis tablas» a «tablas a las que tengo acceso por organización o porque me las compartieron». Cada ruta lleva tests e2e por vía de acceso y por rol, y cada PR de la fase pasa la revisión de seguridad.

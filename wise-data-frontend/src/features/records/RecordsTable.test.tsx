@@ -28,6 +28,7 @@ const table: TableDetail = {
   id: "2d0f8e4a-3c4d-4e5f-8a0b-2c3d4e5f6071",
   name: "Productos",
   description: null,
+  role: "OWNER",
   columnCount: 2,
   recordCount: 1,
   createdAt: "2026-01-01T00:00:00.000Z",
