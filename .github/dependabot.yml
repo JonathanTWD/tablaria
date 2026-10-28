@@ -8,6 +8,10 @@ updates:
     target-branch: develop
     schedule:
       interval: weekly
+    # Same 14-day maturity rule as pnpm's minimumReleaseAge, so local installs
+    # never reject a version Dependabot already locked.
+    cooldown:
+      default-days: 14
     groups:
       minor-and-patch:
         update-types: [minor, patch]
@@ -27,6 +31,8 @@ updates:
     target-branch: develop
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 14
     groups:
       github-actions:
         patterns: ["*"]
