@@ -42,7 +42,7 @@ export function BarChart({
             <th
               scope="row"
               title={row.label}
-              className="w-2/5 truncate pr-3 text-left font-normal sm:w-1/3"
+              className="w-1/3 truncate pr-3 text-left font-normal"
             >
               {row.label}
             </th>
@@ -61,7 +61,7 @@ export function BarChart({
                     className={cn("fill-primary", row.fillClassName)}
                   />
                 </svg>
-                <span className="w-24 shrink-0 text-right font-medium tabular-nums">
+                <span className="w-20 shrink-0 text-right font-medium tabular-nums sm:w-28">
                   {row.display}
                 </span>
               </span>
