@@ -59,6 +59,9 @@ interface DialogState {
   record?: TableRecord;
 }
 
+/** The first column (the record's name) stays visible while the table scrolls sideways. */
+const STICKY_CELL = "sticky left-0 z-10 shadow-[inset_-1px_0_0_var(--border)]";
+
 export function RecordsTable({ table }: { table: TableDetail }) {
   const { t } = useTranslation("records");
   const [urlView, setView] = useRecordsView();
@@ -135,7 +138,7 @@ export function RecordsTable({ table }: { table: TableDetail }) {
   }
 
   return (
-    <section aria-label={t("tabs.records")} className="mt-6">
+    <section aria-label={t("tabs.records")} className="mt-4">
       <div className="flex flex-wrap items-center gap-2">
         <SearchField
           initial={view.search}
@@ -199,7 +202,11 @@ export function RecordsTable({ table }: { table: TableDetail }) {
                       aria-sort={
                         sorted === "asc" ? "ascending" : sorted === "desc" ? "descending" : undefined
                       }
-                      className={cn("px-1.5 py-1.5 font-medium whitespace-nowrap", numeric && "text-right")}
+                      className={cn(
+                        "px-1.5 py-1.5 font-medium whitespace-nowrap",
+                        numeric && "text-right",
+                        index === 0 && cn(STICKY_CELL, "bg-[color-mix(in_oklab,var(--muted)_60%,var(--card))]"),
+                      )}
                     >
                       <button
                         type="button"
@@ -237,9 +244,23 @@ export function RecordsTable({ table }: { table: TableDetail }) {
                     const record = row.original;
                     const label = rowLabel(record);
                     return (
-                      <tr key={row.id} className="border-b border-border last:border-b-0 hover:bg-muted/30">
-                        {columns.map((column) => (
-                          <td key={column.id} className="px-1.5 py-1 align-middle">
+                      <tr
+                        key={row.id}
+                        className="group border-b border-border last:border-b-0 hover:bg-muted/30"
+                      >
+                        {columns.map((column, index) => (
+                          <td
+                            key={column.id}
+                            className={cn(
+                              "px-1.5 py-1 align-middle",
+                              // Opaque, so scrolled cells never show through the fixed column.
+                              index === 0 &&
+                                cn(
+                                  STICKY_CELL,
+                                  "bg-card group-hover:bg-[color-mix(in_oklab,var(--muted)_30%,var(--card))]",
+                                ),
+                            )}
+                          >
                             <EditableCell
                               column={column}
                               value={record.data[column.id]}

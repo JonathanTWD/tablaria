@@ -50,7 +50,7 @@ export function ColumnList({ table }: { table: TableDetail }) {
   );
 
   return (
-    <section aria-labelledby="columns-title" className="mt-6">
+    <section aria-labelledby="columns-title" className="mt-6 max-w-4xl">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 id="columns-title" className="text-lg font-semibold tracking-tight">

@@ -189,6 +189,16 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 - **SVG propio, sin librería**: para barras horizontales basta un `<rect>` proporcional al valor. Una librería como Recharts añadiría unos 100 KB comprimidos y otra dependencia que mantener. El gráfico se dibuja como una tabla HTML (`caption`, cabeceras y filas) con las barras decorativas (`aria-hidden`), así los lectores de pantalla leen los datos tal cual. Si en el futuro hacen falta series temporales, tooltips o varios tipos de gráfico, se adoptarán los charts de shadcn/ui (Recharts).
 - **Sin agrupar por la primera columna**: suele nombrar cada registro (producto, equipo), así que cada grupo tendría un único registro. Por defecto se agrupa por la primera lista de opciones, si no por Sí / No y, si no, por texto.
 
+## ADR-017: Ancho de las páginas según su contenido
+
+- **Sin límite global**: el `<main>` de la app ya no tiene `max-w-5xl`. Con un tope de 1024 px alineado a la izquierda, a 1707 px quedaba vacío el 26 % de la pantalla, y a 2560 px el 51 %, mientras la tabla seguía haciendo scroll horizontal.
+- **Cada página elige su ancho**:
+  - las páginas de datos (la tabla de registros) usan todo el ancho, como recomiendan Polaris y Fiori para listados con muchas columnas;
+  - el inicio se centra hasta 1600 px;
+  - los formularios y ajustes se quedan en un ancho de lectura (`max-w-4xl`).
+- **Consultas de contenedor**: el inicio y el gráfico se adaptan al ancho de su propio contenedor (`@container`), no al de la ventana, porque la barra lateral y la columna lateral cambian el espacio disponible.
+- **Orden de lectura**: en pantallas anchas, «Bajo mínimo» y el gráfico pasan a una columna lateral colocada con grid. El orden del DOM (avisos, tablas, gráfico) no cambia, así que el foco y los lectores de pantalla siguen el mismo orden en todos los tamaños.
+
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
 Todas están especificadas en [MVP_PROMPT.md](MVP_PROMPT.md):

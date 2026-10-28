@@ -162,7 +162,7 @@ export default function AppLayout() {
           ref={mainRef}
           id="main"
           tabIndex={-1}
-          className="w-full max-w-5xl px-4 py-8 outline-none sm:px-8 sm:py-10"
+          className="w-full px-4 py-8 outline-none sm:px-8"
         >
           {/* Keeps the sidebar and header on screen while a page's code loads. */}
           <Suspense fallback={<FullPageLoader className="min-h-64" />}>

@@ -1,5 +1,13 @@
 # Changelog
 
+## Sin publicar
+
+- **Pantallas grandes**: la app ya no limita todas las páginas a 1024 px.
+  - La tabla de registros usa todo el ancho: a 1707 px pasa de 960 a 1403 px y deja de necesitar scroll horizontal.
+  - El inicio se centra hasta 1600 px y, en pantallas anchas, pone «Bajo mínimo» y el gráfico en una columna lateral junto a las tablas.
+  - Ajustes y columnas mantienen un ancho cómodo de lectura.
+  - En escritorio, la cabecera de la tabla es más compacta, y la primera columna se queda fija al desplazar la tabla en horizontal.
+
 ## v1.2.0 — Exportación, alertas y gráficos
 
 - **Exportar a CSV**: botón «Exportar CSV» en cada tabla, con todos los registros que cumplen la búsqueda, los filtros y el orden actuales. Con doble clic se abre directamente en Excel en español (separador `;` y coma decimal), muestra bien los acentos y el €, y protege contra la inyección de fórmulas.

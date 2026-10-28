@@ -68,7 +68,7 @@ function Picker({
 }
 
 /** Records of one table grouped by a column, counted or added up. */
-export function RecordsChart({ tables }: { tables: TableSummary[] }) {
+export function RecordsChart({ tables, className }: { tables: TableSummary[]; className?: string }) {
   const { t, i18n } = useTranslation("app");
   const ids = useId();
   const format = useCellFormatter();
@@ -156,13 +156,13 @@ export function RecordsChart({ tables }: { tables: TableSummary[] }) {
   }
 
   return (
-    <section aria-labelledby="chart-title" className="mt-10">
+    <section aria-labelledby="chart-title" className={cn("@container/chart", className)}>
       <h2 id="chart-title" className="text-lg font-semibold tracking-tight">
         {t("dashboard.charts.title")}
       </h2>
       <p className="mt-1 text-sm text-muted-foreground">{t("dashboard.charts.description")}</p>
       <div className="mt-4 rounded-xl border border-border bg-card p-4 sm:p-5">
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 @xl/chart:grid-cols-3">
           <Picker
             id={`${ids}-table`}
             label={t("dashboard.charts.table")}

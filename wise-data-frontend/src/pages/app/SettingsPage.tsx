@@ -53,7 +53,7 @@ export default function SettingsPage() {
   );
 
   return (
-    <>
+    <div className="mx-auto w-full max-w-4xl">
       <title>{`${t("settings.title")} | WiseData`}</title>
       <h1 className="mb-8 text-2xl font-semibold tracking-tight">{t("settings.title")}</h1>
 
@@ -115,6 +115,6 @@ export default function SettingsPage() {
           {t("settings.session.logout")}
         </Button>
       </SettingsSection>
-    </>
+    </div>
   );
 }

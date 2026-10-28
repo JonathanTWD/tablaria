@@ -32,7 +32,7 @@ export default function TablePage() {
   const backLink = (
     <Link
       to="/app"
-      className="inline-flex items-center gap-1.5 rounded-md text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+      className="inline-flex items-center gap-1.5 rounded-md text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring lg:hidden"
     >
       <ArrowLeft aria-hidden="true" className="size-4" />
       {t("page.back")}
@@ -90,7 +90,7 @@ export default function TablePage() {
       <title>{`${data.name} | WiseData`}</title>
       {backLink}
 
-      <div className="mt-4 flex items-start justify-between gap-4">
+      <div className="mt-4 flex items-start justify-between gap-4 lg:mt-0">
         <div className="min-w-0">
           <h1 className="text-2xl font-semibold tracking-tight break-words">{data.name}</h1>
           {data.description && (
@@ -122,7 +122,7 @@ export default function TablePage() {
         </DropdownMenu>
       </div>
 
-      <nav aria-label={t("records:tabs.label")} className="mt-6 flex gap-1 border-b border-border">
+      <nav aria-label={t("records:tabs.label")} className="mt-5 flex gap-1 border-b border-border">
         {[
           { to: "", end: true, label: t("records:tabs.records") },
           { to: "columns", end: false, label: t("records:tabs.columns") },
