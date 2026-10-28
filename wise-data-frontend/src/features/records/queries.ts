@@ -5,7 +5,12 @@ import {
   useQueryClient,
   type QueryClient,
 } from "@tanstack/react-query";
-import type { Paginated, RecordData, TableRecord } from "@wisedata/shared";
+import type {
+  Paginated,
+  RecordData,
+  RecordStatsQuery,
+  TableRecord,
+} from "@wisedata/shared";
 import { tableKeys } from "@/features/tables/queries";
 import { recordsApi } from "./api";
 import type { RecordsView } from "./records-view";
@@ -15,6 +20,16 @@ export function recordsQuery(tableId: string, view: RecordsView) {
     queryKey: [...tableKeys.records(tableId), view],
     queryFn: () => recordsApi.list(tableId, view),
     // Keeps the current page on screen while the next one loads.
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** Under the table's records key, so every record change refreshes the charts too. */
+export function recordStatsQuery(tableId: string, query: RecordStatsQuery) {
+  return queryOptions({
+    queryKey: [...tableKeys.records(tableId), "stats", query],
+    queryFn: () => recordsApi.stats(tableId, query),
+    // Keeps the current chart on screen while another grouping loads.
     placeholderData: keepPreviousData,
   });
 }
