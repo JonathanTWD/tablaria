@@ -12,6 +12,7 @@ import type {
 } from '@wisedata/shared';
 import { App } from 'supertest/types';
 import {
+  createClient,
   createSignedInClient,
   createTestApp,
   resetDatabase,
@@ -380,5 +381,18 @@ describe('Importing rows (e2e)', () => {
     const page = (await owner.get(`${base}/records?pageSize=30`).expect(200))
       .body as Paginated<TableRecord>;
     expect(page.data.map((record) => record.data[product.id])).toEqual(names);
+  });
+
+  it('keeps the large body limit to signed-in people', async () => {
+    const { base, product } = await setup();
+    const rows = Array.from({ length: 3000 }, (_, index) => [
+      `Producto con un nombre largo para ocupar espacio ${index}`,
+    ]);
+
+    // Without a session the body is refused for its size, before any parsing of 2 MB.
+    await createClient(app)
+      .post(`${base}/import`)
+      .send({ columns: [product.id], rows })
+      .expect(413);
   });
 });
