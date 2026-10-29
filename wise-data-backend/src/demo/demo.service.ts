@@ -11,7 +11,7 @@ import { PasswordService } from '../auth/password.service';
 import { generateSecureToken } from '../auth/secure-token';
 import { toColumnData } from '../columns/column-mapper';
 import { PrismaService } from '../database/prisma.service';
-import { withoutEmptyCells } from '../records/record-data';
+import { inInsertionOrder, withoutEmptyCells } from '../records/record-data';
 import type { Prisma, User } from '../generated/prisma/client';
 import { personalOrganizationId } from '../tables/table-access';
 import { DEMO_ORGANIZATION, DEMO_TABLES, type DemoTable } from './demo-data';
@@ -159,13 +159,14 @@ async function createDemoTable(
   const schema = recordDataSchema(columns, { partial: false });
 
   await tx.record.createMany({
-    data: table.rows.map((row) => {
+    data: inInsertionOrder(table.rows).map(({ createdAt, ...row }) => {
       const byId = Object.fromEntries(
         columns.map(({ id, name }) => [id, row[name]]),
       );
       return {
         tableId: created.id,
         data: withoutEmptyCells(schema.parse(byId)),
+        createdAt,
       };
     }),
   });
