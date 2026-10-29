@@ -36,6 +36,9 @@ export function convertCellValue(
       );
       return choice?.label ?? null;
     }
+    case 'relation':
+      // Nothing else names a record of the linked table.
+      return null;
   }
 }
 

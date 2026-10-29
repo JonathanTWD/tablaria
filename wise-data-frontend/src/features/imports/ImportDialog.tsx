@@ -1,5 +1,4 @@
 import {
-  COLUMN_TYPES,
   type ColumnDefinitionInput,
   type ColumnType,
   hasRole,
@@ -40,7 +39,7 @@ import { ApiError } from "@/lib/api-client";
 import { apiErrorMessage } from "@/lib/error-message";
 import { matchColumns } from "./column-matching";
 import { decodeText, parseCsv } from "./csv";
-import { columnForFile, inferType } from "./infer-column";
+import { columnForFile, IMPORTABLE_TYPES, type ImportableType, inferType } from "./infer-column";
 import { type ImportBody, type ImportDestination, useCheckImport, useRunImport } from "./queries";
 
 /** Above this the file can't fit the API's request limit for imports. */
@@ -51,7 +50,10 @@ const SKIP = "skip";
 const NEW = "new";
 
 /** What a column of the file becomes. */
-type Target = { kind: "skip" } | { kind: "existing"; id: string } | { kind: "new"; type: ColumnType };
+type Target =
+  | { kind: "skip" }
+  | { kind: "existing"; id: string }
+  | { kind: "new"; type: ImportableType };
 
 /** How the review names a column of the file: as the table column it fills. */
 type TargetInfo = { name: string; type: ColumnType } | null;
@@ -436,7 +438,7 @@ function MappingStep({
     [NEW]: t("import.newColumn"),
     ...Object.fromEntries(tableColumns.map((column) => [column.id, column.name])),
   };
-  const typeItems = Object.fromEntries(COLUMN_TYPES.map((type) => [type, t(`tables:types.${type}`)]));
+  const typeItems = Object.fromEntries(IMPORTABLE_TYPES.map((type) => [type, t(`tables:types.${type}`)]));
   const used = new Set(targets.flatMap((target) => (target.kind === "existing" ? [target.id] : [])));
 
   return (
@@ -522,7 +524,7 @@ function MappingStep({
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {COLUMN_TYPES.map((type) => (
+                          {IMPORTABLE_TYPES.map((type) => (
                             <SelectItem key={type} value={type}>
                               {typeItems[type]}
                             </SelectItem>

@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import {
   MAX_RECORDS_PER_TABLE,
-  type Paginated,
+  type RecordPage,
   type RecordColumn,
   type RecordData,
   recordDataSchema,
@@ -22,6 +22,11 @@ import { parseOrThrow } from '../common/pipes/zod-validation.pipe';
 import { PrismaService } from '../database/prisma.service';
 import { RealtimeService } from '../realtime/realtime.service';
 import { Prisma, type Record as RecordRow } from '../generated/prisma/client';
+import {
+  linkedLabels,
+  requireLinkedRecords,
+  unlinkRecord,
+} from '../relations/relations';
 import { accessibleTables, touchTable } from '../tables/table-access';
 import { buildRecordQuery } from './record-query';
 import { withoutEmptyCells } from './record-data';
@@ -45,7 +50,7 @@ export class RecordsService {
     userId: string,
     tableId: string,
     query: RecordListQuery,
-  ): Promise<Paginated<TableRecord>> {
+  ): Promise<RecordPage> {
     const table = await this.prisma.inventoryTable.findFirst({
       where: { id: tableId, ...accessibleTables(userId) },
       select: { columns: true },
@@ -54,11 +59,8 @@ export class RecordsService {
       throw new NotFoundException('Table not found');
     }
 
-    const { where, orderBy } = buildRecordQuery(
-      tableId,
-      table.columns.map(toTableColumn),
-      query,
-    );
+    const columns = table.columns.map(toTableColumn);
+    const { where, orderBy } = buildRecordQuery(tableId, columns, query);
     const offset = (query.page - 1) * query.pageSize;
     const [rows, [{ total }]] = await Promise.all([
       this.prisma.$queryRaw<RecordRow[]>`
@@ -72,8 +74,15 @@ export class RecordsService {
     ]);
 
     const count = Number(total);
+    const records = rows.map(toTableRecord);
     return {
-      data: rows.map(toTableRecord),
+      data: records,
+      linked: await linkedLabels(
+        this.prisma,
+        userId,
+        columns,
+        records.map(({ data }) => data),
+      ),
       meta: {
         page: query.page,
         pageSize: query.pageSize,
@@ -112,6 +121,13 @@ export class RecordsService {
         toCsv(
           columns,
           rows.map(({ data }) => data),
+          // Linked records by their label, as the table shows them.
+          await linkedLabels(
+            this.prisma,
+            userId,
+            columns,
+            rows.map(({ data }) => data),
+          ),
         ),
         'utf8',
       ),
@@ -178,6 +194,7 @@ export class RecordsService {
         recordDataSchema(columns, { partial: false }),
         input.data,
       );
+      await requireLinkedRecords(tx, userId, columns, [data]);
       const record = await tx.record.create({
         data: { tableId, data: withoutEmptyCells(data) },
       });
@@ -208,6 +225,7 @@ export class RecordsService {
         recordDataSchema(columns, { partial: true }),
         input.data,
       );
+      await requireLinkedRecords(tx, userId, columns, [changes]);
       const record = await tx.record.update({
         where: { id: recordId },
         data: {
@@ -228,7 +246,7 @@ export class RecordsService {
     tableId: string,
     recordId: string,
   ): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
+    const unlinked = await this.prisma.$transaction(async (tx) => {
       await touchTable(tx, userId, tableId, 'EDITOR');
       const { count } = await tx.record.deleteMany({
         where: { id: recordId, tableId },
@@ -236,8 +254,13 @@ export class RecordsService {
       if (count === 0) {
         throw new NotFoundException('Record not found');
       }
+      // Cells of other tables that linked to it are emptied, not left dangling.
+      return unlinkRecord(tx, tableId, recordId);
     });
     this.realtime.publish(tableId, 'records');
+    for (const linkingTable of unlinked) {
+      this.realtime.publish(linkingTable, 'records');
+    }
   }
 }
 

@@ -35,6 +35,15 @@ export interface Paginated<T> {
   meta: PageMeta;
 }
 
+/**
+ * A page of records, with the label (first column) of each record they link
+ * to. Records of tables the user can't open are left out: the UI shows the
+ * link without saying what it is.
+ */
+export interface RecordPage extends Paginated<TableRecord> {
+  linked: Record<string, string>;
+}
+
 /** Any column with its id: what record validation needs from a table. */
 export type RecordColumn = ColumnDefinition & { id: string };
 
@@ -106,6 +115,7 @@ export const FILTER_OPERATOR_BY_TYPE: Record<ColumnType, FilterOperator> = {
   date: "between",
   boolean: "is",
   select: "in",
+  relation: "in",
 };
 
 const rangeBoundSchema = z.union([z.number(), z.iso.date()]);

@@ -1,11 +1,19 @@
 import {
   COLUMN_NAME_MAX_LENGTH,
+  COLUMN_TYPES,
   type ColumnDefinitionInput,
   type ColumnType,
   MAX_SELECT_CHOICES,
   SELECT_CHOICE_MAX_LENGTH,
   SELECT_COLORS,
 } from "@wisedata/shared";
+
+/** What an import can create: relations need a linked table, which no file names. */
+export type ImportableType = Exclude<ColumnType, "relation">;
+
+export const IMPORTABLE_TYPES = COLUMN_TYPES.filter(
+  (type): type is ImportableType => type !== "relation",
+);
 
 /** Most distinct values a column can have to be offered as a list of options. */
 const MAX_INFERRED_CHOICES = 12;
@@ -49,7 +57,7 @@ function distinct(values: string[]): string[] {
 }
 
 /** The type the values of a column of the file fit best. */
-export function inferType(header: string, values: string[]): ColumnType {
+export function inferType(header: string, values: string[]): ImportableType {
   const filled = values.map((value) => value.trim()).filter((value) => value !== "");
   if (filled.length === 0) {
     return "text";
@@ -78,7 +86,7 @@ export function inferType(header: string, values: string[]): ColumnType {
  * (unique among `takenNames`), and the settings the type needs from the values.
  */
 export function columnForFile(
-  type: ColumnType,
+  type: ImportableType,
   header: string,
   values: string[],
   takenNames: string[],

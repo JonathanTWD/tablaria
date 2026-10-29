@@ -7,6 +7,7 @@ export const COLUMN_TYPES = [
   "boolean",
   "select",
   "currency",
+  "relation",
 ] as const;
 
 export type ColumnType = (typeof COLUMN_TYPES)[number];
@@ -44,6 +45,8 @@ export const columnValueSchemas = {
   // Select cells store the choice label; it must also be one of the column's choices.
   select: z.string().trim().min(1).max(SELECT_CHOICE_MAX_LENGTH),
   currency: z.number(),
+  // The id of a record in the linked table (ADR-022).
+  relation: z.uuid(),
 } satisfies Record<ColumnType, z.ZodType>;
 
 const currencyCodes = new Set(Intl.supportedValuesOf("currency"));
@@ -90,7 +93,11 @@ export const numberOptionsSchema = z.object({
   alertBelow: z.number().min(0).max(1_000_000_000),
 });
 
+/** A relation links each record to one record of another table of the same space. */
+export const relationOptionsSchema = z.object({ tableId: z.uuid() });
+
 export type SelectOptions = z.infer<typeof selectOptionsSchema>;
+export type RelationOptions = z.infer<typeof relationOptionsSchema>;
 export type CurrencyOptions = z.infer<typeof currencyOptionsSchema>;
 export type NumberOptions = z.infer<typeof numberOptionsSchema>;
 
@@ -134,6 +141,13 @@ export const columnDefinitionSchema = z
       type: z.literal("currency"),
       options: currencyOptionsSchema,
       defaultValue: columnValueSchemas.currency.nullable().default(null),
+    }),
+    z.object({
+      ...columnBase,
+      type: z.literal("relation"),
+      options: relationOptionsSchema,
+      // A default record would link every new record to the same one: never useful.
+      defaultValue: z.null().default(null),
     }),
   ])
   .superRefine((column, ctx) => {

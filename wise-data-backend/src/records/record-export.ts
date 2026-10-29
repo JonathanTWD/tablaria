@@ -25,9 +25,17 @@ function csvField(text: string): string {
  * A cell as CSV text: numbers with a decimal comma and no symbol (the
  * currency is in the header), booleans as Sí/No and dates in ISO format.
  */
-function cellText(column: TableColumn, value: CellValue | undefined): string {
+function cellText(
+  column: TableColumn,
+  value: CellValue | undefined,
+  linked: Record<string, string>,
+): string {
   if (value === null || value === undefined) {
     return '';
+  }
+  if (column.type === 'relation') {
+    // The linked record's label; empty when the user can't open its table.
+    return neutralize(linked[String(value)] ?? '');
   }
   if (column.type === 'boolean') {
     return value ? 'Sí' : 'No';
@@ -49,11 +57,17 @@ function headerText(column: TableColumn): string {
  * CSV quoted as in RFC 4180 but separated by ';', with a header row of column
  * names and a byte order mark.
  */
-export function toCsv(columns: TableColumn[], rows: RecordData[]): string {
+export function toCsv(
+  columns: TableColumn[],
+  rows: RecordData[],
+  linked: Record<string, string> = {},
+): string {
   const lines = [
     columns.map((column) => csvField(headerText(column))),
     ...rows.map((row) =>
-      columns.map((column) => csvField(cellText(column, row[column.id]))),
+      columns.map((column) =>
+        csvField(cellText(column, row[column.id], linked)),
+      ),
     ),
   ];
   const body = lines.map((fields) => fields.join(SEPARATOR)).join('\r\n');

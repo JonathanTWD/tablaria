@@ -28,6 +28,7 @@ enum ColumnType {
   boolean
   select
   currency
+  relation
 }
 
 model User {
