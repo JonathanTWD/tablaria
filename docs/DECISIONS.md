@@ -260,6 +260,13 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
   - cada dirección recibe como mucho 5 invitaciones por hora, y cada usuario envía como mucho 30. Cuentan también las reenviadas y las revocadas, que se marcan en lugar de borrarse;
   - el nombre de la tabla y el remitente se escapan en el HTML del email;
   - el token viaja en el cuerpo de `POST /invitations/preview` y `POST /invitations/accept`, nunca en una URL que pueda quedar en los logs.
+- **Organizaciones** (añadido en la parte 3):
+  - cualquiera crea organizaciones y queda como `OWNER`; el espacio personal no se renombra, no se borra ni admite invitaciones;
+  - `ADMIN` invita, cambia roles, quita miembros y crea tablas; solo un `OWNER` da, cambia o quita la propiedad, y quitar o rebajar al último `OWNER` responde 409;
+  - cualquier miembro puede salir. Los cambios de miembros bloquean la fila de la organización, así que dos propietarios no pueden irse a la vez y dejarla sin dueño;
+  - a una organización se invita como lector, editor o administrador; los propietarios salen de promocionar a un miembro;
+  - aceptar una invitación nunca rebaja el rol que ya se tiene;
+  - el límite de tablas pasa a ser de 100 por espacio, el personal o cada organización.
 - **Demo**: incluye una tabla compartida y una organización de ejemplo con miembros ficticios que no pueden iniciar sesión.
 
 **Consecuencias**: el aislamiento pasa de ser «mis tablas» a «tablas a las que tengo acceso por organización o porque me las compartieron». Cada ruta lleva tests e2e por vía de acceso y por rol, y cada PR de la fase pasa la revisión de seguridad.
