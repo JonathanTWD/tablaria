@@ -1,5 +1,15 @@
 # Changelog
 
+## Sin publicar
+
+- **Importar (API)** (fase 10, parte 1):
+  - nuevas rutas para comprobar e importar filas de un archivo en una tabla, todas o ninguna, con las mismas validaciones que al crear un registro;
+  - entiende números con coma decimal y separador de miles, fechas día/mes/año, «Sí»/«No» y las opciones de lista sin distinguir mayúsculas;
+  - los administradores pueden añadir de paso las opciones nuevas.
+  
+  El asistente para usarlo llega en la parte 2.
+- **Errores más claros**: un cuerpo de petición demasiado grande o mal formado responde 413 o 400, en vez de un error 500.
+
 ## v1.3.0 — Trabajo en equipo
 
 - **Compartir tablas**:

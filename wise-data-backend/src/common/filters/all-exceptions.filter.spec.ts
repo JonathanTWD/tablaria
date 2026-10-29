@@ -81,6 +81,24 @@ describe('AllExceptionsFilter', () => {
     });
   });
 
+  it('keeps the status of request errors from Express middleware', () => {
+    const { host, json } = createHost();
+    // What body-parser throws for a body over its size limit.
+    const tooLarge = Object.assign(new Error('request entity too large'), {
+      status: 413,
+      expose: true,
+      type: 'entity.too.large',
+    });
+
+    filter.catch(tooLarge, host);
+
+    expect(json).toHaveBeenCalledWith({
+      statusCode: 413,
+      error: 'Payload Too Large',
+      message: 'Payload Too Large',
+    });
+  });
+
   it('treats unknown Prisma errors as 500', () => {
     const { host, status } = createHost();
 

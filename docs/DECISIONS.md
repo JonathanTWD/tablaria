@@ -308,6 +308,33 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
   - **Misma celda:** solo hay aviso, y gana el último en guardar. Herramientas como Google Sheets, Airtable o Notion siguen el mismo criterio.
 - **Una sola instancia**: los tickets y las suscripciones viven en memoria. Con varias instancias haría falta un bus (Redis pub/sub) para repartir los avisos; ahora no es necesario.
 
+## ADR-021: Importar archivos
+
+**Contexto**: quien llega desde una hoja de cálculo necesita traer sus datos sin escribirlos a mano. Subir archivos al servidor abre la puerta a problemas conocidos: tamaño, formatos maliciosos, parsers de XML en los `.xlsx` y la vulnerabilidad pendiente de multer.
+
+**Decisión**:
+- **El navegador lee el archivo, la API valida.** El servidor nunca recibe el archivo, solo sus celdas como texto: `{ columns, rows }`, más `addMissingChoices`. `columns` dice qué columna de la tabla llena cada columna del archivo, o `null` para saltarla.
+- **La API no confía en el navegador**: convierte y valida cada celda con las mismas reglas que al crear un registro a mano (`recordDataSchema`).
+- **Dos pasos**:
+  - `POST /tables/:id/import/check` no cambia nada y devuelve las filas válidas, los primeros 50 errores (fila, columna, valor y motivo) y los valores que no coinciden con ninguna opción de las listas;
+  - `POST /tables/:id/import` importa todas las filas o ninguna, dentro de una transacción que bloquea la tabla.
+- **Conversión pensada para hojas en español**:
+  - números con coma o punto decimal y separador de miles («1.234,56», «12,5 €»);
+  - fechas ISO o día/mes/año;
+  - «Sí» y «No»;
+  - opciones de lista sin distinguir mayúsculas.
+  
+  Un texto que no encaja en el tipo es un error, nunca una celda vacía en silencio. Se deshace el apóstrofo con el que nuestra exportación protege las fórmulas, así que exportar e importar devuelve lo mismo.
+- **Permisos**: importar filas exige ser editor. Añadir opciones nuevas cambia la columna, y por eso exige ser administrador.
+- **Límites**:
+  - 5.000 filas y 50 columnas por importación;
+  - 2.000 caracteres por celda;
+  - 10.000 registros por tabla;
+  - 2 MB de cuerpo, solo en estas rutas: el resto de la API mantiene los 100 KB de body-parser;
+  - 10 peticiones por minuto.
+
+**Consecuencias**: no hace falta almacenar ni subir archivos. Excel (`.xlsx`) se leerá también en el navegador cuando ExcelJS cumpla la antigüedad mínima de pnpm, sin tocar la API. El asistente de importación es la segunda parte de la fase 10.
+
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
 Todas están especificadas en [MVP_PROMPT.md](MVP_PROMPT.md):
