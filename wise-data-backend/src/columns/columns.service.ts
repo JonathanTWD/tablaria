@@ -17,18 +17,22 @@ import {
 } from '@wisedata/shared';
 import { parseOrThrow } from '../common/pipes/zod-validation.pipe';
 import { PrismaService } from '../database/prisma.service';
+import { RealtimeService } from '../realtime/realtime.service';
 import { Prisma } from '../generated/prisma/client';
-import { touchOwnedTable } from '../tables/table-access';
+import { accessibleTables, touchTable } from '../tables/table-access';
 import { toColumnData, toTableColumn } from './column-mapper';
 import { convertCellValue } from './convert-value';
 
 @Injectable()
 export class ColumnsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly realtime: RealtimeService,
+  ) {}
 
-  async list(ownerId: string, tableId: string): Promise<TableColumn[]> {
+  async list(userId: string, tableId: string): Promise<TableColumn[]> {
     const table = await this.prisma.inventoryTable.findFirst({
-      where: { id: tableId, ownerId },
+      where: { id: tableId, ...accessibleTables(userId) },
       select: { columns: { orderBy: { position: 'asc' } } },
     });
     if (!table) {
@@ -37,14 +41,14 @@ export class ColumnsService {
     return table.columns.map(toTableColumn);
   }
 
-  create(
-    ownerId: string,
+  async create(
+    userId: string,
     tableId: string,
     definition: ColumnDefinition,
   ): Promise<TableColumn> {
-    return withUniqueColumnName(() =>
+    const result = await withUniqueColumnName(() =>
       this.prisma.$transaction(async (tx) => {
-        await touchOwnedTable(tx, ownerId, tableId);
+        await touchTable(tx, userId, tableId, 'ADMIN');
 
         const { _count, _max } = await tx.column.aggregate({
           where: { tableId },
@@ -73,17 +77,19 @@ export class ColumnsService {
         return toTableColumn(column);
       }),
     );
+    this.realtime.publish(tableId, 'columns');
+    return result;
   }
 
-  update(
-    ownerId: string,
+  async update(
+    userId: string,
     tableId: string,
     columnId: string,
     patch: UpdateColumnInput,
   ): Promise<UpdateColumnResponse> {
-    return withUniqueColumnName(() =>
+    const result = await withUniqueColumnName(() =>
       this.prisma.$transaction(async (tx) => {
-        await touchOwnedTable(tx, ownerId, tableId);
+        await touchTable(tx, userId, tableId, 'ADMIN');
 
         const stored = await tx.column.findFirst({
           where: { id: columnId, tableId },
@@ -110,15 +116,17 @@ export class ColumnsService {
         return { column: toTableColumn(column), clearedValues };
       }),
     );
+    this.realtime.publish(tableId, 'columns');
+    return result;
   }
 
-  reorder(
-    ownerId: string,
+  async reorder(
+    userId: string,
     tableId: string,
     columnIds: string[],
   ): Promise<TableColumn[]> {
-    return this.prisma.$transaction(async (tx) => {
-      await touchOwnedTable(tx, ownerId, tableId);
+    const result = await this.prisma.$transaction(async (tx) => {
+      await touchTable(tx, userId, tableId, 'ADMIN');
 
       const existing = await tx.column.findMany({
         where: { tableId },
@@ -142,15 +150,17 @@ export class ColumnsService {
       });
       return columns.map(toTableColumn);
     });
+    this.realtime.publish(tableId, 'columns');
+    return result;
   }
 
   async remove(
-    ownerId: string,
+    userId: string,
     tableId: string,
     columnId: string,
   ): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
-      await touchOwnedTable(tx, ownerId, tableId);
+      await touchTable(tx, userId, tableId, 'ADMIN');
 
       const { count } = await tx.column.deleteMany({
         where: { id: columnId, tableId },
@@ -163,6 +173,7 @@ export class ColumnsService {
         SET data = data - ${columnId}::text
         WHERE "tableId" = ${tableId}::uuid AND data ? ${columnId}::text`;
     });
+    this.realtime.publish(tableId, 'columns');
   }
 }
 

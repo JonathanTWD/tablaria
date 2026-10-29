@@ -11,8 +11,8 @@ export function Logo({ className }: { className?: string }) {
         className,
       )}
     >
-      <Atom aria-hidden="true" className="size-6 stroke-[1.8]" />
-      {t("brand")}
+      <Atom aria-hidden="true" className="size-6 shrink-0 stroke-[1.8]" />
+      <span className="group-data-[collapsible=icon]:hidden">{t("brand")}</span>
     </span>
   );
 }

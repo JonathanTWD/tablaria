@@ -57,7 +57,56 @@
     "notFoundTitle": "No encontramos esta tabla",
     "notFoundDescription": "Puede que se haya borrado o que el enlace no sea correcto.",
     "loadError": "No se pudo cargar la tabla.",
-    "retry": "Reintentar"
+    "retry": "Reintentar",
+    "share": "Compartir",
+    "leave": "Salir de la tabla",
+    "organization": "Ver su organización",
+    "sharedWithYou": "Compartida contigo · {{role}}",
+    "yourRole": "Tu rol: {{role}}",
+    "live": "En directo",
+    "offline": "Reconectando…"
+  },
+  "presence": {
+    "label": "También tienen abierta esta tabla: {{names}}.",
+    "viewing": "{{name}} está viendo la tabla",
+    "editing": "{{name}} está editando una celda",
+    "editingCell": "{{name}} está editando esta celda",
+    "guest": "Invitado"
+  },
+  "share": {
+    "title": "Compartir «{{name}}»",
+    "description": "Invita a otras personas por email. Solo verán esta tabla, no el resto de tu espacio.",
+    "email": "Email",
+    "role": "Permiso",
+    "roles": {
+      "VIEWER": "Lector",
+      "EDITOR": "Editor",
+      "ADMIN": "Administrador",
+      "OWNER": "Propietario"
+    },
+    "rolesHint": "Lector: ve y exporta. Editor: además crea, edita y borra registros. Las columnas y la tabla solo las cambia quien la administra.",
+    "submit": "Enviar invitación",
+    "invited": "Invitación enviada a {{email}}",
+    "members": "Personas con acceso",
+    "noMembers": "Todavía no has compartido esta tabla con nadie.",
+    "roleOf": "Permiso de {{email}}",
+    "remove": "Quitar el acceso a {{email}}",
+    "pending": "Invitaciones pendientes",
+    "pendingDetail": "{{role}} · caduca {{time}}",
+    "revoke": "Anular la invitación a {{email}}",
+    "leaveTitle": "¿Salir de «{{name}}»?",
+    "leaveDescription": "Dejarás de ver esta tabla. Para volver, quien la compartió tendrá que invitarte de nuevo.",
+    "leaveConfirm": "Salir",
+    "left": "Has salido de «{{name}}»",
+    "errors": {
+      "email": "Escribe un email válido.",
+      "alreadyHasAccess": "Esa persona ya tiene acceso a esta tabla.",
+      "limit": "Esta tabla ya está compartida con el máximo de personas o invitaciones pendientes.",
+      "tooMany": "Has enviado muchas invitaciones seguidas. Espera un rato e inténtalo de nuevo.",
+      "demo": "Las cuentas de demostración no pueden enviar invitaciones. Crea una cuenta gratis para compartir tus tablas.",
+      "change": "No se pudo guardar el cambio. Inténtalo de nuevo.",
+      "leave": "No se pudo salir de la tabla. Inténtalo de nuevo."
+    }
   },
   "columns": {
     "title": "Columnas",
@@ -65,6 +114,7 @@
     "add": "Añadir columna",
     "emptyTitle": "Esta tabla aún no tiene columnas",
     "emptyDescription": "Añade la primera para empezar a guardar datos: nombre, cantidad, precio, fecha…",
+    "emptyReadOnly": "Quien administra esta tabla todavía no ha añadido columnas.",
     "required": "Obligatoria",
     "default": "Por defecto: {{value}}",
     "alertBelow": "Aviso por debajo de {{value}}",
@@ -150,6 +200,7 @@
   },
   "sidebar": {
     "title": "Tablas",
+    "shared": "Compartidas conmigo",
     "loadError": "No se pudieron cargar las tablas."
   },
   "cancel": "Cancelar"

@@ -18,6 +18,8 @@ const SettingsPage = lazy(() => import("@/pages/app/SettingsPage"));
 const TablePage = lazy(() => import("@/pages/app/TablePage"));
 const RecordsPage = lazy(() => import("@/pages/app/table/RecordsPage"));
 const ColumnsPage = lazy(() => import("@/pages/app/table/ColumnsPage"));
+const InvitationPage = lazy(() => import("@/pages/InvitationPage"));
+const OrganizationPage = lazy(() => import("@/pages/app/OrganizationPage"));
 
 const App = () => {
   return (
@@ -34,6 +36,10 @@ const App = () => {
           {/* Email links work whether or not this browser already has a session. */}
           <Route path="verify-email" element={<VerifyEmailPage />} />
           <Route path="reset-password" element={<ResetPasswordPage />} />
+          {/* Invitation emails link here; accepting needs the invited account. */}
+          <Route element={<RequireAuth />}>
+            <Route path="invitations" element={<InvitationPage />} />
+          </Route>
         </Route>
 
         <Route path="app" element={<RequireAuth />}>
@@ -43,6 +49,7 @@ const App = () => {
               <Route index element={<RecordsPage />} />
               <Route path="columns" element={<ColumnsPage />} />
             </Route>
+            <Route path="organizations/:organizationId" element={<OrganizationPage />} />
             <Route path="settings" element={<SettingsPage />} />
           </Route>
         </Route>

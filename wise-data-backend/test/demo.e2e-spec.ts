@@ -1,13 +1,15 @@
 import { INestApplication } from '@nestjs/common';
 import type {
   AuthUser,
+  OrganizationDetail,
+  OrganizationSummary,
   Paginated,
   TableRecord,
   TableSummary,
 } from '@wisedata/shared';
 import { App } from 'supertest/types';
 import { PrismaService } from '../src/database/prisma.service';
-import { DEMO_TABLES } from '../src/demo/demo-data';
+import { DEMO_ORGANIZATION, DEMO_TABLES } from '../src/demo/demo-data';
 import {
   DEMO_TTL_MS,
   MAX_ACTIVE_DEMO_ACCOUNTS,
@@ -61,9 +63,29 @@ describe('Demo accounts (e2e)', () => {
 
     const tables = (await client.get('/api/tables').expect(200))
       .body as TableSummary[];
+    const summary = (list: { name: string; rows: unknown[] }[]) =>
+      list.map(({ name, rows }) => [name, rows.length]).sort();
     expect(
       tables.map(({ name, recordCount }) => [name, recordCount]).sort(),
-    ).toEqual(DEMO_TABLES.map(({ name, rows }) => [name, rows.length]).sort());
+    ).toEqual(summary(DEMO_TABLES.filter((table) => !table.inOrganization)));
+
+    // And an example organization with fictitious colleagues.
+    const spaces = (await client.get('/api/organizations').expect(200))
+      .body as OrganizationSummary[];
+    const organization = spaces.find(({ personal }) => !personal);
+    expect(organization).toMatchObject({
+      name: DEMO_ORGANIZATION.name,
+      role: 'OWNER',
+      memberCount: DEMO_ORGANIZATION.members.length + 1,
+    });
+    const organizationTables = (
+      await client
+        .get(`/api/organizations/${organization?.id}/tables`)
+        .expect(200)
+    ).body as TableSummary[];
+    expect(
+      organizationTables.map(({ name, recordCount }) => [name, recordCount]),
+    ).toEqual(summary(DEMO_TABLES.filter((table) => table.inOrganization)));
 
     const catalog = tables.find(({ name }) => name === DEMO_TABLES[0].name);
     const records = (
@@ -93,19 +115,38 @@ describe('Demo accounts (e2e)', () => {
   });
 
   it('deletes expired demo accounts with all their data', async () => {
-    const { user } = await startDemo();
+    const { client, user } = await startDemo();
+    const organization = (
+      await client
+        .post('/api/organizations')
+        .send({ name: 'De la demo' })
+        .expect(201)
+    ).body as OrganizationDetail;
     // Past expiry plus one access-token lifetime, so no token can still be valid.
-    await prisma.user.update({
-      where: { id: user.id },
+    const tableIds = (
+      await prisma.inventoryTable.findMany({
+        where: { createdById: user.id },
+        select: { id: true },
+      })
+    ).map(({ id }) => id);
+    expect(tableIds.length).toBeGreaterThan(0);
+    // The example organization's fictitious members expire with the visitor.
+    await prisma.user.updateMany({
+      where: { demoExpiresAt: new Date(user.demoExpiresAt ?? 0) },
       data: { demoExpiresAt: new Date(Date.now() - 16 * 60 * 1000) },
     });
 
     await startDemo();
 
     expect(await prisma.user.findUnique({ where: { id: user.id } })).toBeNull();
+    // Its spaces go with it: the personal one, the example organization and
+    // the one it created, with all their tables.
     expect(
-      await prisma.inventoryTable.count({ where: { ownerId: user.id } }),
+      await prisma.inventoryTable.count({ where: { id: { in: tableIds } } }),
     ).toBe(0);
+    expect(
+      await prisma.organization.findUnique({ where: { id: organization.id } }),
+    ).toBeNull();
   });
 
   it('never emails demo addresses', async () => {

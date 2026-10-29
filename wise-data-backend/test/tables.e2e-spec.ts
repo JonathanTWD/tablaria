@@ -2,7 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import {
   type ApiErrorBody,
   MAX_COLUMNS_PER_TABLE,
-  MAX_TABLES_PER_USER,
+  MAX_TABLES_PER_SPACE,
   type TableColumn,
   type TableDetail,
   type TableSummary,
@@ -186,10 +186,13 @@ describe('Tables and columns (e2e)', () => {
 
     it('limits how many tables a user can have', async () => {
       const client = await createSignedInClient(app);
-      const { id: ownerId } = await prisma.user.findFirstOrThrow();
+      // Listing creates the personal space on first use.
+      await client.get('/api/tables').expect(200);
+      const { id: organizationId } =
+        await prisma.organization.findFirstOrThrow();
       await prisma.inventoryTable.createMany({
-        data: Array.from({ length: MAX_TABLES_PER_USER }, (_, index) => ({
-          ownerId,
+        data: Array.from({ length: MAX_TABLES_PER_SPACE }, (_, index) => ({
+          organizationId,
           name: `Tabla ${index}`,
         })),
       });

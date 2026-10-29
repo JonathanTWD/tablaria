@@ -1,12 +1,13 @@
 import {
   cellValueSchema,
+  type PresenceCell,
   stockLevel,
   type CellValue,
   type StockLevel,
   type TableColumn,
 } from "@wisedata/shared";
 import { CircleAlert, TriangleAlert, type LucideIcon } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import {
@@ -28,6 +29,30 @@ interface EditableCellProps {
   label: string;
   format: CellFormatter;
   onSave: (value: CellValue) => void;
+  /** Lets the others see this cell is being edited (realtime presence). */
+  presence?: { recordId: string; setEditing: (cell: PresenceCell | null) => void };
+  /** Someone else has this cell open: editing is allowed, with a warning. */
+  editedBy?: string;
+}
+
+/**
+ * Announces the open cell to the others and withdraws it when it closes.
+ * Presence lives on the server, an external system, which is what effects are for.
+ */
+function useAnnounceEditing(
+  open: boolean,
+  presence: EditableCellProps["presence"],
+  columnId: string,
+) {
+  const recordId = presence?.recordId;
+  const setEditing = presence?.setEditing;
+  useEffect(() => {
+    if (!open || !recordId || !setEditing) {
+      return;
+    }
+    setEditing({ recordId, columnId });
+    return () => setEditing(null);
+  }, [open, recordId, setEditing, columnId]);
 }
 
 const numeric = (column: TableColumn) => column.type === "number" || column.type === "currency";
@@ -63,8 +88,10 @@ function BooleanCell({ value, label, onSave }: EditableCellProps) {
   );
 }
 
-function SelectCell({ column, value, label, onSave }: EditableCellProps) {
+function SelectCell({ column, value, label, onSave, presence }: EditableCellProps) {
   const { t } = useTranslation("records");
+  const [open, setOpen] = useState(false);
+  useAnnounceEditing(open, presence, column.id);
   if (column.type !== "select") {
     return null;
   }
@@ -77,6 +104,8 @@ function SelectCell({ column, value, label, onSave }: EditableCellProps) {
   return (
     <Select
       items={items}
+      open={open}
+      onOpenChange={setOpen}
       value={typeof value === "string" ? value : ""}
       onValueChange={(next) => {
         if (next !== null && next !== (value ?? "")) {
@@ -113,9 +142,18 @@ function SelectCell({ column, value, label, onSave }: EditableCellProps) {
   );
 }
 
-function TextualCell({ column, value, label, format, onSave }: EditableCellProps) {
+function TextualCell({
+  column,
+  value,
+  label,
+  format,
+  onSave,
+  presence,
+  editedBy,
+}: EditableCellProps) {
   const { t } = useTranslation("records");
   const [draft, setDraft] = useState<string | null>(null);
+  useAnnounceEditing(draft !== null, presence, column.id);
   const [invalid, setInvalid] = useState(false);
   // Set when editing ends from the keyboard, so focus returns to the cell button.
   const returnFocus = useRef(false);
@@ -182,6 +220,11 @@ function TextualCell({ column, value, label, format, onSave }: EditableCellProps
             {t("cell.invalidHint")}
           </span>
         )}
+        {editedBy && (
+          <p role="status" className="mt-1 text-xs text-amber-700 dark:text-amber-400">
+            {t("cell.editedBy", { name: editedBy })}
+          </p>
+        )}
       </>
     );
   }
@@ -215,5 +258,50 @@ function TextualCell({ column, value, label, format, onSave }: EditableCellProps
       {alert && <alert.icon aria-hidden="true" className="size-3.5 shrink-0" />}
       <span className="truncate">{format(column, value)}</span>
     </button>
+  );
+}
+
+/** What viewers see: the value as text, with the same stock warnings, and no editing. */
+export function ReadOnlyCell({
+  column,
+  value,
+  format,
+}: Pick<EditableCellProps, "column" | "value" | "format">) {
+  const { t } = useTranslation("records");
+  if (column.type === "select") {
+    const choice = column.options.choices.find((item) => item.label === value);
+    return (
+      <span className="flex h-8 min-w-28 items-center px-2">
+        {choice && (
+          <span
+            className={cn("truncate rounded-md px-1.5 py-0.5 text-xs", SELECT_CHIP_CLASSES[choice.color])}
+          >
+            {choice.label}
+          </span>
+        )}
+      </span>
+    );
+  }
+  const level = stockLevel(column, value);
+  const alertLevel = level === "ok" ? null : level;
+  const alert = alertLevel && STOCK_ALERTS[alertLevel];
+  const shown = format(column, value);
+
+  return (
+    <span
+      className={cn(
+        "flex h-8 min-w-28 items-center px-2 text-sm",
+        numeric(column) && "justify-end tabular-nums",
+        alert && ["gap-1.5", alert.className],
+      )}
+    >
+      {alert && <alert.icon aria-hidden="true" className="size-3.5 shrink-0" />}
+      <span className="truncate" aria-hidden={alertLevel ? true : undefined}>
+        {shown}
+      </span>
+      {alertLevel && (
+        <span className="sr-only">{t(`cell.stock.${alertLevel}`, { value: shown })}</span>
+      )}
+    </span>
   );
 }

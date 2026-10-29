@@ -5,6 +5,7 @@ import app from "./locales/es/app.json";
 import auth from "./locales/es/auth.json";
 import common from "./locales/es/common.json";
 import landing from "./locales/es/landing.json";
+import organizations from "./locales/es/organizations.json";
 import records from "./locales/es/records.json";
 import tables from "./locales/es/tables.json";
 
@@ -12,7 +13,7 @@ export const defaultNS = "common";
 
 // Adding English later means adding an `en` entry with the same namespaces.
 export const resources = {
-  es: { common, landing, auth, app, tables, records },
+  es: { common, landing, auth, app, tables, records, organizations },
 } as const;
 
 void i18n.use(initReactI18next).init({

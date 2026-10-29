@@ -1,42 +1,13 @@
 import { LogOut } from "lucide-react";
-import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import { SettingsSection } from "@/components/SettingsSection";
 import { Button } from "@/components/ui/button";
 import { displayEmail } from "@/features/auth/display-name";
 import { useLogout, useSession } from "@/features/auth/session";
 import { useTheme } from "@/features/theme/theme-context";
 import { THEME_OPTIONS } from "@/features/theme/theme-options";
 import { cn } from "@/lib/utils";
-
-function SettingsSection({
-  id,
-  title,
-  description,
-  children,
-}: {
-  id: string;
-  title: string;
-  description?: string;
-  children: ReactNode;
-}) {
-  return (
-    <section
-      aria-labelledby={id}
-      className="grid gap-4 border-t border-border py-8 md:grid-cols-[14rem_minmax(0,1fr)] md:gap-10"
-    >
-      <div>
-        <h2 id={id} className="font-semibold tracking-tight">
-          {title}
-        </h2>
-        {description && (
-          <p className="mt-1 text-sm leading-6 text-muted-foreground">{description}</p>
-        )}
-      </div>
-      <div>{children}</div>
-    </section>
-  );
-}
 
 export default function SettingsPage() {
   const { t, i18n } = useTranslation(["app", "common"]);
@@ -53,7 +24,7 @@ export default function SettingsPage() {
   );
 
   return (
-    <>
+    <div className="mx-auto w-full max-w-4xl">
       <title>{`${t("settings.title")} | WiseData`}</title>
       <h1 className="mb-8 text-2xl font-semibold tracking-tight">{t("settings.title")}</h1>
 
@@ -115,6 +86,6 @@ export default function SettingsPage() {
           {t("settings.session.logout")}
         </Button>
       </SettingsSection>
-    </>
+    </div>
   );
 }

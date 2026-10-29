@@ -28,6 +28,9 @@ const table: TableDetail = {
   id: "2d0f8e4a-3c4d-4e5f-8a0b-2c3d4e5f6071",
   name: "Productos",
   description: null,
+  role: "OWNER",
+  organizationId: "5b6c7d8e-1111-4aaa-8bbb-000000000009",
+  member: true,
   columnCount: 2,
   recordCount: 1,
   createdAt: "2026-01-01T00:00:00.000Z",
@@ -138,5 +141,31 @@ describe("RecordsTable", () => {
       format: "csv",
     });
     click.mockRestore();
+  });
+
+  it("shows viewers the records without any way to change them", async () => {
+    mockApi(() => page);
+    renderWithProviders(<RecordsTable table={{ ...table, role: "VIEWER" }} />, {
+      route: "/app/tables/x",
+    });
+
+    expect(await screen.findByText("Taladro")).toBeInTheDocument();
+    expect(screen.getByText(/Solo lectura/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Nuevo registro/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Precio de Taladro/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Acciones/ })).not.toBeInTheDocument();
+    // Exporting is reading, so viewers keep it.
+    expect(screen.getByRole("button", { name: /Exportar CSV/ })).toBeInTheDocument();
+  });
+
+  it("lets editors change records", async () => {
+    mockApi(() => page);
+    renderWithProviders(<RecordsTable table={{ ...table, role: "EDITOR" }} />, {
+      route: "/app/tables/x",
+    });
+
+    expect(await screen.findByRole("button", { name: /Precio de Taladro/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Nuevo registro/ })).toBeInTheDocument();
+    expect(screen.queryByText(/Solo lectura/)).not.toBeInTheDocument();
   });
 });

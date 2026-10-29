@@ -39,4 +39,14 @@ describe("LoginPage", () => {
     // A 401 from login means wrong credentials, never an expired session.
     expect(paths.slice(login + 1)).not.toContain("/api/auth/refresh");
   });
+
+  it("tells invited people without an account to sign up with the invited email", async () => {
+    mockApi(() => 401);
+    const redirect = encodeURIComponent("/invitations?token=abc");
+    renderWithProviders(<LoginPage />, { route: `/login?redirect=${redirect}` });
+
+    const signUp = await screen.findByRole("link", { name: "Crear cuenta con ese email" });
+    // The invitation stays the destination through sign-up.
+    expect(signUp).toHaveAttribute("href", `/register?redirect=${redirect}`);
+  });
 });

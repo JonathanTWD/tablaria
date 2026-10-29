@@ -7,7 +7,13 @@ import {
   type SortingState,
   type Updater,
 } from "@tanstack/react-table";
-import type { RecordFilter, TableColumn, TableDetail, TableRecord } from "@wisedata/shared";
+import {
+  hasRole,
+  type RecordFilter,
+  type TableColumn,
+  type TableDetail,
+  type TableRecord,
+} from "@wisedata/shared";
 import {
   ArrowDown,
   ArrowUp,
@@ -20,7 +26,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { type FocusEvent, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { toast } from "sonner";
@@ -40,7 +46,10 @@ import { useCellFormatter, type CellFormatter } from "@/features/columns/format-
 import { apiErrorMessage } from "@/lib/error-message";
 import { cn } from "@/lib/utils";
 import { DeleteRecordDialog } from "./DeleteRecordDialog";
-import { EditableCell } from "./EditableCell";
+import { useSession } from "@/features/auth/session";
+import { presenceColor } from "@/features/realtime/presence-colors";
+import { useTablePresence } from "@/features/realtime/realtime-context";
+import { EditableCell, ReadOnlyCell } from "./EditableCell";
 import { ExportButton } from "./ExportButton";
 import { FiltersSheet } from "./FiltersSheet";
 import { RecordDialog } from "./RecordDialog";
@@ -59,6 +68,22 @@ interface DialogState {
   record?: TableRecord;
 }
 
+/** The first column (the record's name) stays visible while the table scrolls sideways. */
+const STICKY_CELL = "sticky left-0 z-10 shadow-[inset_-1px_0_0_var(--border)]";
+
+/**
+ * The browser scrolls a cell focused from the keyboard to the scroller's edge,
+ * which is under the sticky first column. Padding the scroll area by that
+ * column's width before the browser scrolls (it does so after this event)
+ * keeps the focused cell next to it instead.
+ */
+function keepFocusBesideStickyColumn(event: FocusEvent<HTMLDivElement>) {
+  const sticky = event.target.closest("tr")?.firstElementChild;
+  if (sticky) {
+    event.currentTarget.style.scrollPaddingLeft = `${sticky.getBoundingClientRect().width}px`;
+  }
+}
+
 export function RecordsTable({ table }: { table: TableDetail }) {
   const { t } = useTranslation("records");
   const [urlView, setView] = useRecordsView();
@@ -66,6 +91,27 @@ export function RecordsTable({ table }: { table: TableDetail }) {
   const view = applicableView(urlView, columns);
   const records = useQuery(recordsQuery(table.id, view));
   const update = useUpdateRecord(table.id);
+  const { t: tTables } = useTranslation("tables");
+  const { data: user } = useSession();
+  const { viewers, setEditing } = useTablePresence(table.id);
+  const othersEditing = viewers.filter(
+    (viewer) => viewer.editing && viewer.userId !== user?.id,
+  );
+  /** "recordId:columnId" → the other person editing that cell. */
+  const editedByOthers = new Map(
+    othersEditing.map((viewer) => [`${viewer.editing?.recordId}:${viewer.editing?.columnId}`, viewer]),
+  );
+  /** Record id → the other people editing any of its cells. */
+  const recordEditors = new Map<string, typeof othersEditing>();
+  for (const viewer of othersEditing) {
+    const recordId = viewer.editing?.recordId ?? "";
+    recordEditors.set(recordId, [...(recordEditors.get(recordId) ?? []), viewer]);
+  }
+  const nameOf = (viewer: (typeof othersEditing)[number]) =>
+    viewer.name ?? tTables("presence.guest");
+  // The API enforces these too; the interface just doesn't offer what would be refused.
+  const canEdit = hasRole(table.role, "EDITOR");
+  const canManage = hasRole(table.role, "ADMIN");
   const format = useCellFormatter();
   const [dialog, setDialog] = useState<DialogState>({ kind: null });
 
@@ -126,16 +172,21 @@ export function RecordsTable({ table }: { table: TableDetail }) {
         title={t("empty.noColumnsTitle")}
         description={t("empty.noColumnsDescription")}
         action={
-          <Link to="columns" className={cn(buttonVariants(), "h-9")}>
-            {t("empty.noColumnsAction")}
-          </Link>
+          canManage && (
+            <Link to="columns" className={cn(buttonVariants(), "h-9")}>
+              {t("empty.noColumnsAction")}
+            </Link>
+          )
         }
       />
     );
   }
 
   return (
-    <section aria-label={t("tabs.records")} className="mt-6">
+    <section aria-label={t("tabs.records")} className="mt-4">
+      {!canEdit && (
+        <p className="mb-3 text-sm text-muted-foreground">{t("readOnly")}</p>
+      )}
       <div className="flex flex-wrap items-center gap-2">
         <SearchField
           initial={view.search}
@@ -147,10 +198,12 @@ export function RecordsTable({ table }: { table: TableDetail }) {
           onApply={(filters) => setView({ filters })}
         />
         <ExportButton tableId={table.id} view={view} />
-        <Button className="h-9 sm:ml-auto" onClick={() => setDialog({ kind: "create" })}>
-          <Plus aria-hidden="true" />
-          {t("toolbar.add")}
-        </Button>
+        {canEdit && (
+          <Button className="h-9 sm:ml-auto" onClick={() => setDialog({ kind: "create" })}>
+            <Plus aria-hidden="true" />
+            {t("toolbar.add")}
+          </Button>
+        )}
       </div>
 
       {view.filters.length > 0 && (
@@ -181,6 +234,7 @@ export function RecordsTable({ table }: { table: TableDetail }) {
             records.isPlaceholderData && "opacity-60",
           )}
           aria-busy={records.isFetching}
+          onFocus={keepFocusBesideStickyColumn}
         >
           <table className="w-full border-collapse text-sm">
             <caption className="sr-only">{t("table.caption", { name: table.name })}</caption>
@@ -199,7 +253,11 @@ export function RecordsTable({ table }: { table: TableDetail }) {
                       aria-sort={
                         sorted === "asc" ? "ascending" : sorted === "desc" ? "descending" : undefined
                       }
-                      className={cn("px-1.5 py-1.5 font-medium whitespace-nowrap", numeric && "text-right")}
+                      className={cn(
+                        "px-1.5 py-1.5 font-medium whitespace-nowrap",
+                        numeric && "text-right",
+                        index === 0 && cn(STICKY_CELL, "bg-[color-mix(in_oklab,var(--muted)_60%,var(--card))]"),
+                      )}
                     >
                       <button
                         type="button"
@@ -216,9 +274,11 @@ export function RecordsTable({ table }: { table: TableDetail }) {
                     </th>
                   );
                 })}
-                <th scope="col" className="w-12 px-1.5">
-                  <span className="sr-only">{t("table.actions")}</span>
-                </th>
+                {canEdit && (
+                  <th scope="col" className="w-12 px-1.5">
+                    <span className="sr-only">{t("table.actions")}</span>
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody>
@@ -237,47 +297,99 @@ export function RecordsTable({ table }: { table: TableDetail }) {
                     const record = row.original;
                     const label = rowLabel(record);
                     return (
-                      <tr key={row.id} className="border-b border-border last:border-b-0 hover:bg-muted/30">
-                        {columns.map((column) => (
-                          <td key={column.id} className="px-1.5 py-1 align-middle">
-                            <EditableCell
-                              column={column}
-                              value={record.data[column.id]}
-                              label={t("cell.label", { column: column.name, row: label })}
-                              format={format}
-                              onSave={(value) => save(record, column, value)}
-                            />
-                          </td>
-                        ))}
-                        <td className="px-1.5 py-1 text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger
-                              render={
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  aria-label={t("table.rowActions", { label })}
+                      <tr
+                        key={row.id}
+                        className={cn(
+                          "group border-b border-border last:border-b-0 hover:bg-muted/30",
+                          // Someone is editing this record: tinted, but nothing is locked.
+                          recordEditors.has(record.id) &&
+                            presenceColor(recordEditors.get(record.id)![0].userId).row,
+                        )}
+                      >
+                        {columns.map((column, index) => {
+                          const editor = editedByOthers.get(`${record.id}:${column.id}`);
+                          const editorName = editor && nameOf(editor);
+                          return (
+                          <td
+                            key={column.id}
+                            className={cn(
+                              "px-1.5 py-1 align-middle",
+                              editor && ["relative ring-2 ring-inset", presenceColor(editor.userId).ring],
+                              // Opaque, so scrolled cells never show through the fixed column.
+                              index === 0 &&
+                                cn(
+                                  STICKY_CELL,
+                                  "bg-card group-hover:bg-[color-mix(in_oklab,var(--muted)_30%,var(--card))]",
+                                ),
+                            )}
+                          >
+                            {/* On phones the fixed column must leave room for the cell being edited. */}
+                            <div className={cn(index === 0 && "max-w-36 sm:max-w-56 lg:max-w-none")}>
+                              {canEdit ? (
+                                <EditableCell
+                                  column={column}
+                                  value={record.data[column.id]}
+                                  label={t("cell.label", { column: column.name, row: label })}
+                                  format={format}
+                                  onSave={(value) => save(record, column, value)}
+                                  presence={{ recordId: record.id, setEditing }}
+                                  editedBy={editorName}
                                 />
-                              }
-                            >
-                              <Ellipsis aria-hidden="true" />
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-52">
-                              <DropdownMenuItem onClick={() => setDialog({ kind: "edit", record })}>
-                                <Pencil aria-hidden="true" />
-                                {t("table.edit")}
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                variant="destructive"
-                                onClick={() => setDialog({ kind: "delete", record })}
+                              ) : (
+                                <ReadOnlyCell
+                                  column={column}
+                                  value={record.data[column.id]}
+                                  format={format}
+                                />
+                              )}
+                            </div>
+                            {editor && (
+                              <span
+                                className={cn(
+                                  "pointer-events-none absolute -top-2 right-1 z-20 max-w-24 truncate rounded px-1 text-[10px] leading-4 font-medium text-white",
+                                  presenceColor(editor.userId).avatar,
+                                )}
                               >
-                                <Trash2 aria-hidden="true" />
-                                {t("table.delete")}
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </td>
+                                <span aria-hidden="true">{editorName}</span>
+                                <span className="sr-only">
+                                  {tTables("presence.editingCell", { name: editorName })}
+                                </span>
+                              </span>
+                            )}
+                          </td>
+                          );
+                        })}
+                        {canEdit && (
+                          <td className="px-1.5 py-1 text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger
+                                render={
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    aria-label={t("table.rowActions", { label })}
+                                  />
+                                }
+                              >
+                                <Ellipsis aria-hidden="true" />
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-52">
+                                <DropdownMenuItem onClick={() => setDialog({ kind: "edit", record })}>
+                                  <Pencil aria-hidden="true" />
+                                  {t("table.edit")}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  variant="destructive"
+                                  onClick={() => setDialog({ kind: "delete", record })}
+                                >
+                                  <Trash2 aria-hidden="true" />
+                                  {t("table.delete")}
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </td>
+                        )}
                       </tr>
                     );
                   })}
@@ -317,6 +429,11 @@ export function RecordsTable({ table }: { table: TableDetail }) {
         tableId={table.id}
         columns={columns}
         record={dialog.kind === "create" ? undefined : dialog.record}
+        editingBy={
+          dialog.kind === "edit" && dialog.record
+            ? recordEditors.get(dialog.record.id)?.map(nameOf)
+            : undefined
+        }
         open={dialog.kind === "create" || dialog.kind === "edit"}
         onOpenChange={closeDialog}
       />

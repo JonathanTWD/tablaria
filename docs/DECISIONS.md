@@ -189,6 +189,125 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 - **SVG propio, sin librería**: para barras horizontales basta un `<rect>` proporcional al valor. Una librería como Recharts añadiría unos 100 KB comprimidos y otra dependencia que mantener. El gráfico se dibuja como una tabla HTML (`caption`, cabeceras y filas) con las barras decorativas (`aria-hidden`), así los lectores de pantalla leen los datos tal cual. Si en el futuro hacen falta series temporales, tooltips o varios tipos de gráfico, se adoptarán los charts de shadcn/ui (Recharts).
 - **Sin agrupar por la primera columna**: suele nombrar cada registro (producto, equipo), así que cada grupo tendría un único registro. Por defecto se agrupa por la primera lista de opciones, si no por Sí / No y, si no, por texto.
 
+## ADR-017: Ancho de las páginas según su contenido
+
+- **Sin límite global**: el `<main>` de la app ya no tiene `max-w-5xl`. Con un tope de 1024 px alineado a la izquierda, a 1707 px quedaba vacío el 26 % de la pantalla, y a 2560 px el 51 %, mientras la tabla seguía haciendo scroll horizontal.
+- **Cada página elige su ancho**:
+  - las páginas de datos (la tabla de registros) usan todo el ancho, como recomiendan Polaris y Fiori para listados con muchas columnas;
+  - el inicio se centra hasta 1600 px;
+  - los formularios y ajustes se quedan en un ancho de lectura (`max-w-4xl`).
+- **Consultas de contenedor**: el inicio y el gráfico se adaptan al ancho de su propio contenedor (`@container`), no al de la ventana, porque la barra lateral y la columna lateral cambian el espacio disponible.
+- **Landing fluida**: tres tokens en `@theme`:
+  - `--container-landing`: `clamp(80rem, 72vw, 112rem)`;
+  - `--text-landing-hero` y `--text-landing-title`: `clamp()` con tope.
+
+  Hasta unos 1780 px la landing no cambia; a partir de ahí, el contenedor y los títulos crecen en proporción, mientras los párrafos conservan su ancho máximo de lectura.
+- **Orden de lectura**: en pantallas anchas, «Bajo mínimo» y el gráfico pasan a una columna lateral colocada con grid. El orden del DOM (avisos, tablas, gráfico) no cambia, así que el foco y los lectores de pantalla siguen el mismo orden en todos los tamaños.
+
+## ADR-018: Barra lateral plegable
+
+- **Componente `Sidebar` de shadcn (Base UI)**, en modo `icon`: plegada, deja una tira de 3rem con iconos y tooltips en lugar de desaparecer. Así navegar sigue costando un clic.
+- **Tablas agrupadas en un menú**: con la barra plegada, todas las tablas tendrían el mismo icono, así que se juntan en un solo botón «Tablas» que abre un menú con la lista.
+- **Estado en `localStorage`** (`wisedata:sidebar-open`) en lugar de la cookie `sidebar_state` del componente original. Es una app de navegador sin renderizado en servidor, y la cookie solo viajaría a la API en cada petición.
+- **Instalación manual**: `shadcn add sidebar` intentaba volver a resolver dependencias y chocaba con la antigüedad mínima de pnpm. Por eso `sidebar.tsx` se copió del registro, cambiando solo:
+  - las rutas de importación;
+  - la cookie, que se quita;
+  - los textos para lectores de pantalla, que ahora llegan traducidos desde la app;
+  - `useIsMobile`, que se reescribe con `useSyncExternalStore`.
+
+  Las demás dependencias del componente (`Sheet`, `Tooltip`, `Button`…) ya estaban en el proyecto.
+- **Atajo `Ctrl/⌘ + B`**: es el del componente. En Firefox ese atajo abre la barra de marcadores, y dentro de la app queda bloqueado. Como lleva tecla modificadora, no choca con WCAG 2.1.4.
+
+## ADR-019: Compartir tablas y organizaciones
+
+**Contexto**: hoy cada tabla tiene un `ownerId`, y unas 40 consultas en 6 servicios comprueban la propiedad. WiseData tiene que servir tanto a particulares, que comparten alguna tabla suelta, como a equipos, que trabajan con todas.
+
+**Decisión**:
+- **Dos formas de dar acceso**:
+  - **compartir una tabla** con personas concretas, como lector o editor;
+  - **organizaciones**, con miembros y roles (`OWNER`, `ADMIN`, `EDITOR` o `VIEWER`) que ven todas sus tablas.
+- **Espacio personal**: cada usuario tiene una organización `personal`, que se crea al registrarse y no admite miembros. Las tablas de ese espacio se comparten tabla a tabla. La migración crea una por usuario y mueve allí sus tablas.
+- **Modelo**:
+  - `organizations`: `id`, `name` y `personal`;
+  - `memberships`: organización, usuario y rol;
+  - `table_shares`: tabla, usuario y rol (`VIEWER` o `EDITOR`);
+  - `invitations`: el destino (una tabla o una organización), email, rol, hash del token, caducidad, quién invita y cuándo se aceptó;
+  - `inventory_tables.ownerId` se sustituye por `organizationId`, más `createdById` para saber quién la creó.
+- **Una sola puerta de acceso**:
+  - el rol de un usuario en una tabla es el mayor entre su rol en la organización de la tabla y el que le dieron al compartirla;
+  - un único servicio lo resuelve y exige un rol mínimo;
+  - a quien no tiene acceso se le responde 404, igual que si la tabla no existiera; a quien tiene acceso sin permiso suficiente, 403;
+  - ningún servicio vuelve a filtrar por `ownerId` por su cuenta.
+- **Permisos**:
+  - `VIEWER` lee y exporta;
+  - `EDITOR` además crea, edita y borra registros;
+  - `ADMIN` (o el dueño en su espacio personal) además gestiona la tabla, sus columnas, los permisos compartidos y los miembros;
+  - `OWNER` además puede borrar la organización.
+
+  Compartir una tabla da como mucho rol de editor, y siempre queda al menos un `OWNER`.
+- **Invitaciones**, el mismo flujo para tablas y organizaciones:
+  - el token es aleatorio y en base de datos solo se guarda su hash; caduca a los 7 días y es de un solo uso;
+  - solo puede aceptarla la cuenta cuyo email coincide con el invitado;
+  - las respuestas no revelan si un email tiene cuenta;
+  - límites: 25 personas por tabla compartida o por organización, 20 invitaciones pendientes por destino y 10 organizaciones por usuario.
+- **Rutas**:
+  - las de tablas, registros y columnas siguen siendo `/tables/:id/...`;
+  - las tablas compartidas conmigo se listan en `/tables/shared`;
+  - el listado y la creación de tablas de una organización van en `/organizations/:orgId/tables`;
+  - los permisos compartidos van bajo `/tables/:id/shares`, y los miembros bajo `/organizations/:orgId/members`.
+- **Antiabuso** (añadido en la parte 2):
+  - las cuentas demo no pueden invitar, porque la demo es pública y no debe servir para enviar emails a terceros;
+  - cada dirección recibe como mucho 5 invitaciones por hora, y cada usuario envía como mucho 30. Cuentan también las reenviadas y las revocadas, que se marcan en lugar de borrarse;
+  - el nombre de la tabla y el remitente se escapan en el HTML del email;
+  - el token viaja en el cuerpo de `POST /invitations/preview` y `POST /invitations/accept`, nunca en una URL que pueda quedar en los logs.
+- **Organizaciones** (añadido en la parte 3):
+  - cualquiera crea organizaciones y queda como `OWNER`; el espacio personal no se renombra, no se borra ni admite invitaciones;
+  - `ADMIN` invita, cambia roles, quita miembros y crea tablas; solo un `OWNER` da, cambia o quita la propiedad, y quitar o rebajar al último `OWNER` responde 409;
+  - cualquier miembro puede salir. Los cambios de miembros bloquean la fila de la organización, así que dos propietarios no pueden irse a la vez y dejarla sin dueño;
+  - a una organización se invita como lector, editor o administrador; los propietarios salen de promocionar a un miembro;
+  - aceptar una invitación nunca rebaja el rol que ya se tiene;
+  - el límite de tablas pasa a ser de 100 por espacio, el personal o cada organización.
+- **Espacio activo en la interfaz** (añadido en la parte 4):
+  - un selector en la barra lateral elige qué espacio muestran la barra y el inicio;
+  - la elección se guarda en el navegador, como el estado de la barra lateral, y no en la URL: así sobrevive a la navegación entre tablas;
+  - si el espacio guardado ya no existe para el usuario, se vuelve al personal;
+  - abrir una tabla de otra organización a la que perteneces cambia a ese espacio;
+  - las tablas compartidas contigo siguen fuera de los espacios, en «Compartidas conmigo»;
+  - el detalle de una tabla indica su organización y si accedes como miembro. Si es así, el menú lleva a la organización (desde donde se sale de ella) en vez de ofrecer «Salir de la tabla».
+- **Invitaciones a personas sin cuenta**:
+  - el inicio de sesión que viene de una invitación explica que hay que crear la cuenta con el email invitado;
+  - al registrarse, la invitación se recuerda en el navegador y, al confirmar la cuenta, se abre directamente;
+  - solo se recuerdan rutas `/invitations?…`, y siempre pasan por la misma validación de redirecciones internas.
+- **Demo**: incluye la organización de ejemplo «Equipo de la tienda», con la tabla «Almacén central» y tres miembros ficticios.
+  - Los miembros ficticios no pueden iniciar sesión: tienen una contraseña aleatoria y una dirección `.invalid`.
+  - Caducan con la cuenta de demo y no cuentan para el límite de demos activas.
+
+**Consecuencias**: el aislamiento pasa de ser «mis tablas» a «tablas a las que tengo acceso por organización o porque me las compartieron». Cada ruta lleva tests e2e por vía de acceso y por rol, y cada PR de la fase pasa la revisión de seguridad.
+
+## ADR-020: Tiempo real
+
+- **Avisos, no datos**: el servidor solo dice «la tabla X cambió en registros, columnas, tabla, permisos o se borró». El navegador vuelve a pedir lo afectado a la API, que comprueba el acceso en cada petición. Así ningún mensaje puede filtrar datos, y se reutiliza la caché de TanStack Query. Si dos personas editan la misma celda, el último en guardar gana.
+- **`ws` sin capa de Nest**: `@nestjs/websockets` solo tiene versión estable para Nest 12, y aquí usamos Nest 11. `ws` es una única dependencia sin subdependencias, y el servidor se monta en el mismo servidor HTTP, en `/api/realtime`.
+- **Conexión directa a la API con ticket**:
+  - En producción la web sirve `/api` mediante una rewrite del Static Site de Render, que no garantiza transportar WebSockets (`REALTIME_URL` apunta directamente a la API). En el dominio de la API no existe la cookie de sesión.
+  - Por eso el navegador pide por la API normal (`POST /realtime/ticket`, con cookie) un ticket aleatorio, de un solo uso y válido 30 s, y lo envía como primer mensaje. El ticket nunca va en la URL.
+  - En desarrollo y en Docker, con `REALTIME_URL` sin definir, la conexión va por el propio origen gracias al proxy de Vite o de nginx.
+- **Mismas reglas de acceso**:
+  - suscribirse a una tabla usa la misma regla que la API;
+  - al quitar un permiso, el servidor corta esa suscripción y avisa con `revoked`;
+  - se comprueba el `Origin` de la conexión;
+  - límites: 1 KB por mensaje, 20 tablas por conexión, 10 conexiones por usuario y 200 conexiones esperando ticket en todo el servidor;
+  - un ping cada 30 s descarta las conexiones muertas.
+- **Presencia**: sobre la misma conexión, cada pestaña avisa de qué celda tiene abierta.
+  - **Qué recibe cada uno:** el servidor envía a cada sala la lista de personas, una vez por persona aunque tengan varias pestañas, con la celda que edita cada una.
+  - **Qué se comparte:** solo el nombre visible (la parte del email antes de la @) y nunca el email, porque quienes comparten una tabla no tienen por qué conocer el email de los demás.
+- **Sin bloqueos**:
+  - **Por qué no bloquear:** bloquear el registro mientras alguien lo edita dejaría bloqueos colgados cuando se cae una conexión. Además impediría cambios que no chocan, como dos celdas distintas del mismo registro.
+  - **Cambios de celdas distintas:** la API mezcla los cambios parciales dentro de una transacción con la tabla bloqueada, así que se conservan todos.
+  - **Formulario:** el de registro envía solo los campos modificados.
+  - **Misma celda:** solo hay aviso, y gana el último en guardar. Herramientas como Google Sheets, Airtable o Notion siguen el mismo criterio.
+- **Una sola instancia**: los tickets y las suscripciones viven en memoria. Con varias instancias haría falta un bus (Redis pub/sub) para repartir los avisos; ahora no es necesario.
+
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
 Todas están especificadas en [MVP_PROMPT.md](MVP_PROMPT.md):

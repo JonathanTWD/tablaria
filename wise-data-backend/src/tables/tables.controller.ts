@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import {
   createTableSchema,
+  type SharedTableSummary,
   type TableDetail,
   type TableSummary,
   updateTableSchema,
@@ -28,6 +29,12 @@ export class TablesController {
   @Get()
   list(@CurrentUserId() userId: string): Promise<TableSummary[]> {
     return this.tables.list(userId);
+  }
+
+  // Declared before ':tableId' so "shared" is never read as an id.
+  @Get('shared')
+  listShared(@CurrentUserId() userId: string): Promise<SharedTableSummary[]> {
+    return this.tables.listShared(userId);
   }
 
   @Post()
@@ -64,5 +71,28 @@ export class TablesController {
     @Param('tableId', ParseUUIDPipe) tableId: string,
   ): Promise<void> {
     return this.tables.remove(userId, tableId);
+  }
+}
+
+@Controller('organizations/:organizationId/tables')
+export class OrganizationTablesController {
+  constructor(private readonly tables: TablesService) {}
+
+  @Get()
+  list(
+    @CurrentUserId() userId: string,
+    @Param('organizationId', ParseUUIDPipe) organizationId: string,
+  ): Promise<TableSummary[]> {
+    return this.tables.listInOrganization(userId, organizationId);
+  }
+
+  @Post()
+  create(
+    @CurrentUserId() userId: string,
+    @Param('organizationId', ParseUUIDPipe) organizationId: string,
+    @Body(new ZodValidationPipe(createTableSchema))
+    body: z.output<typeof createTableSchema>,
+  ): Promise<TableDetail> {
+    return this.tables.create(userId, body, organizationId);
   }
 }

@@ -45,11 +45,13 @@ const createTableFormSchema = z.object({
 
 type CreateTableForm = z.infer<typeof createTableFormSchema>;
 
-/** Opens from `trigger`; on success it goes to the new table. */
+/** Opens from `trigger`; creates the table in the given space and goes to it. */
 export function CreateTableDialog({
+  organizationId,
   trigger,
   onCreated,
 }: {
+  organizationId: string;
   trigger: ReactElement;
   onCreated?: () => void;
 }) {
@@ -68,6 +70,7 @@ export function CreateTableDialog({
           <DialogDescription>{t("create.description")}</DialogDescription>
         </DialogHeader>
         <CreateTableForm
+          organizationId={organizationId}
           onCreated={() => {
             setOpen(false);
             onCreated?.();
@@ -78,11 +81,17 @@ export function CreateTableDialog({
   );
 }
 
-function CreateTableForm({ onCreated }: { onCreated: () => void }) {
+function CreateTableForm({
+  organizationId,
+  onCreated,
+}: {
+  organizationId: string;
+  onCreated: () => void;
+}) {
   const { t } = useTranslation("tables");
   const ids = useId();
   const navigate = useNavigate();
-  const create = useCreateTable();
+  const create = useCreateTable(organizationId);
   const form = useForm<CreateTableForm>({
     resolver: zodResolver(createTableFormSchema),
     mode: "onTouched",

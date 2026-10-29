@@ -5,12 +5,18 @@ import { Link } from "react-router";
 import { cn } from "@/lib/utils";
 
 /** Records running low; hidden when nothing is below its threshold. */
-export function StockAlertsCard({ alerts }: { alerts: StockAlerts | undefined }) {
+export function StockAlertsCard({
+  alerts,
+  className,
+}: {
+  alerts: StockAlerts | undefined;
+  className?: string;
+}) {
   const { t } = useTranslation("app");
 
   if (!alerts) {
     return (
-      <p role="status" className="mt-8 text-sm text-muted-foreground">
+      <p role="status" className={cn("text-sm text-muted-foreground", className)}>
         {t("dashboard.alerts.loadError")}
       </p>
     );
@@ -23,7 +29,7 @@ export function StockAlertsCard({ alerts }: { alerts: StockAlerts | undefined })
   return (
     <section
       aria-labelledby="stock-alerts-title"
-      className="mt-8 rounded-xl border border-amber-500/40 bg-card"
+      className={cn("rounded-xl border border-amber-500/40 bg-card", className)}
     >
       <div className="flex items-center gap-2 border-b border-border px-4 py-3 sm:px-5">
         <TriangleAlert aria-hidden="true" className="size-4 text-amber-600 dark:text-amber-400" />

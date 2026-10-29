@@ -1,6 +1,6 @@
 # WiseData
 
-Gestión de inventario flexible: cada usuario crea sus propias tablas, define columnas con tipo y trabaja con sus registros como en una hoja de cálculo, pero con validación, búsqueda, filtros y orden en el servidor.
+Gestión de inventario flexible: cada usuario crea sus propias tablas, define columnas con tipo y trabaja con sus registros como en una hoja de cálculo, pero con validación, búsqueda, filtros y orden en el servidor. Las tablas se comparten por email o dentro de organizaciones, y los cambios se ven en directo.
 
 **Demo en directo: [wise-data.es](https://wise-data.es).** Pulsa «Probar la demo» y entrarás sin registrarte en una cuenta temporal con tablas de ejemplo, que se borra a las 24 h.
 
@@ -10,7 +10,11 @@ Gestión de inventario flexible: cada usuario crea sus propias tablas, define co
 - **Tablas**: crear en blanco o desde plantilla (inventario básico, catálogo de productos, equipos y activos), renombrar y borrar.
 - **Columnas** de seis tipos: texto, número, fecha, sí/no, lista de opciones con colores y precio en cualquier moneda. Se pueden marcar como obligatorias, tener valor por defecto, reordenarse y cambiar de tipo convirtiendo los valores guardados.
 - **Registros**: edición directa en la celda (Enter guarda, Escape cancela), formulario completo, búsqueda, filtros por tipo, orden y paginación. La vista vive en la URL, así que se puede compartir.
-- **Dashboard** con métricas y tablas recientes, tema claro u oscuro, interfaz en español preparada para más idiomas y diseño adaptado a móvil.
+- **Exportar y avisos**: exportación a CSV de la vista actual (lista para Excel en español), alertas de stock bajo por columna y resumen con gráfico de barras.
+- **Compartir y organizaciones**: invitar por email a una tabla como lector o editor, u organizaciones con miembros y roles (lector, editor, administrador y propietario) que ven todas sus tablas. Las invitaciones caducan, son de un solo uso y tienen límites contra el spam.
+- **Tiempo real y presencia**: los cambios de otras personas aparecen sin recargar, y se ve quién tiene la tabla abierta y qué celda está editando.
+- **Dashboard** con métricas, tablas recientes y selector de espacio, tema claro u oscuro, interfaz en español preparada para más idiomas y diseño adaptado a móvil y a pantallas grandes.
+- **Demo pública** con cuentas temporales, tablas de ejemplo y una organización con compañeros ficticios.
 
 ## Stack
 
@@ -94,13 +98,14 @@ Así está publicada la demo; los motivos están en [ADR-013](docs/DECISIONS.md)
   - **Proxy:** `TRUST_PROXY_HOPS=1`.
   - **Correo:** `MAIL_TRANSPORT=resend`, `RESEND_API_KEY` y `MAIL_FROM`.
   - **Migraciones:** el contenedor aplica las pendientes antes de arrancar.
+  - **Tiempo real:** `REALTIME_URL=wss://<api>.onrender.com/api/realtime`. La rewrite del Static Site no transporta WebSockets de forma fiable, así que el navegador se conecta directamente a la API ([ADR-020](docs/DECISIONS.md)).
 - **Web (Render Static Site)**:
   - **Build:** `corepack enable && pnpm install --frozen-lockfile && pnpm --filter @wisedata/shared build && pnpm --filter wise-data-frontend build`.
   - **Publicación:** carpeta `wise-data-frontend/dist`, con `NODE_VERSION=22`.
   - **Rewrites:**
     - `/api/*` → `https://<api>.onrender.com/api/*`, de tipo Rewrite y la primera de la lista;
     - `/*` → `/index.html`.
-  - **Cabeceras:** las mismas que [nginx.conf.template](wise-data-frontend/nginx.conf.template), con la CSP incluida.
+  - **Cabeceras:** las mismas que [nginx.conf.template](wise-data-frontend/nginx.conf.template), con la CSP incluida. Añade `wss://<api>.onrender.com` a `connect-src` para el tiempo real.
 - **Dominio**:
   - **Raíz:** un registro `A` a la IP que indica Render.
   - **`www`:** un `CNAME` al Static Site.

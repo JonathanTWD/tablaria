@@ -20,8 +20,9 @@ import {
 import { toTableColumn } from '../columns/column-mapper';
 import { parseOrThrow } from '../common/pipes/zod-validation.pipe';
 import { PrismaService } from '../database/prisma.service';
+import { RealtimeService } from '../realtime/realtime.service';
 import { Prisma, type Record as RecordRow } from '../generated/prisma/client';
-import { touchOwnedTable } from '../tables/table-access';
+import { accessibleTables, touchTable } from '../tables/table-access';
 import { buildRecordQuery } from './record-query';
 import { withoutEmptyCells } from './record-data';
 import { exportFileName, toCsv } from './record-export';
@@ -35,15 +36,18 @@ export interface ExportedFile {
 
 @Injectable()
 export class RecordsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly realtime: RealtimeService,
+  ) {}
 
   async list(
-    ownerId: string,
+    userId: string,
     tableId: string,
     query: RecordListQuery,
   ): Promise<Paginated<TableRecord>> {
     const table = await this.prisma.inventoryTable.findFirst({
-      where: { id: tableId, ownerId },
+      where: { id: tableId, ...accessibleTables(userId) },
       select: { columns: true },
     });
     if (!table) {
@@ -81,12 +85,12 @@ export class RecordsService {
 
   /** Every record that matches the view (search, filters, sort), in column order. */
   async export(
-    ownerId: string,
+    userId: string,
     tableId: string,
     query: RecordExportQuery,
   ): Promise<ExportedFile> {
     const table = await this.prisma.inventoryTable.findFirst({
-      where: { id: tableId, ownerId },
+      where: { id: tableId, ...accessibleTables(userId) },
       select: { name: true, columns: { orderBy: { position: 'asc' } } },
     });
     if (!table) {
@@ -116,12 +120,12 @@ export class RecordsService {
 
   /** Records grouped by a column's values, counted and optionally summed. */
   async stats(
-    ownerId: string,
+    userId: string,
     tableId: string,
     query: RecordStatsQuery,
   ): Promise<RecordStats> {
     const table = await this.prisma.inventoryTable.findFirst({
-      where: { id: tableId, ownerId },
+      where: { id: tableId, ...accessibleTables(userId) },
       select: { columns: true, _count: { select: { records: true } } },
     });
     if (!table) {
@@ -155,14 +159,14 @@ export class RecordsService {
     );
   }
 
-  create(
-    ownerId: string,
+  async create(
+    userId: string,
     tableId: string,
     input: RecordInput,
   ): Promise<TableRecord> {
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       // Also blocks column changes (type conversions) until this write ends.
-      await touchOwnedTable(tx, ownerId, tableId);
+      await touchTable(tx, userId, tableId, 'EDITOR');
 
       const count = await tx.record.count({ where: { tableId } });
       if (count >= MAX_RECORDS_PER_TABLE) {
@@ -179,16 +183,18 @@ export class RecordsService {
       });
       return toTableRecord(record);
     });
+    this.realtime.publish(tableId, 'records');
+    return result;
   }
 
-  update(
-    ownerId: string,
+  async update(
+    userId: string,
     tableId: string,
     recordId: string,
     input: RecordInput,
   ): Promise<TableRecord> {
-    return this.prisma.$transaction(async (tx) => {
-      await touchOwnedTable(tx, ownerId, tableId);
+    const result = await this.prisma.$transaction(async (tx) => {
+      await touchTable(tx, userId, tableId, 'EDITOR');
 
       const stored = await tx.record.findFirst({
         where: { id: recordId, tableId },
@@ -213,15 +219,17 @@ export class RecordsService {
       });
       return toTableRecord(record);
     });
+    this.realtime.publish(tableId, 'records');
+    return result;
   }
 
   async remove(
-    ownerId: string,
+    userId: string,
     tableId: string,
     recordId: string,
   ): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
-      await touchOwnedTable(tx, ownerId, tableId);
+      await touchTable(tx, userId, tableId, 'EDITOR');
       const { count } = await tx.record.deleteMany({
         where: { id: recordId, tableId },
       });
@@ -229,6 +237,7 @@ export class RecordsService {
         throw new NotFoundException('Record not found');
       }
     });
+    this.realtime.publish(tableId, 'records');
   }
 }
 

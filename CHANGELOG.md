@@ -1,5 +1,47 @@
 # Changelog
 
+## v1.3.0 — Trabajo en equipo
+
+- **Compartir tablas**:
+  - **Invitar:** el botón «Compartir» de la cabecera de una tabla invita a cualquiera por email como lector o editor. Desde ahí se ven las personas con acceso, se cambia su permiso, se les quita el acceso o se anulan invitaciones pendientes.
+  - **Aceptar:** el enlace del email lleva a una página para aceptar la invitación. Quien aún no tiene cuenta recibe la indicación de crearla con el email invitado y, al confirmarla, va directo a aceptarla.
+  - **Compartidas conmigo:** estas tablas aparecen en la barra lateral y en el inicio, y se puede salir de ellas.
+  - **Según el rol:**
+    - el lector ve y exporta, pero no puede editar;
+    - el editor cambia registros, pero no la tabla ni sus columnas;
+    - los avisos de stock incluyen las tablas compartidas.
+- **Organizaciones**: espacios compartidos cuyos miembros ven todas sus tablas con el permiso de su rol: lector, editor, administrador o propietario.
+  - **Selector de espacio:** arriba de la barra lateral se elige entre «Mi espacio» y tus organizaciones. La barra y el inicio muestran las tablas de ese espacio, y desde ahí se crea una organización nueva.
+  - **Página de la organización:** invitar por email, ver los miembros y las invitaciones pendientes, cambiar roles o quitar miembros, renombrarla, y salir de ella o borrarla con sus tablas.
+  - **Reglas:**
+    - solo los administradores crean tablas e invitan;
+    - solo un propietario da o quita la propiedad;
+    - siempre queda al menos un propietario;
+    - el límite pasa a ser de 100 tablas por espacio.
+  - **Demo:** incluye la organización de ejemplo «Equipo de la tienda», con el almacén central y tres compañeros ficticios.
+- **Tiempo real**:
+  - los cambios de otras personas aparecen solos, sin recargar: registros, columnas, el nombre de la tabla, los permisos o su borrado;
+  - la cabecera de la tabla indica «En directo»;
+  - si la conexión se corta, muestra «Reconectando…», vuelve a conectar sola y se pone al día;
+  - quien pierde el acceso deja de recibir avisos al instante.
+- **Presencia**: la cabecera de la tabla muestra avatares de quién más la tiene abierta, con su nombre al pasar el ratón. La celda que alguien está editando se resalta para los demás con su color y su nombre, también en las listas de opciones. Para los lectores de pantalla se anuncia quién está en la tabla y quién edita cada celda.
+- **Editar a la vez sin perder cambios**:
+  - el formulario «Editar registro» envía solo los campos que cambias, así que no deshace lo que otra persona haya guardado en el mismo registro;
+  - nada se bloquea: si abres la misma celda que otra persona, un aviso dice que gana el último en guardar.
+- **Pantallas grandes**:
+  - la tabla de registros usa todo el ancho: a 1707 px pasa de 960 a 1403 px y deja de necesitar scroll horizontal;
+  - el inicio se centra hasta 1600 px y, en pantallas anchas, pone «Bajo mínimo» y el gráfico en una columna lateral;
+  - la primera columna se queda fija al desplazar la tabla en horizontal;
+  - la landing crece hasta 1792 px: en un monitor de 27" ocupa el 70 % del ancho en lugar del 50 %.
+- **Barra lateral plegable**:
+  - se pliega a una tira de iconos con el botón de la cabecera, con `Ctrl/⌘ + B` o pulsando su borde, y la elección se recuerda en el navegador;
+  - en móvil sigue siendo un panel que se abre por encima.
+- **Seguridad** (auditoría OWASP Top 10):
+  - un fallo de la base de datos durante una suscripción en tiempo real ya no tumba la API;
+  - las conexiones de tiempo real sin autenticar tienen un límite;
+  - los cambios de permisos quedan registrados con sus ids, sin datos personales.
+- **Textos al día**: la landing explica cómo compartir y quién ve tus datos, y la comparativa añade el trabajo en equipo.
+
 ## v1.2.0 — Exportación, alertas y gráficos
 
 - **Exportar a CSV**: botón «Exportar CSV» en cada tabla, con todos los registros que cumplen la búsqueda, los filtros y el orden actuales. Con doble clic se abre directamente en Excel en español (separador `;` y coma decimal), muestra bien los acentos y el €, y protege contra la inyección de fórmulas.

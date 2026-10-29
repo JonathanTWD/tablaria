@@ -1,4 +1,4 @@
-import type { TableColumn, TableDetail } from "@wisedata/shared";
+import { hasRole, type TableColumn, type TableDetail } from "@wisedata/shared";
 import { ArrowDown, ArrowUp, Columns3, Ellipsis, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -32,6 +32,8 @@ export function ColumnList({ table }: { table: TableDetail }) {
   const [announcement, setAnnouncement] = useState("");
   const reorder = useReorderColumns(table.id);
   const { columns } = table;
+  // Only admins change columns; everyone else sees the list without its controls.
+  const canManage = hasRole(table.role, "ADMIN");
 
   const move = (index: number, offset: -1 | 1) => {
     const ids = columns.map(({ id }) => id);
@@ -50,7 +52,7 @@ export function ColumnList({ table }: { table: TableDetail }) {
   );
 
   return (
-    <section aria-labelledby="columns-title" className="mt-6">
+    <section aria-labelledby="columns-title" className="mt-6 max-w-4xl">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 id="columns-title" className="text-lg font-semibold tracking-tight">
@@ -58,7 +60,7 @@ export function ColumnList({ table }: { table: TableDetail }) {
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">{t("columns.description")}</p>
         </div>
-        {columns.length > 0 && addButton}
+        {canManage && columns.length > 0 && addButton}
       </div>
 
       {columns.length === 0 ? (
@@ -66,15 +68,16 @@ export function ColumnList({ table }: { table: TableDetail }) {
           <Columns3 aria-hidden="true" className="mx-auto size-7 text-primary" strokeWidth={1.5} />
           <h3 className="mt-3 font-semibold tracking-tight">{t("columns.emptyTitle")}</h3>
           <p className="mx-auto mt-1 max-w-sm text-sm leading-6 text-muted-foreground">
-            {t("columns.emptyDescription")}
+            {canManage ? t("columns.emptyDescription") : t("columns.emptyReadOnly")}
           </p>
-          <div className="mt-5">{addButton}</div>
+          {canManage && <div className="mt-5">{addButton}</div>}
         </div>
       ) : (
         <ol className="mt-4 divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
           {columns.map((column, index) => (
             <ColumnRow
               key={column.id}
+              canManage={canManage}
               column={column}
               isFirst={index === 0}
               isLast={index === columns.length - 1}
@@ -106,6 +109,7 @@ export function ColumnList({ table }: { table: TableDetail }) {
 
 function ColumnRow({
   column,
+  canManage,
   isFirst,
   isLast,
   onMove,
@@ -113,6 +117,7 @@ function ColumnRow({
   onDelete,
 }: {
   column: TableColumn;
+  canManage: boolean;
   isFirst: boolean;
   isLast: boolean;
   onMove: (offset: -1 | 1) => void;
@@ -160,50 +165,52 @@ function ColumnRow({
           </ul>
         )}
       </div>
-      <div className="flex shrink-0 items-center gap-0.5">
-        <Button
-          variant="ghost"
-          size="icon-lg"
-          aria-label={t("columns.moveUp", { name: column.name })}
-          disabled={isFirst}
-          onClick={() => onMove(-1)}
-        >
-          <ArrowUp aria-hidden="true" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon-lg"
-          aria-label={t("columns.moveDown", { name: column.name })}
-          disabled={isLast}
-          onClick={() => onMove(1)}
-        >
-          <ArrowDown aria-hidden="true" />
-        </Button>
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            render={
-              <Button
-                variant="ghost"
-                size="icon-lg"
-                aria-label={t("columns.options", { name: column.name })}
-              />
-            }
+      {canManage && (
+        <div className="flex shrink-0 items-center gap-0.5">
+          <Button
+            variant="ghost"
+            size="icon-lg"
+            aria-label={t("columns.moveUp", { name: column.name })}
+            disabled={isFirst}
+            onClick={() => onMove(-1)}
           >
-            <Ellipsis aria-hidden="true" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-44">
-            <DropdownMenuItem onClick={onEdit}>
-              <Pencil aria-hidden="true" />
-              {t("columns.edit")}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem variant="destructive" onClick={onDelete}>
-              <Trash2 aria-hidden="true" />
-              {t("columns.delete")}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+            <ArrowUp aria-hidden="true" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-lg"
+            aria-label={t("columns.moveDown", { name: column.name })}
+            disabled={isLast}
+            onClick={() => onMove(1)}
+          >
+            <ArrowDown aria-hidden="true" />
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon-lg"
+                  aria-label={t("columns.options", { name: column.name })}
+                />
+              }
+            >
+              <Ellipsis aria-hidden="true" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44">
+              <DropdownMenuItem onClick={onEdit}>
+                <Pencil aria-hidden="true" />
+                {t("columns.edit")}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem variant="destructive" onClick={onDelete}>
+                <Trash2 aria-hidden="true" />
+                {t("columns.delete")}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
     </li>
   );
 }

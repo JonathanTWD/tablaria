@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Ellipsis, Pencil, Trash2 } from "lucide-react";
-import { Suspense, useState } from "react";
+import { hasRole } from "@wisedata/shared";
+import { ArrowLeft, Building2, Ellipsis, LogOut, Pencil, Trash2, UserPlus } from "lucide-react";
+import { Suspense, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, NavLink, Outlet, useParams } from "react-router";
+import { Link, NavLink, Outlet, useNavigate, useParams } from "react-router";
 import { FullPageLoader } from "@/components/FullPageLoader";
 import { buttonVariants } from "@/components/ui/button-variants";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PresenceAvatars } from "@/features/realtime/PresenceAvatars";
+import {
+  type RealtimeStatus,
+  useRealtimeTable,
+  useTablePresence,
+} from "@/features/realtime/realtime-context";
+import { useSession } from "@/features/auth/session";
+import { useSpace } from "@/features/organizations/space-context";
+import { LeaveTableDialog } from "@/features/sharing/LeaveTableDialog";
+import { ShareDialog } from "@/features/sharing/ShareDialog";
 import { DeleteTableDialog } from "@/features/tables/DeleteTableDialog";
 import { EditTableDialog } from "@/features/tables/EditTableDialog";
 import { tableQuery } from "@/features/tables/queries";
@@ -27,12 +38,27 @@ export default function TablePage() {
   const { t, i18n } = useTranslation(["tables", "records"]);
   const { tableId = "" } = useParams();
   const table = useQuery(tableQuery(tableId));
-  const [dialog, setDialog] = useState<"edit" | "delete" | null>(null);
+  const realtime = useRealtimeTable(tableId);
+  const { viewers } = useTablePresence(tableId);
+  const { data: user } = useSession();
+  const others = viewers.filter(({ userId }) => userId !== user?.id);
+  const [dialog, setDialog] = useState<"share" | "edit" | "delete" | "leave" | null>(null);
+  const navigate = useNavigate();
+  const { space, setSpaceId } = useSpace();
+  // Tables shared with the user stay outside their spaces.
+  const tableSpace = table.data?.member ? table.data.organizationId : undefined;
+
+  // Opening a table of another space switches to it, so the sidebar lists the tables next to it.
+  useEffect(() => {
+    if (tableSpace && space && tableSpace !== space.id) {
+      setSpaceId(tableSpace);
+    }
+  }, [tableSpace, space, setSpaceId]);
 
   const backLink = (
     <Link
       to="/app"
-      className="inline-flex items-center gap-1.5 rounded-md text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+      className="inline-flex items-center gap-1.5 rounded-md text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring lg:hidden"
     >
       <ArrowLeft aria-hidden="true" className="size-4" />
       {t("page.back")}
@@ -79,20 +105,32 @@ export default function TablePage() {
   }
 
   const { data } = table;
+  const manages = hasRole(data.role, "ADMIN");
   const meta = [
+    // Without admin rights, the user sees what they can do and, for shared tables, why.
+    !manages &&
+      t(data.member ? "page.yourRole" : "page.sharedWithYou", {
+        role: t(`share.roles.${data.role}`),
+      }),
     t("count.columns", { count: data.columnCount }),
     t("count.records", { count: data.recordCount }),
     t("edited", { time: formatRelativeTime(data.updatedAt, i18n.language) }),
-  ].join(" · ");
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
-    <>
+    // Full width for wide tables, bounded so ultrawide screens don't spread a few columns apart.
+    <div className="mx-auto w-full max-w-[160rem]">
       <title>{`${data.name} | WiseData`}</title>
       {backLink}
 
-      <div className="mt-4 flex items-start justify-between gap-4">
+      <div className="mt-4 flex items-start justify-between gap-4 lg:mt-0">
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight break-words">{data.name}</h1>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <h1 className="text-2xl font-semibold tracking-tight break-words">{data.name}</h1>
+            <RealtimeBadge status={realtime} />
+          </div>
           {data.description && (
             <p className="mt-1.5 max-w-prose text-sm leading-6 text-muted-foreground">
               {data.description}
@@ -100,29 +138,56 @@ export default function TablePage() {
           )}
           <p className="mt-2 text-xs text-muted-foreground">{meta}</p>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            render={
-              <Button variant="outline" size="icon-lg" aria-label={t("page.actions")} />
-            }
-          >
-            <Ellipsis aria-hidden="true" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-60">
-            <DropdownMenuItem onClick={() => setDialog("edit")}>
-              <Pencil aria-hidden="true" />
-              {t("edit.open")}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem variant="destructive" onClick={() => setDialog("delete")}>
-              <Trash2 aria-hidden="true" />
-              {t("delete.open")}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex shrink-0 items-center gap-2">
+          <PresenceAvatars viewers={others} />
+          {/* Sharing is the main action of an owner's table, so it isn't tucked into the menu. */}
+          {manages && (
+            <Button className="h-10" onClick={() => setDialog("share")}>
+              <UserPlus aria-hidden="true" />
+              <span className="sr-only sm:not-sr-only">{t("page.share")}</span>
+            </Button>
+          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button variant="outline" size="icon-lg" aria-label={t("page.actions")} />
+              }
+            >
+              <Ellipsis aria-hidden="true" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-60">
+              {manages ? (
+                <>
+                  <DropdownMenuItem onClick={() => setDialog("edit")}>
+                    <Pencil aria-hidden="true" />
+                    {t("edit.open")}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem variant="destructive" onClick={() => setDialog("delete")}>
+                    <Trash2 aria-hidden="true" />
+                    {t("delete.open")}
+                  </DropdownMenuItem>
+                </>
+              ) : data.member ? (
+                // Access comes from the organization: it's left from its page.
+                <DropdownMenuItem
+                  onClick={() => void navigate(`/app/organizations/${data.organizationId}`)}
+                >
+                  <Building2 aria-hidden="true" />
+                  {t("page.organization")}
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem variant="destructive" onClick={() => setDialog("leave")}>
+                  <LogOut aria-hidden="true" />
+                  {t("page.leave")}
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
-      <nav aria-label={t("records:tabs.label")} className="mt-6 flex gap-1 border-b border-border">
+      <nav aria-label={t("records:tabs.label")} className="mt-5 flex gap-1 border-b border-border">
         {[
           { to: "", end: true, label: t("records:tabs.records") },
           { to: "columns", end: false, label: t("records:tabs.columns") },
@@ -149,6 +214,20 @@ export default function TablePage() {
         <Outlet context={data} />
       </Suspense>
 
+      {manages && (
+        <ShareDialog
+          table={data}
+          open={dialog === "share"}
+          onOpenChange={(open) => setDialog(open ? "share" : null)}
+        />
+      )}
+      {!manages && !data.member && (
+        <LeaveTableDialog
+          table={data}
+          open={dialog === "leave"}
+          onOpenChange={(open) => setDialog(open ? "leave" : null)}
+        />
+      )}
       <EditTableDialog
         table={data}
         open={dialog === "edit"}
@@ -159,6 +238,27 @@ export default function TablePage() {
         open={dialog === "delete"}
         onOpenChange={(open) => setDialog(open ? "delete" : null)}
       />
-    </>
+    </div>
+  );
+}
+
+/** Whether changes by others show up on their own; nothing while first connecting. */
+function RealtimeBadge({ status }: { status: RealtimeStatus }) {
+  const { t } = useTranslation("tables");
+  if (status === "connecting") {
+    return null;
+  }
+  const live = status === "live";
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">
+      <span
+        aria-hidden="true"
+        className={cn(
+          "size-1.5 rounded-full",
+          live ? "bg-green-500 motion-safe:animate-pulse" : "bg-amber-500",
+        )}
+      />
+      {live ? t("page.live") : t("page.offline")}
+    </span>
   );
 }

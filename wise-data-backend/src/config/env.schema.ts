@@ -37,6 +37,17 @@ export const envSchema = z
     TRUST_PROXY_HOPS: z.coerce.number().int().min(0).default(0),
     // Public URL of the frontend, used to build links in emails.
     APP_URL: z.url(),
+    // WebSocket URL of this API as browsers reach it (e.g. wss://api.example.com/api/realtime),
+    // for when the frontend's /api proxy can't carry WebSockets. Unset: same origin as the app.
+    REALTIME_URL: z.preprocess(
+      emptyAsUnset,
+      z
+        .url()
+        .refine((url) => /^wss?:/.test(url), {
+          message: 'Must be a ws:// or wss:// URL',
+        })
+        .optional(),
+    ),
     JWT_ACCESS_SECRET: z.string().min(32),
     MAIL_FROM: z.string().min(1).default('WiseData <no-reply@wisedata.local>'),
     MAIL_TRANSPORT: z.enum(['smtp', 'resend']).default('smtp'),

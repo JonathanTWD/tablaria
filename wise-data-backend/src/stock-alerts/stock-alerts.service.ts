@@ -13,7 +13,7 @@ export class StockAlertsService {
   constructor(private readonly prisma: PrismaService) {}
 
   /** Records below their column's threshold in every table the user owns. */
-  async list(ownerId: string): Promise<StockAlerts> {
+  async list(userId: string): Promise<StockAlerts> {
     // The CASE keeps the cast away from cells that are not numbers, whatever
     // order the planner applies the conditions in.
     const rows = await this.prisma.$queryRaw<AlertRow[]>`
@@ -36,7 +36,17 @@ export class StockAlertsService {
         CROSS JOIN LATERAL (
           SELECT id FROM columns WHERE "tableId" = t.id ORDER BY position LIMIT 1
         ) first
-        WHERE t."ownerId" = ${ownerId}::uuid
+        -- Same rule as accessibleTables(): a member of its organization or shared with.
+        WHERE (
+          EXISTS (
+            SELECT 1 FROM memberships m
+            WHERE m."organizationId" = t."organizationId" AND m."userId" = ${userId}::uuid
+          )
+          OR EXISTS (
+            SELECT 1 FROM table_shares s
+            WHERE s."tableId" = t.id AND s."userId" = ${userId}::uuid
+          )
+        )
           AND c.type = 'number'
           AND c.options ? 'alertBelow'
       ) candidates
