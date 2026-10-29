@@ -15,7 +15,7 @@ import { PasswordInput } from "@/features/auth/components/PasswordInput";
 import { ResendVerificationForm } from "@/features/auth/components/ResendVerificationForm";
 import { SubmitButton } from "@/components/form/SubmitButton";
 import { passwordErrorMessage } from "@/features/auth/field-errors";
-import { DEFAULT_AUTHENTICATED_PATH } from "@/features/auth/redirect";
+import { takeAfterSignup } from "@/features/auth/redirect";
 import { useStartSession } from "@/features/auth/session";
 import { ApiError } from "@/lib/api-client";
 import { apiErrorMessage } from "@/lib/error-message";
@@ -40,7 +40,8 @@ export default function VerifyEmailPage() {
     onSuccess: (user) => {
       startSession(user);
       toast.success(t("verify.success"));
-      navigate(DEFAULT_AUTHENTICATED_PATH, { replace: true });
+      // An invitation that led to signing up is accepted next.
+      navigate(takeAfterSignup(), { replace: true });
     },
   });
 

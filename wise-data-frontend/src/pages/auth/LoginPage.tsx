@@ -16,6 +16,7 @@ import { FormField } from "@/components/form/FormField";
 import { PasswordInput } from "@/features/auth/components/PasswordInput";
 import { SubmitButton } from "@/components/form/SubmitButton";
 import { emailErrorMessage, passwordErrorMessage } from "@/features/auth/field-errors";
+import { isInvitationPath } from "@/features/auth/redirect";
 import { useStartSession } from "@/features/auth/session";
 import { TryDemoButton } from "@/features/auth/TryDemoButton";
 import { ApiError } from "@/lib/api-client";
@@ -54,6 +55,18 @@ export default function LoginPage() {
   return (
     <>
       <AuthHeading title={t("login.title")} description={t("login.description")} />
+
+      {isInvitationPath(searchParams.get("redirect")) && (
+        <p className="mb-6 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm leading-6">
+          {t("login.invitationHint")}{" "}
+          <Link
+            to={{ pathname: "/register", search: searchParams.toString() }}
+            className="font-medium text-primary underline-offset-4 hover:underline"
+          >
+            {t("login.invitationRegister")}
+          </Link>
+        </p>
+      )}
 
       <form noValidate onSubmit={form.handleSubmit((values) => login.mutate(values))}>
         <FieldGroup className="gap-5">
