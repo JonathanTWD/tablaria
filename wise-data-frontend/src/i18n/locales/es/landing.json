@@ -403,7 +403,7 @@
       },
       "import": {
         "question": "¿Puedo usar mis datos en Excel?",
-        "answer": "Sí: cada tabla se exporta a CSV con la búsqueda, los filtros y el orden que tengas, y se abre directamente en Excel. Importar desde Excel aún no se puede, pero está en la hoja de ruta."
+        "answer": "Sí, en los dos sentidos. Cada tabla se exporta a CSV con la búsqueda, los filtros y el orden que tengas, y se abre directamente en Excel. Para traer tus datos, guarda tu hoja como CSV e impórtala: WiseData empareja las columnas y te avisa de cada celda que no encaje antes de guardar nada."
       },
       "install": {
         "question": "¿Tengo que instalar algo?",

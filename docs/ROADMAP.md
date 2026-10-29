@@ -36,7 +36,7 @@ La especificación completa del MVP está en [MVP_PROMPT.md](MVP_PROMPT.md).
 
 1. **Exportar**, respetando la vista actual (búsqueda, filtros y orden). El CSV ya está hecho; falta Excel (`.xlsx` con ExcelJS), que se añadirá cuando las versiones recientes del lockfile cumplan la antigüedad mínima de pnpm.
 2. **Alertas de stock bajo** y **gráficos** en el dashboard (hecho: umbral por columna numérica, tarjeta «Bajo mínimo» y resumen con gráfico de barras por columna).
-3. **Importar** CSV o Excel con un asistente paso a paso: subir el archivo, indicar el formato, emparejar columnas, revisar las opciones nuevas y validar antes de importar. Usará la misma conversión y validación que la API. Se importan formatos neutros (CSV, Excel, JSON), no SQL de cada motor.
+3. **Importar** con un asistente paso a paso (hecho para CSV, fase 10, ADR-021): elegir el archivo, emparejar columnas, revisar errores y opciones nuevas, e importar todo o nada. Falta Excel (`.xlsx`), que se leerá en el navegador con ExcelJS cuando cumpla la antigüedad mínima de pnpm.
 4. **Preguntas sobre los datos con IA**: el modelo consulta la API mediante herramientas (filtros validados y un endpoint de agregaciones), nunca con SQL libre. Las herramientas solo leen.
 
 ### Otras

@@ -13,7 +13,8 @@
     "filtersActive_other": "Filtros ({{count}} activos)",
     "add": "Nuevo registro",
     "export": "Exportar CSV",
-    "exportError": "No se pudo exportar. {{message}}"
+    "exportError": "No se pudo exportar. {{message}}",
+    "import": "Importar CSV"
   },
   "table": {
     "caption": "Registros de {{name}}",
@@ -104,5 +105,60 @@
     "submit": "Borrar registro",
     "deleted": "Registro borrado"
   },
-  "cancel": "Cancelar"
+  "cancel": "Cancelar",
+  "import": {
+    "title": "Importar en «{{name}}»",
+    "description": "Añade los registros de un archivo CSV, como los que guarda Excel o exporta WiseData.",
+    "step": "Paso {{step}} de {{total}}",
+    "file": "Archivo CSV",
+    "fileHint": "Hasta {{max}} filas. Las columnas de la tabla tienen que existir antes de importar.",
+    "hasHeader": "La primera fila tiene los nombres de las columnas",
+    "fileSummary_one": "{{name}}: {{count}} fila de datos.",
+    "fileSummary_other": "{{name}}: {{count}} filas de datos.",
+    "columnNumber": "Columna {{number}}",
+    "mapping": "Columnas",
+    "mappingHint": "Elige en qué columna de la tabla va cada columna del archivo. Las que tienen el mismo nombre ya están emparejadas.",
+    "sample": "Ejemplo: {{value}}",
+    "columnFor": "Columna de la tabla para «{{name}}»",
+    "skip": "No importar",
+    "otherFile": "Elegir otro archivo",
+    "check": "Comprobar",
+    "back": "Volver a las columnas",
+    "ready_one": "{{count}} registro listo para importar.",
+    "ready_other": "{{count}} registros listos para importar.",
+    "summary": "{{valid}} de {{count}} filas son válidas; hay {{errors}} errores.",
+    "missingChoices": "Valores que no son opciones de su lista",
+    "addChoices": "Añadirlos como opciones nuevas",
+    "choicesAdminOnly": "Solo quien administra la tabla puede añadir opciones. Corrige esos valores en el archivo o pídeselo.",
+    "errorsTitle": "Errores",
+    "errorLine": "Fila {{row}} · {{column}}: «{{value}}»",
+    "errorLineEmpty": "Fila {{row}} · {{column}}:",
+    "moreErrors_one": "Y {{count}} error más.",
+    "moreErrors_other": "Y {{count}} errores más.",
+    "fixHint": "No se importa nada mientras haya errores: corrige el archivo y vuelve a elegirlo.",
+    "reasons": {
+      "required": "es obligatoria y está vacía",
+      "unknownChoice": "no es una opción de la lista",
+      "invalid": {
+        "text": "no es un texto válido",
+        "number": "no es un número",
+        "currency": "no es un precio",
+        "date": "no es una fecha (usa 31/12/2026 o 2026-12-31)",
+        "boolean": "no es Sí o No",
+        "select": "no es una opción de la lista"
+      }
+    },
+    "submit_one": "Importar {{count}} registro",
+    "submit_other": "Importar {{count}} registros",
+    "done_one": "{{count}} registro importado",
+    "done_other": "{{count}} registros importados",
+    "errors": {
+      "empty": "El archivo no tiene filas de datos.",
+      "tooManyRows": "El archivo tiene más de {{max}} filas. Divídelo en partes más pequeñas.",
+      "tooLarge": "El archivo es demasiado grande. Divídelo en partes de hasta {{max}} filas.",
+      "rejected": "No se pudo importar: el archivo tiene errores o la tabla superaría los 10.000 registros.",
+      "forbidden": "No tienes permiso para importar en esta tabla o para añadir opciones.",
+      "unreadable": "No se pudo leer el archivo. Comprueba que es un CSV y vuelve a elegirlo."
+    }
+  }
 }
