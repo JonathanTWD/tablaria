@@ -48,6 +48,7 @@
   "empty": {
     "noColumnsTitle": "Primero, define las columnas",
     "noColumnsDescription": "Las columnas indican qué datos guarda cada registro.",
+    "noColumnsDescriptionImport": "Las columnas indican qué datos guarda cada registro. Créalas a mano o importa un archivo CSV y se crearán a partir de su cabecera.",
     "noColumnsAction": "Ir a columnas",
     "title": "Aún no hay registros",
     "description": "Añade el primero con el botón «Nuevo registro»; luego podrás editar cada celda directamente en la tabla.",
@@ -109,15 +110,23 @@
   "import": {
     "title": "Importar en «{{name}}»",
     "description": "Añade los registros de un archivo CSV, como los que guarda Excel o exporta WiseData.",
+    "newTableTitle": "Nueva tabla desde un archivo CSV",
+    "newTableDescription": "Crea la tabla con las columnas y los registros de un archivo, como los que guarda Excel o exporta WiseData.",
     "step": "Paso {{step}} de {{total}}",
     "file": "Archivo CSV",
-    "fileHint": "Hasta {{max}} filas. Las columnas de la tabla tienen que existir antes de importar.",
+    "fileHint": "Hasta {{max}} filas.",
     "hasHeader": "La primera fila tiene los nombres de las columnas",
     "fileSummary_one": "{{name}}: {{count}} fila de datos.",
     "fileSummary_other": "{{name}}: {{count}} filas de datos.",
     "columnNumber": "Columna {{number}}",
     "mapping": "Columnas",
     "mappingHint": "Elige en qué columna de la tabla va cada columna del archivo. Las que tienen el mismo nombre ya están emparejadas.",
+    "mappingHintNew": "Elige en qué columna va cada columna del archivo, o crea una nueva con el tipo que mejor encaja con sus valores. Puedes cambiar el tipo.",
+    "newColumn": "Nueva columna",
+    "typeFor": "Tipo de la nueva columna para «{{name}}»",
+    "newColumnName": "Se creará la columna «{{name}}»",
+    "emptyChoice": "Opción 1",
+    "tableName": "Nombre de la tabla",
     "sample": "Ejemplo: {{value}}",
     "columnFor": "Columna de la tabla para «{{name}}»",
     "skip": "No importar",
@@ -153,13 +162,16 @@
     "submit_other": "Importar {{count}} registros",
     "done_one": "{{count}} registro importado",
     "done_other": "{{count}} registros importados",
+    "createdTable_one": "Tabla «{{name}}» creada con {{count}} registro",
+    "createdTable_other": "Tabla «{{name}}» creada con {{count}} registros",
     "errors": {
       "empty": "El archivo no tiene filas de datos.",
       "tooManyRows": "El archivo tiene más de {{max}} filas. Divídelo en partes más pequeñas.",
       "tooLarge": "El archivo es demasiado grande. Divídelo en partes de hasta {{max}} filas.",
       "rejected": "No se pudo importar: el archivo tiene errores o la tabla superaría los 10.000 registros.",
       "forbidden": "No tienes permiso para importar en esta tabla o para añadir opciones.",
-      "unreadable": "No se pudo leer el archivo. Comprueba que es un CSV y vuelve a elegirlo."
+      "unreadable": "No se pudo leer el archivo. Comprueba que es un CSV y vuelve a elegirlo.",
+      "conflict": "Ya hay una columna con ese nombre o la tabla superaría las 50 columnas. Cambia el nombre en la cabecera del archivo o importa menos columnas."
     }
   }
 }

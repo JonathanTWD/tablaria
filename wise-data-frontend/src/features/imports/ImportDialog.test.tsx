@@ -57,7 +57,7 @@ describe("ImportDialog", () => {
       }
       return { tableId: table.id, imported: 2, addedChoices: 0, addedColumns: 0 };
     });
-    renderWithProviders(<ImportDialog table={table} open onOpenChange={() => undefined} />);
+    renderWithProviders(<ImportDialog destination={{ kind: "table", table }} open onOpenChange={() => undefined} />);
 
     await user.upload(
       screen.getByLabelText("Archivo CSV"),
@@ -93,7 +93,7 @@ describe("ImportDialog", () => {
       missingChoices: [],
       missingRequired: [],
     }));
-    renderWithProviders(<ImportDialog table={table} open onOpenChange={() => undefined} />);
+    renderWithProviders(<ImportDialog destination={{ kind: "table", table }} open onOpenChange={() => undefined} />);
 
     await user.upload(screen.getByLabelText("Archivo CSV"), csvFile("Producto;Stock\nTaladro;5\nSierra;12 uds\n"));
     await user.click(await screen.findByRole("button", { name: "Comprobar" }));
@@ -103,4 +103,52 @@ describe("ImportDialog", () => {
     expect(screen.getByText("no es un número")).toBeVisible();
     expect(screen.getByRole("button", { name: "Importar 1 registro" })).toBeDisabled();
   });
+
+  it("creates a new table with columns typed from the file", async () => {
+    const user = userEvent.setup();
+    const sent: { path: string; body: unknown }[] = [];
+    const organizationId = "5b6c7d8e-1111-4aaa-8bbb-000000000009";
+    mockApi((url, init) => {
+      sent.push({ path: url.pathname, body: JSON.parse(String(init.body)) });
+      if (url.pathname.endsWith("/check")) {
+        return {
+          rows: 2,
+          validRows: 2,
+          errorCount: 0,
+          errors: [],
+          missingChoices: [],
+          missingRequired: [],
+        } satisfies ImportCheck;
+      }
+      return { tableId: "new-table", imported: 2, addedChoices: 0, addedColumns: 3 };
+    });
+    renderWithProviders(
+      <ImportDialog destination={{ kind: "newTable", organizationId }} open onOpenChange={() => undefined} />,
+    );
+
+    await user.upload(
+      screen.getByLabelText("Archivo CSV"),
+      csvFile("Producto;Precio;Compra\nTaladro;89,90 €;15/03/2025\nSierra;12 €;2025-02-01\n"),
+    );
+    // Named after the file, with every column new and typed from its values.
+    expect(await screen.findByLabelText("Nombre de la tabla")).toHaveValue("inventario");
+    expect(screen.getByText("Se creará la columna «Precio»")).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Comprobar" }));
+    await user.click(await screen.findByRole("button", { name: "Importar 2 registros" }));
+
+    await waitFor(() => expect(sent).toHaveLength(2));
+    expect(sent[1]).toMatchObject({
+      path: `/api/organizations/${organizationId}/tables/import`,
+      body: {
+        name: "inventario",
+        columns: [
+          { create: { name: "Producto", type: "text" } },
+          { create: { name: "Precio", type: "currency", options: { currency: "EUR" } } },
+          { create: { name: "Compra", type: "date" } },
+        ],
+      },
+    });
+    expect(screen.getByTestId("location")).toHaveTextContent("/app/tables/new-table");
+  });
 });
+

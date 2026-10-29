@@ -21,7 +21,7 @@ export interface RecordsView {
   filters: RecordFilter[];
 }
 
-export const PAGE_SIZES = [25, 50, 100] as const;
+export const PAGE_SIZES = [10, 25, 50, 100] as const;
 
 const DEFAULT_VIEW: RecordsView = {
   page: 1,

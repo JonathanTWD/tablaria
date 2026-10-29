@@ -1,17 +1,22 @@
 import {
+  COLUMN_TYPES,
+  type ColumnDefinitionInput,
+  type ColumnType,
   hasRole,
   type ImportCheck,
-  type ImportInput,
+  type ImportTarget,
   MAX_COLUMNS_PER_TABLE,
   MAX_IMPORT_ROWS,
+  TABLE_NAME_MAX_LENGTH,
   type TableColumn,
-  type TableDetail,
 } from "@wisedata/shared";
 import { FileUp, Loader2 } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { FormAlert } from "@/components/form/FormAlert";
+import { FormField } from "@/components/form/FormField";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -22,6 +27,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Field, FieldContent, FieldDescription, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -34,22 +40,35 @@ import { ApiError } from "@/lib/api-client";
 import { apiErrorMessage } from "@/lib/error-message";
 import { matchColumns } from "./column-matching";
 import { decodeText, parseCsv } from "./csv";
-import { useCheckImport, useRunImport } from "./queries";
+import { columnForFile, inferType } from "./infer-column";
+import { type ImportBody, type ImportDestination, useCheckImport, useRunImport } from "./queries";
 
 /** Above this the file can't fit the API's request limit for imports. */
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
 const MAX_BODY_CHARS = 2_000_000;
-/** Select value for a file column that isn't imported (select values can't be null). */
+/** Select values for the choices that aren't a table column (select values can't be null). */
 const SKIP = "skip";
+const NEW = "new";
+
+/** What a column of the file becomes. */
+type Target = { kind: "skip" } | { kind: "existing"; id: string } | { kind: "new"; type: ColumnType };
+
+/** How the review names a column of the file: as the table column it fills. */
+type TargetInfo = { name: string; type: ColumnType } | null;
 
 interface ImportDialogProps {
-  table: TableDetail;
+  destination: ImportDestination;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** After a successful import, e.g. to close the phone menu that opened it. */
+  onImported?: () => void;
 }
 
-/** Imports the rows of a CSV file into the table: choose, match columns, review (ADR-021). */
-export function ImportDialog({ table, open, onOpenChange }: ImportDialogProps) {
+/**
+ * Imports the rows of a CSV file into a table, or into a new one: choose the
+ * file, decide where each column goes, review (ADR-021).
+ */
+export function ImportDialog({ destination, open, onOpenChange, onImported }: ImportDialogProps) {
   const { t } = useTranslation(["records", "common"]);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -58,11 +77,25 @@ export function ImportDialog({ table, open, onOpenChange }: ImportDialogProps) {
         className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-2xl"
       >
         <DialogHeader>
-          <DialogTitle>{t("import.title", { name: table.name })}</DialogTitle>
-          <DialogDescription>{t("import.description")}</DialogDescription>
+          <DialogTitle>
+            {destination.kind === "table"
+              ? t("import.title", { name: destination.table.name })
+              : t("import.newTableTitle")}
+          </DialogTitle>
+          <DialogDescription>
+            {destination.kind === "table" ? t("import.description") : t("import.newTableDescription")}
+          </DialogDescription>
         </DialogHeader>
         {/* Mounted only while open, so every import starts from scratch. */}
-        {open && <ImportWizard table={table} onDone={() => onOpenChange(false)} />}
+        {open && (
+          <ImportWizard
+            destination={destination}
+            onDone={() => {
+              onOpenChange(false);
+              onImported?.();
+            }}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );
@@ -73,40 +106,86 @@ interface LoadedFile {
   rows: string[][];
 }
 
-function ImportWizard({ table, onDone }: { table: TableDetail; onDone: () => void }) {
+function ImportWizard({ destination, onDone }: { destination: ImportDestination; onDone: () => void }) {
   const { t, i18n } = useTranslation("records");
+  const navigate = useNavigate();
   const maxRows = MAX_IMPORT_ROWS.toLocaleString(i18n.language);
+  const tableColumns = destination.kind === "table" ? destination.table.columns : [];
+  // Columns and choices change the table's structure: admins only (the API checks too).
+  const canChangeColumns = destination.kind === "newTable" || hasRole(destination.table.role, "ADMIN");
   const [file, setFile] = useState<LoadedFile | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
   const [hasHeader, setHasHeader] = useState(true);
-  const [mapping, setMapping] = useState<(string | null)[]>([]);
+  const [targets, setTargets] = useState<Target[]>([]);
+  const [tableName, setTableName] = useState("");
   const [addMissingChoices, setAddMissingChoices] = useState(false);
-  const check = useCheckImport(table.id);
-  const run = useRunImport(table.id);
+  const check = useCheckImport(destination);
+  const run = useRunImport(destination);
 
-  const width = file ? fileWidth(file.rows) : 0;
-  const headers = file
-    ? Array.from({ length: width }, (_, index) =>
-        hasHeader && file.rows[0][index]?.trim()
-          ? file.rows[0][index].trim()
-          : t("import.columnNumber", { number: index + 1 }),
-      )
-    : [];
-  const dataRows = (file?.rows ?? [])
-    .slice(hasHeader ? 1 : 0)
-    .map((row) => Array.from({ length: width }, (_, index) => row[index] ?? ""));
+  const layout = file ? fileLayout(file.rows, hasHeader, t) : { headers: [], dataRows: [] };
+  const { headers, dataRows } = layout;
+  const valuesOf = (index: number) => dataRows.map((row) => row[index]);
 
-  const body = (addChoices = addMissingChoices): ImportInput => ({
-    columns: mapping,
+  // New columns are named after their header, never like another column.
+  const taken = tableColumns.map(({ name }) => name);
+  const definitions = targets.map((target, index): ColumnDefinitionInput | null => {
+    if (target.kind !== "new") {
+      return null;
+    }
+    const definition = columnForFile(
+      target.type,
+      headers[index],
+      valuesOf(index),
+      taken,
+      t("import.emptyChoice"),
+    );
+    taken.push(definition.name);
+    return definition;
+  });
+  const targetInfo = targets.map((target, index): TargetInfo => {
+    if (target.kind === "existing") {
+      const column = tableColumns.find(({ id }) => id === target.id);
+      return column ? { name: column.name, type: column.type } : null;
+    }
+    const definition = definitions[index];
+    return definition ? { name: definition.name, type: definition.type } : null;
+  });
+
+  const body = (addChoices = addMissingChoices): ImportBody => ({
+    columns: targets.map(
+      (target, index): ImportTarget =>
+        target.kind === "skip"
+          ? null
+          : target.kind === "existing"
+            ? target.id
+            : { create: definitions[index] as ColumnDefinitionInput },
+    ),
     rows: dataRows,
     addMissingChoices: addChoices,
+    name: tableName.trim(),
   });
   // The rows go to the API as JSON; a file over its limit is refused here first.
   const tooLarge = JSON.stringify(dataRows).length > MAX_BODY_CHARS;
 
+  /** Same names map to existing columns; a table without columns gets new ones. */
+  const initialTargets = (rows: string[][], header: boolean): Target[] => {
+    const { headers: names, dataRows: data } = fileLayout(rows, header, t);
+    const matched = header ? matchColumns(names, tableColumns) : [];
+    const createByDefault = canChangeColumns && tableColumns.length === 0;
+    return names.map((name, index): Target => {
+      const id = matched[index];
+      if (id) {
+        return { kind: "existing", id };
+      }
+      return createByDefault
+        ? { kind: "new", type: inferType(name, data.map((row) => row[index])) }
+        : { kind: "skip" };
+    });
+  };
+
   const startOver = () => {
     setFile(null);
-    setMapping([]);
+    setTargets([]);
     setAddMissingChoices(false);
     check.reset();
     run.reset();
@@ -137,7 +216,8 @@ function ImportWizard({ table, onDone }: { table: TableDetail; onDone: () => voi
       return;
     }
     setFile({ name: selected.name, rows });
-    setMapping(initialMapping(rows, hasHeader, table));
+    setTargets(initialTargets(rows, hasHeader));
+    setTableName(selected.name.replace(/\.[^.]+$/, "").trim().slice(0, TABLE_NAME_MAX_LENGTH));
   };
 
   if (!file) {
@@ -154,17 +234,30 @@ function ImportWizard({ table, onDone }: { table: TableDetail; onDone: () => voi
   if (!check.data) {
     return (
       <MappingStep
-        table={table}
         fileName={file.name}
         headers={headers}
-        samples={headers.map((_, index) => dataRows.find((row) => row[index]?.trim())?.[index] ?? "")}
+        samples={headers.map((_, index) => valuesOf(index).find((value) => value.trim()) ?? "")}
         rowCount={dataRows.length}
-        mapping={mapping}
-        onMappingChange={setMapping}
+        tableColumns={tableColumns}
+        canCreateColumns={canChangeColumns}
+        targets={targets}
+        newNames={definitions.map((definition) => definition?.name ?? null)}
+        onTargetChange={(index, target) =>
+          setTargets(targets.map((current, other) => (other === index ? target : current)))
+        }
+        onNewColumn={(index) =>
+          setTargets(
+            targets.map((current, other) =>
+              other === index ? { kind: "new", type: inferType(headers[index], valuesOf(index)) } : current,
+            ),
+          )
+        }
+        tableName={destination.kind === "newTable" ? tableName : null}
+        onTableNameChange={setTableName}
         hasHeader={hasHeader}
         onHasHeaderChange={(value) => {
           setHasHeader(value);
-          setMapping(initialMapping(file.rows, value, table));
+          setTargets(initialTargets(file.rows, value));
         }}
         error={
           tooLarge
@@ -174,16 +267,23 @@ function ImportWizard({ table, onDone }: { table: TableDetail; onDone: () => voi
         pending={check.isPending}
         onBack={startOver}
         onCheck={() => check.mutate(body())}
-        canCheck={!tooLarge && mapping.some((id) => id !== null)}
+        canCheck={
+          !tooLarge &&
+          targets.some((target) => target.kind !== "skip") &&
+          (destination.kind === "table" || tableName.trim() !== "")
+        }
       />
     );
   }
 
   return (
     <ReviewStep
-      table={table}
       result={check.data}
-      targets={mapping.map((id) => table.columns.find((column) => column.id === id))}
+      targets={targetInfo}
+      requiredNames={check.data.missingRequired.map(
+        (id) => tableColumns.find((column) => column.id === id)?.name ?? "",
+      )}
+      canAddChoices={canChangeColumns}
       firstRowNumber={hasHeader ? 2 : 1}
       addMissingChoices={addMissingChoices}
       onAddMissingChoicesChange={(value) => {
@@ -197,7 +297,12 @@ function ImportWizard({ table, onDone }: { table: TableDetail; onDone: () => voi
       onImport={() =>
         run.mutate(body(), {
           onSuccess: (result) => {
-            toast.success(t("import.done", { count: result.imported }));
+            if (destination.kind === "newTable") {
+              toast.success(t("import.createdTable", { name: tableName.trim(), count: result.imported }));
+              void navigate(`/app/tables/${result.tableId}`);
+            } else {
+              toast.success(t("import.done", { count: result.imported }));
+            }
             onDone();
           },
         })
@@ -206,15 +311,24 @@ function ImportWizard({ table, onDone }: { table: TableDetail; onDone: () => voi
   );
 }
 
-/** Columns of the file: its longest row, up to what a table can hold. */
-function fileWidth(rows: string[][]): number {
-  return Math.min(Math.max(0, ...rows.map((row) => row.length)), MAX_COLUMNS_PER_TABLE);
-}
+type Translate = ReturnType<typeof useTranslation<"records">>["t"];
 
-/** One entry per file column: matched by header name, or skipped without a header. */
-function initialMapping(rows: string[][], hasHeader: boolean, table: TableDetail): (string | null)[] {
-  const matched = hasHeader ? matchColumns(rows[0], table.columns) : [];
-  return Array.from({ length: fileWidth(rows) }, (_, index) => matched[index] ?? null);
+/** Headers (or "Columna N") and data rows, all as wide as the file's longest row. */
+function fileLayout(
+  rows: string[][],
+  hasHeader: boolean,
+  t: Translate,
+): { headers: string[]; dataRows: string[][] } {
+  const width = Math.min(Math.max(0, ...rows.map((row) => row.length)), MAX_COLUMNS_PER_TABLE);
+  const headers = Array.from({ length: width }, (_, index) =>
+    hasHeader && rows[0][index]?.trim()
+      ? rows[0][index].trim()
+      : t("import.columnNumber", { number: index + 1 }),
+  );
+  const dataRows = rows
+    .slice(hasHeader ? 1 : 0)
+    .map((row) => Array.from({ length: width }, (_, index) => row[index] ?? ""));
+  return { headers, dataRows };
 }
 
 function FileStep({
@@ -273,13 +387,18 @@ function HeaderSwitch({
 }
 
 function MappingStep({
-  table,
   fileName,
   headers,
   samples,
   rowCount,
-  mapping,
-  onMappingChange,
+  tableColumns,
+  canCreateColumns,
+  targets,
+  newNames,
+  onTargetChange,
+  onNewColumn,
+  tableName,
+  onTableNameChange,
   hasHeader,
   onHasHeaderChange,
   error,
@@ -288,13 +407,20 @@ function MappingStep({
   onCheck,
   canCheck,
 }: {
-  table: TableDetail;
   fileName: string;
   headers: string[];
   samples: string[];
   rowCount: number;
-  mapping: (string | null)[];
-  onMappingChange: (mapping: (string | null)[]) => void;
+  tableColumns: TableColumn[];
+  canCreateColumns: boolean;
+  targets: Target[];
+  /** The name each new column will get. */
+  newNames: (string | null)[];
+  onTargetChange: (index: number, target: Target) => void;
+  onNewColumn: (index: number) => void;
+  /** Null when importing into an existing table. */
+  tableName: string | null;
+  onTableNameChange: (name: string) => void;
   hasHeader: boolean;
   onHasHeaderChange: (value: boolean) => void;
   error: string | null | undefined;
@@ -303,11 +429,15 @@ function MappingStep({
   onCheck: () => void;
   canCheck: boolean;
 }) {
-  const { t } = useTranslation("records");
+  const { t } = useTranslation(["records", "tables"]);
+  const ids = useId();
   const items = {
     [SKIP]: t("import.skip"),
-    ...Object.fromEntries(table.columns.map((column) => [column.id, column.name])),
+    [NEW]: t("import.newColumn"),
+    ...Object.fromEntries(tableColumns.map((column) => [column.id, column.name])),
   };
+  const typeItems = Object.fromEntries(COLUMN_TYPES.map((type) => [type, t(`tables:types.${type}`)]));
+  const used = new Set(targets.flatMap((target) => (target.kind === "existing" ? [target.id] : [])));
 
   return (
     <div className="flex flex-col gap-5">
@@ -315,50 +445,99 @@ function MappingStep({
       <p className="text-sm text-muted-foreground">
         {t("import.fileSummary", { name: fileName, count: rowCount })}
       </p>
+      {tableName !== null && (
+        <FormField
+          id={`${ids}-name`}
+          label={t("import.tableName")}
+          error={tableName.trim() === "" ? t("tables:validation.tableName") : undefined}
+        >
+          <Input
+            autoComplete="off"
+            className="h-9"
+            maxLength={TABLE_NAME_MAX_LENGTH}
+            value={tableName}
+            onChange={(event) => onTableNameChange(event.target.value)}
+          />
+        </FormField>
+      )}
       <HeaderSwitch checked={hasHeader} onCheckedChange={onHasHeaderChange} />
       {error && <FormAlert>{error}</FormAlert>}
       <fieldset className="flex flex-col gap-3">
         <legend className="mb-1 text-sm font-medium">{t("import.mapping")}</legend>
-        <p className="text-xs leading-5 text-muted-foreground">{t("import.mappingHint")}</p>
+        <p className="text-xs leading-5 text-muted-foreground">
+          {canCreateColumns ? t("import.mappingHintNew") : t("import.mappingHint")}
+        </p>
         <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
-          {headers.map((header, index) => (
-            <li key={index} className="grid gap-2 px-3 py-2.5 sm:grid-cols-[minmax(0,1fr)_14rem] sm:items-center">
-              <span className="min-w-0">
-                <span className="block truncate text-sm font-medium">{header}</span>
-                {samples[index] && (
-                  <span className="block truncate text-xs text-muted-foreground">
-                    {t("import.sample", { value: samples[index] })}
-                  </span>
-                )}
-              </span>
-              <Select
-                items={items}
-                value={mapping[index] ?? SKIP}
-                onValueChange={(value) => {
-                  const next = [...mapping];
-                  next[index] = value && value !== SKIP ? value : null;
-                  onMappingChange(next);
-                }}
-              >
-                <SelectTrigger aria-label={t("import.columnFor", { name: header })} className="h-9 w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={SKIP}>{t("import.skip")}</SelectItem>
-                  {table.columns.map((column) => (
-                    <SelectItem
-                      key={column.id}
-                      value={column.id}
-                      // Each table column takes one column of the file.
-                      disabled={mapping.some((id, other) => id === column.id && other !== index)}
-                    >
-                      {column.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </li>
-          ))}
+          {headers.map((header, index) => {
+            const target = targets[index];
+            const value = target.kind === "existing" ? target.id : target.kind === "new" ? NEW : SKIP;
+            return (
+              <li key={index} className="grid gap-2 px-3 py-2.5 sm:grid-cols-[minmax(0,1fr)_14rem] sm:items-start">
+                <span className="min-w-0 sm:pt-1.5">
+                  <span className="block truncate text-sm font-medium">{header}</span>
+                  {samples[index] && (
+                    <span className="block truncate text-xs text-muted-foreground">
+                      {t("import.sample", { value: samples[index] })}
+                    </span>
+                  )}
+                </span>
+                <span className="flex flex-col gap-2">
+                  <Select
+                    items={items}
+                    value={value}
+                    onValueChange={(next) => {
+                      if (next === NEW) {
+                        onNewColumn(index);
+                      } else {
+                        onTargetChange(index, next && next !== SKIP ? { kind: "existing", id: next } : { kind: "skip" });
+                      }
+                    }}
+                  >
+                    <SelectTrigger aria-label={t("import.columnFor", { name: header })} className="h-9 w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={SKIP}>{t("import.skip")}</SelectItem>
+                      {canCreateColumns && <SelectItem value={NEW}>{t("import.newColumn")}</SelectItem>}
+                      {tableColumns.map((column) => (
+                        <SelectItem
+                          key={column.id}
+                          value={column.id}
+                          // Each table column takes one column of the file.
+                          disabled={used.has(column.id) && value !== column.id}
+                        >
+                          {column.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {target.kind === "new" && (
+                    <>
+                      <Select
+                        items={typeItems}
+                        value={target.type}
+                        onValueChange={(type) => type && onTargetChange(index, { kind: "new", type })}
+                      >
+                        <SelectTrigger aria-label={t("import.typeFor", { name: header })} className="h-9 w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {COLUMN_TYPES.map((type) => (
+                            <SelectItem key={type} value={type}>
+                              {typeItems[type]}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <span className="text-xs text-muted-foreground">
+                        {t("import.newColumnName", { name: newNames[index] })}
+                      </span>
+                    </>
+                  )}
+                </span>
+              </li>
+            );
+          })}
         </ul>
       </fieldset>
       <DialogFooter>
@@ -375,9 +554,10 @@ function MappingStep({
 }
 
 function ReviewStep({
-  table,
   result,
   targets,
+  requiredNames,
+  canAddChoices,
   firstRowNumber,
   addMissingChoices,
   onAddMissingChoicesChange,
@@ -387,10 +567,12 @@ function ReviewStep({
   onBack,
   onImport,
 }: {
-  table: TableDetail;
   result: ImportCheck;
   /** The table column each column of the file fills. */
-  targets: (TableColumn | undefined)[];
+  targets: TargetInfo[];
+  /** Required table columns no column of the file fills. */
+  requiredNames: string[];
+  canAddChoices: boolean;
   firstRowNumber: number;
   addMissingChoices: boolean;
   onAddMissingChoicesChange: (value: boolean) => void;
@@ -402,10 +584,7 @@ function ReviewStep({
 }) {
   const { t } = useTranslation("records");
   const ids = useId();
-  const columnsById = new Map(table.columns.map((column) => [column.id, column]));
-  const canAddChoices = hasRole(table.role, "ADMIN");
-  const ready =
-    result.errorCount === 0 && result.missingRequired.length === 0 && result.validRows > 0;
+  const ready = result.errorCount === 0 && requiredNames.length === 0 && result.validRows > 0;
 
   return (
     <div className="flex flex-col gap-5">
@@ -416,12 +595,8 @@ function ReviewStep({
           : t("import.summary", { valid: result.validRows, count: result.rows, errors: result.errorCount })}
       </p>
 
-      {result.missingRequired.length > 0 && (
-        <FormAlert>
-          {t("import.missingRequired", {
-            names: result.missingRequired.map((id) => columnsById.get(id)?.name).join(", "),
-          })}
-        </FormAlert>
+      {requiredNames.length > 0 && (
+        <FormAlert>{t("import.missingRequired", { names: requiredNames.join(", ") })}</FormAlert>
       )}
 
       {result.missingChoices.length > 0 && (
@@ -525,12 +700,13 @@ function StepLabel({ step }: { step: number }) {
   );
 }
 
-type Translate = ReturnType<typeof useTranslation<"records">>["t"];
-
 /** The API's reasons to refuse, in the dialog's words. */
 function importErrorMessage(t: Translate, error: Error, maxRows: string): string {
   if (error instanceof ApiError && error.status === 413) {
     return t("import.errors.tooLarge", { max: maxRows });
+  }
+  if (error instanceof ApiError && error.status === 409) {
+    return t("import.errors.conflict");
   }
   if (error instanceof ApiError && error.status === 422) {
     return t("import.errors.rejected");
