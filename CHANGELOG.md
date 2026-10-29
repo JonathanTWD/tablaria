@@ -1,58 +1,46 @@
 # Changelog
 
-## Sin publicar
+## v1.3.0 — Trabajo en equipo
 
-- **Seguridad** (auditoría OWASP Top 10 antes de la v1.3.0):
-  - un fallo de la base de datos durante una suscripción en tiempo real ya no tumba la API: el error se registra y solo se cierra esa conexión;
-  - como mucho 200 conexiones de tiempo real pueden esperar a la vez su ticket, así que abrir sockets sin autenticar no agota la memoria del servidor;
-  - los cambios de permisos quedan registrados con sus ids y sin datos personales: invitaciones, aceptaciones, cambios de rol, accesos retirados y organizaciones borradas.
-- **Textos al día**: la landing ya no dice que compartir tablas o exportar a CSV estén pendientes. Las preguntas frecuentes explican cómo compartir y quién ve tus datos, y la comparativa añade el trabajo en equipo. El README y la hoja de ruta recogen lo nuevo.
-- **Organizaciones (interfaz)** (fase 9, parte 4):
-  - **Selector de espacio:** arriba de la barra lateral se elige entre «Mi espacio» y tus organizaciones. La barra y el inicio muestran las tablas de ese espacio, y desde ahí se crea una organización nueva.
-  - **Página de la organización:**
-    - invitar por email como lector, editor o administrador;
-    - ver los miembros y las invitaciones pendientes, y cambiar roles o quitar miembros, con las mismas reglas que la API;
-    - renombrar la organización;
-    - salir de ella o borrarla con sus tablas.
-  - **Según el rol:** solo los administradores crean tablas en una organización. Los lectores y editores ven su rol en la tabla, y el menú los lleva a la organización en lugar de ofrecer «Salir de la tabla».
-  - **Invitados sin cuenta:**
-    - el inicio de sesión les indica que creen la cuenta con el email invitado;
-    - al confirmarla, van directos a aceptar la invitación;
-    - aceptar una invitación a una organización abre la app en ella.
-  - **Demo:** incluye la organización de ejemplo «Equipo de la tienda», con el almacén central y tres compañeros ficticios.
-- **Organizaciones (API)** (fase 9, parte 3):
-  - **Espacios compartidos:** se crean organizaciones, que se renombran o se borran con sus tablas. Sus miembros ven todas las tablas con el permiso de su rol: lector, editor, administrador o propietario.
-  - **Miembros:** los administradores invitan por email (el mismo flujo, caducidad y límites antispam que al compartir una tabla), cambian roles y quitan miembros. Siempre queda al menos un propietario, y cualquiera puede salir.
-  - **Invitaciones:** la página de invitación y el email distinguen entre una tabla y una organización.
-  - **Límite de tablas:** pasa a ser de 100 por espacio.
-  - La interfaz para gestionarlas llega en la parte 4.
-- **Presencia**: la cabecera de la tabla muestra avatares de quién más la tiene abierta, con su nombre al pasar el ratón. La celda que alguien está editando se resalta para los demás con su color y su nombre. Para los lectores de pantalla se anuncia quién está en la tabla y quién edita cada celda.
-- **Editar a la vez sin perder cambios**:
-  - **Formulario «Editar registro»:** envía solo los campos que cambias. Antes enviaba todos y podía deshacer lo que otra persona hubiera guardado en el mismo registro mientras lo tenías abierto.
-  - **Aviso sin bloqueo:** las filas que otra persona está editando se tiñen con su color, pero nada se bloquea. Si abres la misma celda que otra persona, un aviso dice que gana el último en guardar, y el formulario avisa si alguien edita ese registro.
-  - **Listas de opciones:** también muestran la presencia mientras su desplegable está abierto.
-- **«Compartir» visible**: el botón para compartir pasa del menú de los tres puntos a la cabecera de la tabla.
-- **Tiempo real**:
-  - los cambios de otras personas en una tabla aparecen solos, sin recargar: registros, columnas, el nombre de la tabla, los permisos o su borrado;
-  - la cabecera de la tabla indica «En directo»;
-  - si la conexión se corta, muestra «Reconectando…», vuelve a conectar sola y se pone al día;
-  - quien pierde el acceso deja de recibir avisos al instante.
-- **Compartir tablas** (fase 9, parte 2):
-  - **Invitar:** con el menú «Compartir» de una tabla se invita a cualquiera por email como lector o editor, y desde ahí se ven las personas con acceso, se cambia su permiso, se les quita el acceso o se anulan invitaciones pendientes.
-  - **Aceptar:** el enlace del email lleva a una página para aceptar la invitación, pasando antes por el inicio de sesión si hace falta.
+- **Compartir tablas**:
+  - **Invitar:** el botón «Compartir» de la cabecera de una tabla invita a cualquiera por email como lector o editor. Desde ahí se ven las personas con acceso, se cambia su permiso, se les quita el acceso o se anulan invitaciones pendientes.
+  - **Aceptar:** el enlace del email lleva a una página para aceptar la invitación. Quien aún no tiene cuenta recibe la indicación de crearla con el email invitado y, al confirmarla, va directo a aceptarla.
   - **Compartidas conmigo:** estas tablas aparecen en la barra lateral y en el inicio, y se puede salir de ellas.
   - **Según el rol:**
     - el lector ve y exporta, pero no puede editar;
     - el editor cambia registros, pero no la tabla ni sus columnas;
     - los avisos de stock incluyen las tablas compartidas.
-- **Base para compartir y organizaciones** (fase 9, parte 1): las tablas pasan a pertenecer a una organización, y cada cuenta tiene un espacio personal al que la migración mueve sus tablas. Ahora el acceso a una tabla se decide en un único sitio: el rol en su organización o el compartido directamente (lector, editor, administrador o propietario).
-- **Pantallas grandes**: la app ya no limita todas las páginas a 1024 px.
-  - La tabla de registros usa todo el ancho: a 1707 px pasa de 960 a 1403 px y deja de necesitar scroll horizontal.
-  - El inicio se centra hasta 1600 px y, en pantallas anchas, pone «Bajo mínimo» y el gráfico en una columna lateral junto a las tablas.
-  - Ajustes y columnas mantienen un ancho cómodo de lectura.
-  - En escritorio, la cabecera de la tabla es más compacta, y la primera columna se queda fija al desplazar la tabla en horizontal.
-- **Landing en monitores grandes**: el contenido crece de 1280 a 1792 px y los títulos aumentan con `clamp()` a partir de unos 2050 px de ancho. En un monitor de 27" (2560 px) el contenido pasa a ocupar el 70 % del ancho, frente al 50 % de antes. En pantallas altas, la cabecera ocupa la mayor parte de la primera pantalla. En portátiles y móviles se ve igual que antes.
-- **Barra lateral plegable**: se pliega a una tira de iconos con el botón de la cabecera, con `Ctrl/⌘ + B` o pulsando su borde. Tiene tooltips con el nombre de cada icono. Las tablas se agrupan en un menú «Tablas», y la elección se recuerda en el navegador. Plegada, la tabla de un portátil de 1707 px pasa de 1403 a 1595 px. En móvil sigue siendo un panel que se abre por encima.
+- **Organizaciones**: espacios compartidos cuyos miembros ven todas sus tablas con el permiso de su rol: lector, editor, administrador o propietario.
+  - **Selector de espacio:** arriba de la barra lateral se elige entre «Mi espacio» y tus organizaciones. La barra y el inicio muestran las tablas de ese espacio, y desde ahí se crea una organización nueva.
+  - **Página de la organización:** invitar por email, ver los miembros y las invitaciones pendientes, cambiar roles o quitar miembros, renombrarla, y salir de ella o borrarla con sus tablas.
+  - **Reglas:**
+    - solo los administradores crean tablas e invitan;
+    - solo un propietario da o quita la propiedad;
+    - siempre queda al menos un propietario;
+    - el límite pasa a ser de 100 tablas por espacio.
+  - **Demo:** incluye la organización de ejemplo «Equipo de la tienda», con el almacén central y tres compañeros ficticios.
+- **Tiempo real**:
+  - los cambios de otras personas aparecen solos, sin recargar: registros, columnas, el nombre de la tabla, los permisos o su borrado;
+  - la cabecera de la tabla indica «En directo»;
+  - si la conexión se corta, muestra «Reconectando…», vuelve a conectar sola y se pone al día;
+  - quien pierde el acceso deja de recibir avisos al instante.
+- **Presencia**: la cabecera de la tabla muestra avatares de quién más la tiene abierta, con su nombre al pasar el ratón. La celda que alguien está editando se resalta para los demás con su color y su nombre, también en las listas de opciones. Para los lectores de pantalla se anuncia quién está en la tabla y quién edita cada celda.
+- **Editar a la vez sin perder cambios**:
+  - el formulario «Editar registro» envía solo los campos que cambias, así que no deshace lo que otra persona haya guardado en el mismo registro;
+  - nada se bloquea: si abres la misma celda que otra persona, un aviso dice que gana el último en guardar.
+- **Pantallas grandes**:
+  - la tabla de registros usa todo el ancho: a 1707 px pasa de 960 a 1403 px y deja de necesitar scroll horizontal;
+  - el inicio se centra hasta 1600 px y, en pantallas anchas, pone «Bajo mínimo» y el gráfico en una columna lateral;
+  - la primera columna se queda fija al desplazar la tabla en horizontal;
+  - la landing crece hasta 1792 px: en un monitor de 27" ocupa el 70 % del ancho en lugar del 50 %.
+- **Barra lateral plegable**:
+  - se pliega a una tira de iconos con el botón de la cabecera, con `Ctrl/⌘ + B` o pulsando su borde, y la elección se recuerda en el navegador;
+  - en móvil sigue siendo un panel que se abre por encima.
+- **Seguridad** (auditoría OWASP Top 10):
+  - un fallo de la base de datos durante una suscripción en tiempo real ya no tumba la API;
+  - las conexiones de tiempo real sin autenticar tienen un límite;
+  - los cambios de permisos quedan registrados con sus ids, sin datos personales.
+- **Textos al día**: la landing explica cómo compartir y quién ve tus datos, y la comparativa añade el trabajo en equipo.
 
 ## v1.2.0 — Exportación, alertas y gráficos
 
