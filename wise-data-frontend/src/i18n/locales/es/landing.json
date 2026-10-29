@@ -359,6 +359,11 @@
         "aspect": "Acceso",
         "spreadsheet": "El archivo vive en un ordenador o en un adjunto.",
         "wisedata": "Desde el navegador, en el ordenador o en el móvil."
+      },
+      "team": {
+        "aspect": "Trabajar en equipo",
+        "spreadsheet": "Copias por email y nadie sabe cuál es la buena.",
+        "wisedata": "Una sola tabla, con permisos por persona y cambios en directo."
       }
     }
   },
@@ -394,11 +399,11 @@
       },
       "privacy": {
         "question": "¿Quién ve mis datos?",
-        "answer": "Solo tú. Cada cuenta ve únicamente sus propias tablas, y la contraseña se guarda cifrada."
+        "answer": "Tú y las personas a las que invites. Tus tablas son privadas hasta que las compartes, cada persona solo puede hacer lo que permite su rol, y la contraseña se guarda cifrada."
       },
       "import": {
-        "question": "¿Puedo importar mi Excel?",
-        "answer": "Todavía no. Importar y exportar CSV está en la hoja de ruta; por ahora las tablas se crean desde WiseData."
+        "question": "¿Puedo usar mis datos en Excel?",
+        "answer": "Sí: cada tabla se exporta a CSV con la búsqueda, los filtros y el orden que tengas, y se abre directamente en Excel. Importar desde Excel aún no se puede, pero está en la hoja de ruta."
       },
       "install": {
         "question": "¿Tengo que instalar algo?",
@@ -410,7 +415,7 @@
       },
       "team": {
         "question": "¿Puedo compartir una tabla con mi equipo?",
-        "answer": "Aún no: de momento cada tabla pertenece a una cuenta. Compartir tablas es lo siguiente en la hoja de ruta."
+        "answer": "Sí. Invita a alguien por email a una tabla como lector o editor, o crea una organización para que tu equipo vea todas sus tablas con el rol que le des. Los cambios se ven al momento, y sabes quién está editando cada celda."
       }
     }
   },

@@ -1,7 +1,7 @@
 import { Check, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-const ROWS = ["types", "search", "tables", "access"] as const;
+const ROWS = ["types", "search", "tables", "access", "team"] as const;
 
 export function Comparison() {
   const { t } = useTranslation("landing");

@@ -84,7 +84,7 @@
       "ADMIN": "Administrador",
       "OWNER": "Propietario"
     },
-    "rolesHint": "Lector: ve y exporta. Editor: además crea, edita y borra registros. Las columnas y la tabla solo las cambias tú.",
+    "rolesHint": "Lector: ve y exporta. Editor: además crea, edita y borra registros. Las columnas y la tabla solo las cambia quien la administra.",
     "submit": "Enviar invitación",
     "invited": "Invitación enviada a {{email}}",
     "members": "Personas con acceso",
@@ -114,7 +114,7 @@
     "add": "Añadir columna",
     "emptyTitle": "Esta tabla aún no tiene columnas",
     "emptyDescription": "Añade la primera para empezar a guardar datos: nombre, cantidad, precio, fecha…",
-    "emptyReadOnly": "Quien la compartió todavía no ha añadido columnas.",
+    "emptyReadOnly": "Quien administra esta tabla todavía no ha añadido columnas.",
     "required": "Obligatoria",
     "default": "Por defecto: {{value}}",
     "alertBelow": "Aviso por debajo de {{value}}",
