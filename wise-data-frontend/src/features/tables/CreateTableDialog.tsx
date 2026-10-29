@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { TABLE_TEMPLATE_IDS, tableNameSchema } from "@wisedata/shared";
-import { FilePlus2, Monitor, Package, Tags, type LucideIcon } from "lucide-react";
+import { FilePlus2, FileUp, Monitor, Package, Tags, type LucideIcon } from "lucide-react";
 import { useId, useState, type ReactElement } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -22,6 +22,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { FieldGroup } from "@/components/ui/field";
+import { ImportDialog } from "@/features/imports/ImportDialog";
 import { Input } from "@/components/ui/input";
 import { ApiError } from "@/lib/api-client";
 import { apiErrorMessage } from "@/lib/error-message";
@@ -57,27 +58,51 @@ export function CreateTableDialog({
 }) {
   const { t } = useTranslation(["tables", "common"]);
   const [open, setOpen] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={trigger} />
-      <DialogContent
-        closeLabel={t("common:close")}
-        className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-xl"
-      >
-        <DialogHeader>
-          <DialogTitle>{t("create.title")}</DialogTitle>
-          <DialogDescription>{t("create.description")}</DialogDescription>
-        </DialogHeader>
-        <CreateTableForm
-          organizationId={organizationId}
-          onCreated={() => {
-            setOpen(false);
-            onCreated?.();
-          }}
-        />
-      </DialogContent>
-    </Dialog>
+    <>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger render={trigger} />
+        <DialogContent
+          closeLabel={t("common:close")}
+          className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-xl"
+        >
+          <DialogHeader>
+            <DialogTitle>{t("create.title")}</DialogTitle>
+            <DialogDescription>{t("create.description")}</DialogDescription>
+          </DialogHeader>
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-dashed border-border px-3 py-2.5 text-sm text-muted-foreground">
+            {t("create.fromFileHint")}
+            <Button
+              type="button"
+              variant="link"
+              className="h-auto p-0"
+              onClick={() => {
+                setOpen(false);
+                setImporting(true);
+              }}
+            >
+              <FileUp aria-hidden="true" />
+              {t("create.fromFile")}
+            </Button>
+          </p>
+          <CreateTableForm
+            organizationId={organizationId}
+            onCreated={() => {
+              setOpen(false);
+              onCreated?.();
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+      <ImportDialog
+        destination={{ kind: "newTable", organizationId }}
+        open={importing}
+        onOpenChange={setImporting}
+        onImported={onCreated}
+      />
+    </>
   );
 }
 

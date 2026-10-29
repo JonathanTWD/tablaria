@@ -169,19 +169,35 @@ export function RecordsTable({ table }: { table: TableDetail }) {
   const closeDialog = (open: boolean) =>
     !open && setDialog((current) => ({ ...current, kind: null }));
 
+  const importDialog = canEdit && (
+    <ImportDialog destination={{ kind: "table", table }} open={importing} onOpenChange={setImporting} />
+  );
+
   if (columns.length === 0) {
     return (
-      <EmptyState
-        title={t("empty.noColumnsTitle")}
-        description={t("empty.noColumnsDescription")}
-        action={
-          canManage && (
-            <Link to="columns" className={cn(buttonVariants(), "h-9")}>
-              {t("empty.noColumnsAction")}
-            </Link>
-          )
-        }
-      />
+      <>
+        <EmptyState
+          title={t("empty.noColumnsTitle")}
+          description={
+            canManage ? t("empty.noColumnsDescriptionImport") : t("empty.noColumnsDescription")
+          }
+          action={
+            canManage && (
+              <div className="flex flex-wrap justify-center gap-2">
+                <Link to="columns" className={cn(buttonVariants(), "h-9")}>
+                  {t("empty.noColumnsAction")}
+                </Link>
+                {/* Admins can create the columns from a file's headers. */}
+                <Button variant="outline" className="h-9" onClick={() => setImporting(true)}>
+                  <FileUp aria-hidden="true" />
+                  {t("toolbar.import")}
+                </Button>
+              </div>
+            )
+          }
+        />
+        {importDialog}
+      </>
     );
   }
 
@@ -454,7 +470,7 @@ export function RecordsTable({ table }: { table: TableDetail }) {
           onOpenChange={closeDialog}
         />
       )}
-      {canEdit && <ImportDialog table={table} open={importing} onOpenChange={setImporting} />}
+      {importDialog}
     </section>
   );
 }
