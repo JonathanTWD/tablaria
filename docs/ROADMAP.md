@@ -39,6 +39,51 @@ La especificación completa del MVP está en [MVP_PROMPT.md](MVP_PROMPT.md).
 3. **Importar** con un asistente paso a paso (hecho para CSV, fase 10, ADR-021): elegir el archivo, emparejar columnas o crearlas con su tipo detectado, revisar errores y opciones nuevas, e importar todo o nada, también en una tabla vacía o como tabla nueva. Falta Excel (`.xlsx`), que se leerá en el navegador con ExcelJS cuando cumpla la antigüedad mínima de pnpm.
 4. **Preguntas sobre los datos con IA**: el modelo consulta la API mediante herramientas (filtros validados y un endpoint de agregaciones), nunca con SQL libre. Las herramientas solo leen.
 
+### Plan por dificultad
+
+Cada tarea indica qué modelo conviene: **Opus** para lo que toca seguridad, permisos, migraciones o diseño nuevo; **básico** para tareas acotadas que siguen patrones ya existentes en el código (un modelo más ligero puede hacerlas si se le pasan los archivos indicados). Las marcadas con **tú** necesitan una cuenta o un ajuste fuera del código.
+
+**Difíciles (Opus)**
+- Cuenta: cambiar contraseña, cerrar sesión en todos los dispositivos, cambiar email (verificando el nuevo) y borrar la cuenta (qué pasa con las organizaciones donde es el único propietario).
+- Exportar todos mis datos (RGPD: portabilidad).
+- Columnas de valor único (SKU, nº de serie) e importar actualizando por esa columna en vez de duplicar.
+- Deshacer la última importación.
+- Movimientos de stock: entradas y salidas con histórico y quién las hizo.
+- Historial de actividad de cada tabla.
+- Enlaces públicos de solo lectura.
+- Imágenes y adjuntos (almacenamiento y subida segura).
+- API pública con tokens y webhooks.
+- Relaciones entre tablas y columnas calculadas.
+- Preguntas sobre los datos con IA (necesita una API key de pago).
+- Tiempo real con varias instancias (Redis), solo si hace falta escalar.
+
+**Medias (básico, con cuidado; Opus si hay tiempo)**
+- Excel `.xlsx` para exportar e importar con ExcelJS (desde ~8-nov): convertir el libro a filas y reutilizar el asistente.
+- Parche de dependencias (~6-nov): body-parser ≥ 2.4.0, multer ≥ 2.5.0, qs ≥ 6.16.1, nodemailer ≥ 10.1.4, respetando los 14 días de pnpm.
+- Selección múltiple como tipo de columna.
+- Vistas guardadas (búsqueda, filtros y orden con nombre).
+- Edición en lote y papelera recuperable.
+- Tablas bloqueadas o archivadas de solo lectura.
+- Escáner de códigos de barras y QR con la cámara.
+- Notificaciones (por ejemplo, resumen semanal de stock bajo por email).
+- Inglés: traducir los JSON de `src/i18n/locales/es` y añadir un selector de idioma.
+- PWA instalable.
+
+**Fáciles (básico)**
+- Pegar celdas copiadas de Excel en el asistente de importación.
+- Descargar una plantilla CSV con las columnas de la tabla.
+- Páginas legales: privacidad, aviso legal y cookies (el texto lo revisas tú).
+- `pnpm audit --prod --audit-level=high` en el CI.
+- CodeQL, Codecov y Lighthouse CI en GitHub Actions, con sus badges en el README.
+- Tests de accesibilidad con axe en Playwright.
+- Navegación con teclado por la tabla.
+
+**Fuera del código (tú)**
+- Activar las alertas de seguridad de Dependabot en GitHub.
+- Sentry (errores), UptimeRobot (caídas y mantener despierta la API) y Plausible o Umami (analítica sin cookies).
+- Cloudflare delante del dominio.
+- Procedimiento de copias de seguridad en Neon, probado al menos una vez.
+
 ### Otras
 
 - Integridad: columnas de valor único (SKU, nº de serie) y tablas bloqueadas o archivadas de solo lectura.
