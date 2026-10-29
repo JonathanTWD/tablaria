@@ -1,0 +1,89 @@
+{
+  "personal": "Mi espacio",
+  "switcher": {
+    "label": "Espacio: {{name}}",
+    "title": "Espacios",
+    "manage": "Gestionar organización",
+    "create": "Crear organización",
+    "loadError": "No se pudieron cargar tus espacios."
+  },
+  "create": {
+    "title": "Crear organización",
+    "description": "Un espacio compartido: sus miembros ven todas sus tablas con el permiso de su rol.",
+    "name": "Nombre",
+    "namePlaceholder": "Ferretería López",
+    "submit": "Crear organización",
+    "created": "Organización «{{name}}» creada",
+    "limit": "Has llegado al máximo de 10 organizaciones."
+  },
+  "roles": {
+    "VIEWER": "Lector",
+    "EDITOR": "Editor",
+    "ADMIN": "Administrador",
+    "OWNER": "Propietario"
+  },
+  "rolesHint": "Lector: ve y exporta. Editor: además crea, edita y borra registros. Administrador: además gestiona tablas, columnas y miembros. Propietario: además puede borrar la organización.",
+  "page": {
+    "back": "Volver al inicio",
+    "meta": "{{role}} · {{members}} · {{tables}}",
+    "members_one": "{{count}} miembro",
+    "members_other": "{{count}} miembros",
+    "tables_one": "{{count}} tabla",
+    "tables_other": "{{count}} tablas",
+    "openTables": "Ver sus tablas",
+    "notFoundTitle": "No encontramos esta organización",
+    "notFoundDescription": "Puede que la hayan borrado o que ya no seas miembro.",
+    "loadError": "No se pudo cargar la organización.",
+    "retry": "Reintentar"
+  },
+  "invite": {
+    "title": "Invitar",
+    "description": "Le llegará un email con un enlace para unirse. Si aún no tiene cuenta, podrá crearla con ese email.",
+    "email": "Email",
+    "role": "Rol",
+    "submit": "Enviar invitación",
+    "invited": "Invitación enviada a {{email}}",
+    "errors": {
+      "email": "Escribe un email válido.",
+      "alreadyMember": "Esa persona ya es miembro.",
+      "limit": "Has llegado al máximo de 25 personas entre miembros e invitaciones.",
+      "tooMany": "Demasiadas invitaciones seguidas. Prueba dentro de un rato.",
+      "demo": "La demo no puede enviar invitaciones. Crea una cuenta para invitar a otras personas."
+    }
+  },
+  "members": {
+    "title": "Miembros",
+    "you": "Tú",
+    "roleOf": "Rol de {{email}}",
+    "remove": "Quitar a {{email}}",
+    "removed": "{{email}} ya no es miembro",
+    "pending": "Invitaciones pendientes",
+    "pendingDetail": "{{role}} · caduca {{time}}",
+    "revoke": "Anular la invitación a {{email}}",
+    "errors": {
+      "lastOwner": "La organización necesita al menos un propietario. Nombra a otra persona propietaria antes.",
+      "forbidden": "Solo un propietario puede dar o quitar la propiedad.",
+      "change": "No se pudo guardar el cambio. Inténtalo de nuevo."
+    }
+  },
+  "rename": {
+    "section": "General",
+    "title": "Nombre",
+    "submit": "Guardar",
+    "saved": "Nombre guardado",
+    "error": "Escribe un nombre de 1 a 80 caracteres."
+  },
+  "danger": {
+    "title": "Zona de peligro",
+    "leave": "Salir de la organización",
+    "leaveDescription": "Dejarás de ver sus tablas. Para volver, alguien tendrá que invitarte de nuevo.",
+    "leaveTitle": "¿Salir de «{{name}}»?",
+    "left": "Has salido de «{{name}}»",
+    "delete": "Borrar organización",
+    "deleteDescription": "Se borrarán todas sus tablas y registros, y nadie podrá acceder a ellos. No se puede deshacer.",
+    "deleteTitle": "¿Borrar «{{name}}»?",
+    "deleted": "Organización «{{name}}» borrada",
+    "lastOwner": "Eres su único propietario: nombra a otra persona propietaria antes de salir, o borra la organización.",
+    "error": "No se pudo completar. Inténtalo de nuevo."
+  }
+}

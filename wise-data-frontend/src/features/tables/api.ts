@@ -11,10 +11,12 @@ import type {
 import { apiRequest } from "@/lib/api-client";
 
 export const tablesApi = {
-  list: () => apiRequest<TableSummary[]>("/tables"),
+  /** The tables of a space: the personal one or an organization. */
+  list: (organizationId: string) =>
+    apiRequest<TableSummary[]>(`/organizations/${organizationId}/tables`),
   get: (tableId: string) => apiRequest<TableDetail>(`/tables/${tableId}`),
-  create: (body: CreateTableInput) =>
-    apiRequest<TableDetail>("/tables", { method: "POST", body }),
+  create: (organizationId: string, body: CreateTableInput) =>
+    apiRequest<TableDetail>(`/organizations/${organizationId}/tables`, { method: "POST", body }),
   update: (tableId: string, body: UpdateTableInput) =>
     apiRequest<TableDetail>(`/tables/${tableId}`, { method: "PATCH", body }),
   remove: (tableId: string) =>

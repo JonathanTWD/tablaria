@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { hasRole } from "@wisedata/shared";
 import { House, Plus, Settings, Table2, Users } from "lucide-react";
 import { type CSSProperties, type RefObject, Suspense, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -34,6 +35,9 @@ import { useFocusOnNavigate } from "@/hooks/use-focus-on-navigate";
 import { DemoBanner } from "@/features/auth/DemoBanner";
 import { RealtimeProvider } from "@/features/realtime/RealtimeProvider";
 import { UserMenu } from "@/features/auth/UserMenu";
+import { SpaceProvider } from "@/features/organizations/SpaceProvider";
+import { SpaceSwitcher } from "@/features/organizations/SpaceSwitcher";
+import { useSpace } from "@/features/organizations/space-context";
 import { sharedTablesQuery } from "@/features/sharing/queries";
 import { CreateTableDialog } from "@/features/tables/CreateTableDialog";
 import { tablesQuery } from "@/features/tables/queries";
@@ -111,10 +115,14 @@ function MainNav() {
   );
 }
 
+/** The tables of the space chosen in the switcher. */
 function TablesNav() {
   const { t } = useTranslation("tables");
-  const tables = useQuery(tablesQuery);
+  const { space } = useSpace();
+  const tables = useQuery({ ...tablesQuery(space?.id ?? ""), enabled: Boolean(space) });
   const shared = useQuery(sharedTablesQuery);
+  // Viewers and editors of an organization don't create its tables.
+  const canCreate = space !== undefined && hasRole(space.role, "ADMIN");
   const { pathname } = useLocation();
   const { state, isMobile } = useSidebar();
   const close = useCloseOnPhone();
@@ -167,15 +175,18 @@ function TablesNav() {
               </DropdownMenuContent>
             </DropdownMenu>
           </SidebarMenuItem>
-          <SidebarMenuItem>
-            <CreateTableDialog
-              trigger={
-                <SidebarMenuButton tooltip={t("create.open")} aria-label={t("create.open")}>
-                  <Plus aria-hidden="true" />
-                </SidebarMenuButton>
-              }
-            />
-          </SidebarMenuItem>
+          {canCreate && (
+            <SidebarMenuItem>
+              <CreateTableDialog
+ organizationId={space.id}
+                trigger={
+                  <SidebarMenuButton tooltip={t("create.open")} aria-label={t("create.open")}>
+                    <Plus aria-hidden="true" />
+                  </SidebarMenuButton>
+                }
+              />
+            </SidebarMenuItem>
+          )}
         </SidebarMenu>
       </SidebarGroup>
     );
@@ -188,14 +199,17 @@ function TablesNav() {
         <SidebarGroupLabel id="sidebar-tables-label" render={<p />}>
           {t("sidebar.title")}
         </SidebarGroupLabel>
-        <CreateTableDialog
-          onCreated={close}
-          trigger={
-            <SidebarGroupAction aria-label={t("create.open")}>
-              <Plus aria-hidden="true" />
-            </SidebarGroupAction>
-          }
-        />
+        {canCreate && (
+          <CreateTableDialog
+ organizationId={space.id}
+            onCreated={close}
+            trigger={
+              <SidebarGroupAction aria-label={t("create.open")}>
+                <Plus aria-hidden="true" />
+              </SidebarGroupAction>
+            }
+          />
+        )}
         <SidebarGroupContent>
           {tables.isError && (
             <p className="px-2 py-2 text-xs text-muted-foreground">{t("sidebar.loadError")}</p>
@@ -288,6 +302,7 @@ function AppSidebar() {
         >
           <Logo />
         </Link>
+        <SpaceSwitcher onNavigate={close} />
       </SidebarHeader>
       <SidebarContent>
         <MainNav />
@@ -342,6 +357,7 @@ export default function AppLayout() {
       style={{ "--sidebar-width": "15rem" } as CSSProperties}
       className="min-h-dvh bg-background"
     >
+      <SpaceProvider>
       <a
         href="#main"
         className="sr-only z-50 rounded-md bg-primary px-3 py-2 text-primary-foreground focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
@@ -370,6 +386,7 @@ export default function AppLayout() {
           </RealtimeProvider>
         </main>
       </div>
+      </SpaceProvider>
     </SidebarProvider>
   );
 }

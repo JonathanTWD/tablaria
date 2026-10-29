@@ -19,6 +19,7 @@ const TablePage = lazy(() => import("@/pages/app/TablePage"));
 const RecordsPage = lazy(() => import("@/pages/app/table/RecordsPage"));
 const ColumnsPage = lazy(() => import("@/pages/app/table/ColumnsPage"));
 const InvitationPage = lazy(() => import("@/pages/InvitationPage"));
+const OrganizationPage = lazy(() => import("@/pages/app/OrganizationPage"));
 
 const App = () => {
   return (
@@ -48,6 +49,7 @@ const App = () => {
               <Route index element={<RecordsPage />} />
               <Route path="columns" element={<ColumnsPage />} />
             </Route>
+            <Route path="organizations/:organizationId" element={<OrganizationPage />} />
             <Route path="settings" element={<SettingsPage />} />
           </Route>
         </Route>

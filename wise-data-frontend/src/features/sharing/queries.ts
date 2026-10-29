@@ -1,5 +1,6 @@
 import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { InviteInput, ShareRole } from "@wisedata/shared";
+import { organizationKeys } from "@/features/organizations/queries";
 import { tableKeys } from "@/features/tables/queries";
 import { sharingApi } from "./api";
 
@@ -64,6 +65,10 @@ export function useAcceptInvitation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: sharingApi.accept,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: tableKeys.shared() }),
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: tableKeys.shared() }),
+        queryClient.invalidateQueries({ queryKey: organizationKeys.list() }),
+      ]),
   });
 }

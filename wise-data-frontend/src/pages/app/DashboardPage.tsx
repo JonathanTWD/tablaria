@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import type { StockAlerts, TableSummary } from "@wisedata/shared";
-import { Plus, Table2 } from "lucide-react";
+import { hasRole, type StockAlerts, type TableSummary } from "@wisedata/shared";
+import { Building2, Plus, Settings, Table2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { FormAlert } from "@/components/form/FormAlert";
@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { displayName } from "@/features/auth/display-name";
 import { useSession } from "@/features/auth/session";
 import { RecordsChart } from "@/features/charts/RecordsChart";
+import { useSpace, useSpaceName } from "@/features/organizations/space-context";
 import { stockAlertsQuery } from "@/features/stock-alerts/queries";
 import { SharedTablesSection } from "@/features/sharing/SharedTablesSection";
 import { StockAlertsCard } from "@/features/stock-alerts/StockAlertsCard";
@@ -18,14 +19,18 @@ import { apiErrorMessage } from "@/lib/error-message";
 import { formatRelativeTime } from "@/lib/format";
 
 export default function DashboardPage() {
-  const { t } = useTranslation(["app", "tables"]);
+  const { t } = useTranslation(["app", "tables", "organizations"]);
   const { data: user } = useSession();
-  const tables = useQuery(tablesQuery);
+  const { space, error: spaceError, retry: retrySpaces } = useSpace();
+  const spaceName = useSpaceName();
+  const tables = useQuery({ ...tablesQuery(space?.id ?? ""), enabled: Boolean(space) });
   // The overview waits for the alerts too, so their card never pushes the tables down.
   const alerts = useQuery(stockAlertsQuery);
-  const loading = tables.isPending || (tables.isSuccess && alerts.isPending);
+  const loadError = spaceError ?? tables.error;
+  const loading = !loadError && (tables.isPending || (tables.isSuccess && alerts.isPending));
   const ready = tables.isSuccess && !alerts.isPending;
   const name = user ? displayName(user) : "";
+  const canCreate = space !== undefined && hasRole(space.role, "ADMIN");
 
   const createButton = (
     <Button className="h-9">
@@ -38,10 +43,34 @@ export default function DashboardPage() {
     <div className="@container mx-auto w-full max-w-[100rem]">
       <title>{`${t("dashboard.title")} | WiseData`}</title>
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {t("dashboard.greeting", { name })}
-        </h1>
-        {tables.data && tables.data.length > 0 && <CreateTableDialog trigger={createButton} />}
+        <div className="min-w-0">
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {t("dashboard.greeting", { name })}
+          </h1>
+          {space && !space.personal && (
+            <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+              <span className="inline-flex min-w-0 items-center gap-1.5">
+                <Building2 aria-hidden="true" className="size-4 shrink-0" />
+                <span className="truncate">
+                  {t("dashboard.space", {
+                    name: spaceName(space),
+                    role: t(`organizations:roles.${space.role}`),
+                  })}
+                </span>
+              </span>
+              <Link
+                to={`/app/organizations/${space.id}`}
+                className="inline-flex items-center gap-1 font-medium text-primary underline-offset-4 hover:underline"
+              >
+                <Settings aria-hidden="true" className="size-3.5" />
+                {t("dashboard.manageSpace")}
+              </Link>
+            </p>
+          )}
+        </div>
+        {canCreate && tables.data && tables.data.length > 0 && (
+          <CreateTableDialog organizationId={space.id} trigger={createButton} />
+        )}
       </div>
 
       {loading && (
@@ -60,12 +89,16 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {tables.isError && (
+      {loadError && (
         <div className="mt-8 flex flex-col items-start gap-4">
           <FormAlert>
-            {t("dashboard.loadError")} {apiErrorMessage(tables.error)}
+            {t("dashboard.loadError")} {apiErrorMessage(loadError)}
           </FormAlert>
-          <Button variant="outline" className="h-9" onClick={() => void tables.refetch()}>
+          <Button
+            variant="outline"
+            className="h-9"
+            onClick={() => (spaceError ? retrySpaces() : void tables.refetch())}
+          >
             {t("dashboard.retry")}
           </Button>
         </div>
@@ -78,14 +111,18 @@ export default function DashboardPage() {
         >
           <Table2 aria-hidden="true" className="size-8 text-primary" strokeWidth={1.5} />
           <h2 id="tables-empty" className="mt-4 text-lg font-semibold tracking-tight">
-            {t("dashboard.emptyTitle")}
+            {canCreate ? t("dashboard.emptyTitle") : t("dashboard.emptyOrganizationTitle")}
           </h2>
           <p className="mt-2 max-w-prose text-sm leading-6 text-muted-foreground">
-            {t("dashboard.emptyDescription")}
+            {canCreate
+              ? t("dashboard.emptyDescription")
+              : t("dashboard.emptyOrganizationDescription")}
           </p>
-          <div className="mt-6">
-            <CreateTableDialog trigger={createButton} />
-          </div>
+          {canCreate && (
+            <div className="mt-6">
+              <CreateTableDialog organizationId={space.id} trigger={createButton} />
+            </div>
+          )}
         </section>
       )}
 
@@ -93,12 +130,16 @@ export default function DashboardPage() {
       {ready && tables.data.length === 0 && (
         <>
           <StockAlertsCard alerts={alerts.data} className="mt-8" />
-          <SharedTablesSection className="mt-10" />
+          {space?.personal && <SharedTablesSection className="mt-10" />}
         </>
       )}
 
       {ready && tables.data.length > 0 && (
-        <TablesOverview tables={tables.data} alerts={alerts.data} />
+        <TablesOverview
+          tables={tables.data}
+          alerts={alerts.data}
+          personal={space?.personal ?? true}
+        />
       )}
     </div>
   );
@@ -107,10 +148,13 @@ export default function DashboardPage() {
 function TablesOverview({
   tables,
   alerts,
+  personal,
 }: {
   tables: TableSummary[];
   /** Undefined when the alerts failed to load. */
   alerts: StockAlerts | undefined;
+  /** The personal space also lists the tables shared with the user. */
+  personal: boolean;
 }) {
   const { t, i18n } = useTranslation(["app", "tables"]);
   const recordCount = tables.reduce((total, table) => total + table.recordCount, 0);
@@ -150,7 +194,7 @@ function TablesOverview({
         <div className="flex flex-col gap-10 @5xl:col-start-1 @5xl:row-span-2 @5xl:row-start-1">
           <section aria-labelledby="tables-title" className="@container/tables">
             <h2 id="tables-title" className="text-lg font-semibold tracking-tight">
-              {t("dashboard.tablesTitle")}
+              {personal ? t("dashboard.tablesTitle") : t("dashboard.organizationTablesTitle")}
             </h2>
             <ul className="mt-4 grid gap-3 @xl/tables:grid-cols-2 @5xl/tables:grid-cols-3">
               {tables.map((table) => (
@@ -182,7 +226,7 @@ function TablesOverview({
               ))}
             </ul>
           </section>
-          <SharedTablesSection />
+          {personal && <SharedTablesSection />}
         </div>
 
         <RecordsChart tables={tables} className="@5xl:col-start-2 @5xl:self-start" />
