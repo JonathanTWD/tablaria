@@ -333,7 +333,7 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
   - 2 MB de cuerpo, solo en estas rutas: el resto de la API mantiene los 100 KB de body-parser;
   - 10 peticiones por minuto.
 
-**Consecuencias**: no hace falta almacenar ni subir archivos. Excel (`.xlsx`) se leerá también en el navegador cuando ExcelJS cumpla la antigüedad mínima de pnpm, sin tocar la API. El asistente de importación es la segunda parte de la fase 10.
+**Consecuencias**: no hace falta almacenar ni subir archivos. Excel (`.xlsx`) se leerá también en el navegador cuando ExcelJS cumpla la antigüedad mínima de pnpm, sin tocar la API. El asistente lee el CSV con un parser propio (RFC 4180, con separador `;`, `,` o tabulador detectado en la primera línea) y decodifica en UTF-8 o, si no es válido, en Windows-1252, que es lo que usa Excel en español al guardar CSV.
 
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
