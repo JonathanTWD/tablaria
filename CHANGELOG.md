@@ -2,13 +2,13 @@
 
 ## Sin publicar
 
-- **Relaciones entre tablas (API)**:
-  - nuevo tipo de columna «Relación con otra tabla», que enlaza cada registro con un registro de otra tabla del mismo espacio;
-  - los listados traen el nombre del registro enlazado solo si puedes abrir esa tabla;
-  - borrar un registro o una tabla limpia los enlaces que apuntaban a ellos;
-  - la exportación CSV muestra el nombre.
-  
-  La interfaz llega en la siguiente parte.
+- **Relaciones entre tablas**:
+  - **Nuevo tipo de columna «Relación con otra tabla».** Al crearla eliges con qué tabla del mismo espacio enlaza, por ejemplo cada producto con su proveedor.
+  - **Elegir el registro:** en la celda o en el formulario, un buscador lista los registros de esa tabla por su primera columna.
+  - **Lo que ves:** la tabla muestra el nombre del registro enlazado. Si no puedes abrir la tabla enlazada, solo ves que hay un enlace, nunca qué es.
+  - **Limpieza:** borrar un registro o una tabla limpia los enlaces que apuntaban a ellos.
+  - **CSV:** la exportación muestra el nombre.
+  - **Por ahora,** estas columnas no se pueden filtrar ni ordenar.
 - **Tu cuenta** (Ajustes):
   - **cambiar la contraseña**, pidiendo la actual; el resto de dispositivos pierde la sesión;
   - **cerrar sesión en todos los dispositivos**;

@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQuery } from "@tanstack/react-query";
 import {
   COLUMN_TYPES,
   MAX_SELECT_CHOICES,
@@ -43,7 +44,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { useCreateColumn, useUpdateColumn } from "@/features/tables/queries";
+import {
+  tableQuery,
+  tablesQuery,
+  useCreateColumn,
+  useUpdateColumn,
+} from "@/features/tables/queries";
 import { ApiError } from "@/lib/api-client";
 import { apiErrorMessage } from "@/lib/error-message";
 import { cn } from "@/lib/utils";
@@ -65,9 +71,6 @@ interface ColumnDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
-
-/** Relation columns need a linked table, chosen in their own settings (ADR-022). */
-const CREATABLE_TYPES = COLUMN_TYPES.filter((type) => type !== "relation");
 
 export function ColumnDialog({ open, onOpenChange, column, ...props }: ColumnDialogProps) {
   const { t } = useTranslation(["tables", "common"]);
@@ -154,7 +157,8 @@ function ColumnForm({
     mutation.error instanceof ApiError && mutation.error.status === 409
       ? null
       : mutation.error instanceof ApiError && mutation.error.status === 422
-        ? t("columnForm.limit")
+        ? // For a relation, the linked table is the likelier cause than the column limit.
+          t(type === "relation" ? "columnForm.linkedTableError" : "columnForm.limit")
         : mutation.error && apiErrorMessage(mutation.error);
 
   const typeItems = Object.fromEntries(
@@ -208,7 +212,7 @@ function ColumnForm({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {CREATABLE_TYPES.map((value) => {
+                  {COLUMN_TYPES.map((value) => {
                     const Icon = COLUMN_TYPE_ICONS[value];
                     return (
                       <SelectItem key={value} value={value} className="py-1.5">
@@ -266,6 +270,8 @@ function ColumnForm({
             />
           </Field>
         )}
+
+        {type === "relation" && <LinkedTableField tableId={tableId} form={form} id={`${ids}-linked`} />}
 
         {type === "number" && (
           <FormField
@@ -390,13 +396,16 @@ function ColumnForm({
           />
         </Field>
 
-        <DefaultValueField
-          id={`${ids}-default`}
-          type={type}
-          choices={choiceValues}
-          form={form}
-          error={errors.defaultValue ? t("columnForm.errors.defaultValue") : undefined}
-        />
+        {/* A default record would link every new record to the same one. */}
+        {type !== "relation" && (
+          <DefaultValueField
+            id={`${ids}-default`}
+            type={type}
+            choices={choiceValues}
+            form={form}
+            error={errors.defaultValue ? t("columnForm.errors.defaultValue") : undefined}
+          />
+        )}
       </FieldGroup>
 
       <DialogFooter className="mt-6">
@@ -408,6 +417,58 @@ function ColumnForm({
         </SubmitButton>
       </DialogFooter>
     </form>
+  );
+}
+
+/** The table a relation links to: any table of the same space, this one included. */
+function LinkedTableField({
+  tableId,
+  form,
+  id,
+}: {
+  tableId: string;
+  form: ReturnType<typeof useForm<ColumnFormValues>>;
+  id: string;
+}) {
+  const { t } = useTranslation("tables");
+  const table = useQuery(tableQuery(tableId));
+  const organizationId = table.data?.organizationId;
+  const tables = useQuery({ ...tablesQuery(organizationId ?? ""), enabled: Boolean(organizationId) });
+  const error = form.formState.errors.tableId;
+  const items = Object.fromEntries((tables.data ?? []).map((item) => [item.id, item.name]));
+
+  return (
+    <Field data-invalid={Boolean(error)}>
+      <FieldLabel htmlFor={id}>{t("columnForm.linkedTable")}</FieldLabel>
+      <Controller
+        control={form.control}
+        name="tableId"
+        render={({ field }) => (
+          <Select items={items} value={field.value} onValueChange={(value) => value && field.onChange(value)}>
+            <SelectTrigger
+              id={id}
+              aria-invalid={Boolean(error)}
+              aria-describedby={`${id}-hint`}
+              className="h-9 w-full"
+            >
+              <SelectValue placeholder={t("columnForm.linkedTablePlaceholder")} />
+            </SelectTrigger>
+            <SelectContent>
+              {(tables.data ?? []).map((item) => (
+                <SelectItem key={item.id} value={item.id}>
+                  {item.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+      />
+      {error ? (
+        <FieldError id={`${id}-hint`}>{t("columnForm.errors.linkedTable")}</FieldError>
+      ) : (
+        <FieldDescription id={`${id}-hint`}>{t("columnForm.linkedTableHint")}</FieldDescription>
+      )}
+    </Field>
   );
 }
 

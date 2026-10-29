@@ -116,14 +116,17 @@ export function FiltersSheet({ columns, filters, onApply }: FiltersSheetProps) {
             <SheetDescription>{t("filters.description")}</SheetDescription>
           </div>
           <div className="flex-1 space-y-5 overflow-y-auto p-4">
-            {columns.map((column) => (
-              <ColumnFilter
-                key={column.id}
-                column={column}
-                draft={drafts[column.id] ?? EMPTY_DRAFT}
-                onChange={(draft) => setDrafts((current) => ({ ...current, [column.id]: draft }))}
-              />
-            ))}
+            {/* Relations would filter by record ids: not offered until it can be by name. */}
+            {columns
+              .filter((column) => column.type !== "relation")
+              .map((column) => (
+                <ColumnFilter
+                  key={column.id}
+                  column={column}
+                  draft={drafts[column.id] ?? EMPTY_DRAFT}
+                  onChange={(draft) => setDrafts((current) => ({ ...current, [column.id]: draft }))}
+                />
+              ))}
           </div>
           <div className="flex gap-2 border-t border-border p-4">
             <Button type="button" variant="outline" className="h-9 flex-1" onClick={() => setDrafts({})}>

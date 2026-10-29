@@ -136,7 +136,11 @@ export function RecordsTable({ table }: { table: TableDetail }) {
     () =>
       columnHelper.columns(
         columns.map((column) =>
-          columnHelper.accessor((record) => record.data[column.id], { id: column.id }),
+          columnHelper.accessor((record) => record.data[column.id], {
+            id: column.id,
+            // A relation holds a record id: sorting by it would mean nothing.
+            enableSorting: column.type !== "relation",
+          }),
         ),
       ),
     [columns],
@@ -359,12 +363,14 @@ export function RecordsTable({ table }: { table: TableDetail }) {
                                   onSave={(value) => save(record, column, value)}
                                   presence={{ recordId: record.id, setEditing }}
                                   editedBy={editorName}
+                                  linked={records.data?.linked}
                                 />
                               ) : (
                                 <ReadOnlyCell
                                   column={column}
                                   value={record.data[column.id]}
                                   format={format}
+                                  linked={records.data?.linked}
                                 />
                               )}
                             </div>
@@ -453,6 +459,7 @@ export function RecordsTable({ table }: { table: TableDetail }) {
       <RecordDialog
         tableId={table.id}
         columns={columns}
+        linked={records.data?.linked}
         record={dialog.kind === "create" ? undefined : dialog.record}
         editingBy={
           dialog.kind === "edit" && dialog.record
