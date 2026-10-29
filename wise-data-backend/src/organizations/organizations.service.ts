@@ -18,6 +18,7 @@ import {
 } from '@wisedata/shared';
 import type { z } from 'zod';
 import { generateSecureToken, hashToken } from '../auth/secure-token';
+import { auditPermission } from '../common/permission-audit';
 import { PrismaService } from '../database/prisma.service';
 import type {
   Membership,
@@ -165,6 +166,11 @@ export class OrganizationsService {
       await tx.organization.delete({ where: { id: organizationId } });
       return tables.map((table) => table.id);
     });
+    auditPermission('organization.delete', {
+      organization: organizationId,
+      tables: String(tableIds.length),
+      by: userId,
+    });
     for (const tableId of tableIds) {
       this.realtime.publish(tableId, 'deleted');
     }
@@ -205,6 +211,12 @@ export class OrganizationsService {
         include: { user: { select: { email: true } } },
       });
     });
+    auditPermission('organization.member.update', {
+      organization: organizationId,
+      user: memberId,
+      role,
+      by: userId,
+    });
     // Open tables refetch themselves and pick up the member's new role.
     for (const tableId of await this.tableIds(organizationId)) {
       this.realtime.publish(tableId, 'table');
@@ -237,6 +249,11 @@ export class OrganizationsService {
       await tx.membership.delete({
         where: { organizationId_userId: { organizationId, userId: memberId } },
       });
+    });
+    auditPermission('organization.member.remove', {
+      organization: organizationId,
+      user: memberId,
+      by: userId,
     });
     // Tables shared with them directly stay open; the rest close for them.
     const tables = await this.prisma.inventoryTable.findMany({
@@ -314,6 +331,12 @@ export class OrganizationsService {
         role: input.role,
       },
     });
+    auditPermission('organization.invite', {
+      invitation: invitation.id,
+      organization: organizationId,
+      role: input.role,
+      by: userId,
+    });
     return toPendingInvitation(invitation);
   }
 
@@ -335,6 +358,11 @@ export class OrganizationsService {
     if (count === 0) {
       throw new NotFoundException('Invitation not found');
     }
+    auditPermission('organization.invitation.revoke', {
+      invitation: invitationId,
+      organization: organizationId,
+      by: userId,
+    });
   }
 
   private async tableIds(organizationId: string): Promise<string[]> {

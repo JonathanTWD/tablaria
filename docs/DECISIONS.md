@@ -296,7 +296,7 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
   - suscribirse a una tabla usa la misma regla que la API;
   - al quitar un permiso, el servidor corta esa suscripción y avisa con `revoked`;
   - se comprueba el `Origin` de la conexión;
-  - límites: 1 KB por mensaje, 20 tablas por conexión y 10 conexiones por usuario;
+  - límites: 1 KB por mensaje, 20 tablas por conexión, 10 conexiones por usuario y 200 conexiones esperando ticket en todo el servidor;
   - un ping cada 30 s descarta las conexiones muertas.
 - **Presencia**: sobre la misma conexión, cada pestaña avisa de qué celda tiene abierta.
   - **Qué recibe cada uno:** el servidor envía a cada sala la lista de personas, una vez por persona aunque tengan varias pestañas, con la celda que edita cada una.

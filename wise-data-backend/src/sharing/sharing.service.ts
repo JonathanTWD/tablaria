@@ -19,6 +19,7 @@ import {
   type TableSharing,
 } from '@wisedata/shared';
 import { generateSecureToken, hashToken } from '../auth/secure-token';
+import { auditPermission } from '../common/permission-audit';
 import { PrismaService } from '../database/prisma.service';
 import type { Invitation, Prisma } from '../generated/prisma/client';
 import { RealtimeService } from '../realtime/realtime.service';
@@ -124,6 +125,12 @@ export class SharingService {
       inviter,
       target: { type: 'table', name: tableName, role: input.role },
     });
+    auditPermission('table.invite', {
+      invitation: invitation.id,
+      table: tableId,
+      role: input.role,
+      by: userId,
+    });
     this.realtime.publish(tableId, 'sharing');
     return toPendingInvitation(invitation);
   }
@@ -141,6 +148,11 @@ export class SharingService {
     if (count === 0) {
       throw new NotFoundException('Invitation not found');
     }
+    auditPermission('table.invitation.revoke', {
+      invitation: invitationId,
+      table: tableId,
+      by: userId,
+    });
     this.realtime.publish(tableId, 'sharing');
   }
 
@@ -161,6 +173,12 @@ export class SharingService {
     const share = await this.prisma.tableShare.findUniqueOrThrow({
       where: { tableId_userId: { tableId, userId: memberId } },
       include: { user: { select: { email: true } } },
+    });
+    auditPermission('table.share.update', {
+      table: tableId,
+      user: memberId,
+      role,
+      by: userId,
     });
     // "table": the member's open page refetches it and gets their new role.
     this.realtime.publish(tableId, 'table');
@@ -188,6 +206,11 @@ export class SharingService {
     if (count === 0) {
       throw new NotFoundException('Share not found');
     }
+    auditPermission('table.share.remove', {
+      table: tableId,
+      user: memberId,
+      by: userId,
+    });
     this.realtime.revoke(tableId, memberId);
     this.realtime.publish(tableId, 'sharing');
   }
@@ -241,6 +264,12 @@ export class SharingService {
         await joinOrganization(tx, userId, target.id, invitation.role);
       }
       return target;
+    });
+    auditPermission(`${target.type}.invitation.accept`, {
+      invitation: invitation.id,
+      [target.type]: target.id,
+      role: invitation.role,
+      by: userId,
     });
     if (target.type === 'table') {
       this.realtime.publish(target.id, 'sharing');

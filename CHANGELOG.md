@@ -2,6 +2,10 @@
 
 ## Sin publicar
 
+- **Seguridad** (auditoría OWASP Top 10 antes de la v1.3.0):
+  - un fallo de la base de datos durante una suscripción en tiempo real ya no tumba la API: el error se registra y solo se cierra esa conexión;
+  - como mucho 200 conexiones de tiempo real pueden esperar a la vez su ticket, así que abrir sockets sin autenticar no agota la memoria del servidor;
+  - los cambios de permisos quedan registrados con sus ids y sin datos personales: invitaciones, aceptaciones, cambios de rol, accesos retirados y organizaciones borradas.
 - **Textos al día**: la landing ya no dice que compartir tablas o exportar a CSV estén pendientes. Las preguntas frecuentes explican cómo compartir y quién ve tus datos, y la comparativa añade el trabajo en equipo. El README y la hoja de ruta recogen lo nuevo.
 - **Organizaciones (interfaz)** (fase 9, parte 4):
   - **Selector de espacio:** arriba de la barra lateral se elige entre «Mi espacio» y tus organizaciones. La barra y el inicio muestran las tablas de ese espacio, y desde ahí se crea una organización nueva.
