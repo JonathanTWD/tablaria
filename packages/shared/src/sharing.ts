@@ -42,7 +42,8 @@ export interface TableShareMember {
 export interface PendingInvitation {
   id: string;
   email: string;
-  role: ShareRole;
+  /** VIEWER or EDITOR for tables; up to ADMIN for organizations. */
+  role: TableRole;
   expiresAt: string;
   createdAt: string;
 }
@@ -53,18 +54,23 @@ export interface TableSharing {
 }
 
 /** What the invitation page shows before accepting. */
+/** What an invitation gives access to: one table, or a whole organization. */
+export type InvitationTarget =
+  | { type: "table"; id: string; name: string }
+  | { type: "organization"; id: string; name: string };
+
 export interface InvitationPreview {
-  tableName: string;
+  target: InvitationTarget;
   /** Email of the person who invited, or null if their account is gone. */
   invitedBy: string | null;
-  role: ShareRole;
+  role: TableRole;
   /** The invited address; accepting needs an account with this email. */
   email: string;
   expiresAt: string;
 }
 
 export interface AcceptedInvitation {
-  tableId: string;
+  target: InvitationTarget;
 }
 
 /** A table someone else shared with the user. */

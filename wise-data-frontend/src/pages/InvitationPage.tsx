@@ -93,23 +93,41 @@ export default function InvitationPage() {
     );
   } else {
     const invitation = preview.data;
+    const { target } = invitation;
+    const inviter = invitation.invitedBy ?? t("invitation.someone");
     const onAccept = () =>
       accept.mutate(token, {
-        onSuccess: ({ tableId }) => {
-          toast.success(t("invitation.accepted", { table: invitation.tableName }));
-          void navigate(`/app/tables/${tableId}`, { replace: true });
+        onSuccess: () => {
+          if (target.type === "table") {
+            toast.success(t("invitation.accepted", { table: target.name }));
+            void navigate(`/app/tables/${target.id}`, { replace: true });
+          } else {
+            toast.success(t("invitation.organization.accepted", { name: target.name }));
+            void navigate("/app", { replace: true });
+          }
         },
       });
     content = (
       <>
-        <AuthHeading
-          title={t("invitation.heading")}
-          description={t("invitation.summary", {
-            inviter: invitation.invitedBy ?? t("invitation.someone"),
-            action: t(`invitation.actions.${invitation.role}`),
-            table: invitation.tableName,
-          })}
-        />
+        {target.type === "table" ? (
+          <AuthHeading
+            title={t("invitation.heading")}
+            description={t("invitation.summary", {
+              inviter,
+              action: t(`invitation.actions.${invitation.role === "VIEWER" ? "VIEWER" : "EDITOR"}`),
+              table: target.name,
+            })}
+          />
+        ) : (
+          <AuthHeading
+            title={t("invitation.organization.heading")}
+            description={t("invitation.organization.summary", {
+              inviter,
+              name: target.name,
+              role: t(`invitation.organization.roles.${invitation.role}`),
+            })}
+          />
+        )}
         <p className="text-sm text-muted-foreground">
           {t("invitation.expires", {
             time: formatRelativeTime(invitation.expiresAt, i18n.language),
@@ -126,7 +144,9 @@ export default function InvitationPage() {
             {accept.isPending && (
               <Loader2 aria-hidden="true" className="animate-spin motion-reduce:animate-none" />
             )}
-            {t("invitation.accept")}
+            {target.type === "table"
+              ? t("invitation.accept")
+              : t("invitation.organization.accept")}
           </Button>
           <Link to="/app" className={cn(buttonVariants({ variant: "ghost" }), "h-9")}>
             {t("invitation.decline")}

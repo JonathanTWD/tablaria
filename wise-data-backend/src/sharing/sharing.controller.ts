@@ -28,7 +28,7 @@ import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import { SharingService } from './sharing.service';
 
 /** Each invitation sends an email, so it gets a tighter limit than the API default. */
-const INVITE_THROTTLE = { default: { limit: 10, ttl: 60_000 } };
+export const INVITE_THROTTLE = { default: { limit: 10, ttl: 60_000 } };
 
 @Controller('tables/:tableId')
 export class TableSharingController {
