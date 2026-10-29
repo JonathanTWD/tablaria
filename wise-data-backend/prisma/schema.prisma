@@ -159,6 +159,8 @@ model Column {
   type         ColumnType
   position     Int
   required     Boolean    @default(false)
+  // No two records of the table may hold the same value (ADR-023).
+  unique       Boolean    @default(false)
   defaultValue Json?
   // Type-specific settings: choices for `select`, ISO 4217 code for `currency`,
   // optional low-stock threshold (`alertBelow`) for `number`.

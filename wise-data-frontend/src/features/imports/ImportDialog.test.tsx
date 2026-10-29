@@ -49,13 +49,14 @@ describe("ImportDialog", () => {
         return {
           rows: 2,
           validRows: 2,
+          toUpdate: 0,
           errorCount: 0,
           errors: [],
           missingChoices: [],
           missingRequired: [],
         } satisfies ImportCheck;
       }
-      return { tableId: table.id, imported: 2, addedChoices: 0, addedColumns: 0 };
+      return { tableId: table.id, imported: 2, updated: 0, addedChoices: 0, addedColumns: 0 };
     });
     renderWithProviders(<ImportDialog destination={{ kind: "table", table }} open onOpenChange={() => undefined} />);
 
@@ -114,13 +115,14 @@ describe("ImportDialog", () => {
         return {
           rows: 2,
           validRows: 2,
+          toUpdate: 0,
           errorCount: 0,
           errors: [],
           missingChoices: [],
           missingRequired: [],
         } satisfies ImportCheck;
       }
-      return { tableId: "new-table", imported: 2, addedChoices: 0, addedColumns: 3 };
+      return { tableId: "new-table", imported: 2, updated: 0, addedChoices: 0, addedColumns: 3 };
     });
     renderWithProviders(
       <ImportDialog destination={{ kind: "newTable", organizationId }} open onOpenChange={() => undefined} />,

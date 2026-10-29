@@ -30,6 +30,7 @@ import {
 import { accessibleTables, touchTable } from '../tables/table-access';
 import { buildRecordQuery } from './record-query';
 import { withoutEmptyCells } from './record-data';
+import { requireUniqueValues } from './unique-values';
 import { exportFileName, toCsv } from './record-export';
 import { statsColumns, summarizeGroups } from './record-stats';
 
@@ -195,6 +196,7 @@ export class RecordsService {
         input.data,
       );
       await requireLinkedRecords(tx, userId, columns, [data]);
+      await requireUniqueValues(tx, tableId, columns, data);
       const record = await tx.record.create({
         data: { tableId, data: withoutEmptyCells(data) },
       });
@@ -226,6 +228,7 @@ export class RecordsService {
         input.data,
       );
       await requireLinkedRecords(tx, userId, columns, [changes]);
+      await requireUniqueValues(tx, tableId, columns, changes, recordId);
       const record = await tx.record.update({
         where: { id: recordId },
         data: {

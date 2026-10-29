@@ -120,6 +120,7 @@ describe('Importing rows (e2e)', () => {
       errors: [],
       missingChoices: [],
       missingRequired: [],
+      toUpdate: 0,
     });
     expect((await records(owner, base)).meta.total).toBe(0);
 
@@ -128,6 +129,7 @@ describe('Importing rows (e2e)', () => {
     expect(result).toEqual({
       tableId: context.table.id,
       imported: 2,
+      updated: 0,
       addedChoices: 0,
       addedColumns: 0,
     });

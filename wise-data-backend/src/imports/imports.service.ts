@@ -22,11 +22,13 @@ import { RealtimeService } from '../realtime/realtime.service';
 import { inInsertionOrder, withoutEmptyCells } from '../records/record-data';
 import { requireTableRole, touchTable } from '../tables/table-access';
 import { insertTable } from '../tables/tables.service';
+import { takenKeys } from '../records/unique-values';
 import {
   analyzeImport,
   type ImportAnalysis,
   type ImportPlan,
   type ImportRequest,
+  type ImportUniqueness,
   InvalidImportError,
   planImport,
 } from './import-analysis';
@@ -53,7 +55,11 @@ export class ImportsService {
     const role = await requireTableRole(this.prisma, userId, tableId, 'EDITOR');
     const plan = resolve(await loadColumns(this.prisma, tableId), request);
     requireAdminForNewColumns(role, plan);
-    return analyzeImport(plan, request.rows, request.addMissingChoices).check;
+    return analyze(
+      plan,
+      request,
+      await uniqueness(this.prisma, tableId, plan, request.updateBy),
+    ).check;
   }
 
   /** All rows or none: any invalid cell rejects the whole import. */
@@ -69,10 +75,10 @@ export class ImportsService {
         const existing = await loadColumns(tx, tableId);
         const plan = resolve(existing, request);
         requireAdminForNewColumns(role, plan);
-        const analysis = analyzeImport(
+        const analysis = analyze(
           plan,
-          request.rows,
-          request.addMissingChoices,
+          request,
+          await uniqueness(tx, tableId, plan, request.updateBy),
         );
         requireImportable(analysis);
         // New choices change the columns, which only admins do.
@@ -123,8 +129,7 @@ export class ImportsService {
     request: NewTableRequest,
   ): Promise<ImportCheck> {
     await requireOrganizationRole(this.prisma, userId, organizationId, 'ADMIN');
-    const plan = resolve([], request);
-    return analyzeImport(plan, request.rows, request.addMissingChoices).check;
+    return analyze(resolve([], request), request).check;
   }
 
   /** Creates the table with its columns and rows, or nothing at all. */
@@ -133,11 +138,7 @@ export class ImportsService {
     organizationId: string,
     request: NewTableRequest,
   ): Promise<ImportResult> {
-    const analysis = analyzeImport(
-      resolve([], request),
-      request.rows,
-      request.addMissingChoices,
-    );
+    const analysis = analyze(resolve([], request), request);
     requireImportable(analysis);
     return this.prisma.$transaction(
       async (tx) => {
@@ -181,11 +182,59 @@ function requireImportable({ check }: ImportAnalysis): void {
   }
 }
 
+/** What the table's unique columns already hold, for the analysis. */
+async function uniqueness(
+  db: Prisma.TransactionClient,
+  tableId: string,
+  plan: ImportPlan,
+  updateBy: number | undefined,
+): Promise<ImportUniqueness> {
+  const taken = new Map<string, Map<string, string>>();
+  for (const column of plan.targets) {
+    if (column?.unique && !plan.created.includes(column)) {
+      taken.set(column.id, await takenKeys(db, tableId, column));
+    }
+  }
+  return { taken, updateBy };
+}
+
+function analyze(
+  plan: ImportPlan,
+  request: Pick<ImportRequest, 'rows' | 'addMissingChoices'>,
+  unique?: ImportUniqueness,
+): ImportAnalysis {
+  try {
+    return analyzeImport(plan, request.rows, request.addMissingChoices, unique);
+  } catch (error) {
+    if (error instanceof InvalidImportError) {
+      throw new BadRequestException(error.message);
+    }
+    throw error;
+  }
+}
+
 async function storeRecords(
   tx: Prisma.TransactionClient,
   tableId: string,
   analysis: ImportAnalysis,
 ): Promise<void> {
+  if (analysis.updates.length > 0) {
+    // Only the cells the file brings change; an empty one empties its cell.
+    // One statement for every updated record, whatever the file's size.
+    const updates = analysis.updates.map(({ id, data }) => ({
+      id,
+      filled: withoutEmptyCells(data),
+      emptied: Object.keys(data).filter((key) => data[key] === null),
+    }));
+    await tx.$executeRaw`
+      UPDATE records AS r
+      SET data = (r.data || u.filled)
+                 - ARRAY(SELECT jsonb_array_elements_text(u.emptied)),
+          "updatedAt" = now()
+      FROM jsonb_to_recordset(${JSON.stringify(updates)}::jsonb)
+        AS u(id uuid, filled jsonb, emptied jsonb)
+      WHERE r.id = u.id AND r."tableId" = ${tableId}::uuid`;
+  }
   await tx.record.createMany({
     // The file's order is the table's order.
     data: inInsertionOrder(
@@ -216,6 +265,7 @@ function summary(
   return {
     tableId,
     imported: analysis.records.length,
+    updated: analysis.updates.length,
     addedChoices,
     addedColumns: analysis.createdColumns.length,
   };

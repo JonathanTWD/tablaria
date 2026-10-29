@@ -150,6 +150,7 @@
     "reasons": {
       "required": "es obligatoria y está vacía",
       "unknownChoice": "no es una opción de la lista",
+      "duplicate": "ya está en otro registro o se repite en el archivo",
       "invalid": {
         "text": "no es un texto válido",
         "number": "no es un número",

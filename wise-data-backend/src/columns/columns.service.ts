@@ -8,6 +8,7 @@ import {
 import {
   type CellValue,
   type ColumnDefinition,
+  canBeUnique,
   columnDefinitionSchema,
   MAX_COLUMNS_PER_TABLE,
   selectOptionsSchema,
@@ -19,6 +20,7 @@ import { parseOrThrow } from '../common/pipes/zod-validation.pipe';
 import { PrismaService } from '../database/prisma.service';
 import { RealtimeService } from '../realtime/realtime.service';
 import { Prisma } from '../generated/prisma/client';
+import { requireNoRepeatedValues } from '../records/unique-values';
 import { requireLinkableTable } from '../relations/relations';
 import { accessibleTables, touchTable } from '../tables/table-access';
 import { toColumnData, toTableColumn } from './column-mapper';
@@ -112,6 +114,9 @@ export class ColumnsService {
           current,
           next,
         );
+        if (next.unique) {
+          await requireNoRepeatedValues(tx, tableId, { ...next, id: columnId });
+        }
         const column = await tx.column.update({
           where: { id: columnId },
           data: toColumnData(next),
@@ -192,6 +197,12 @@ function mergeColumnPatch(
   return {
     name: patch.name ?? current.name,
     required: patch.required ?? current.required,
+    // A type that can't be unique drops the flag instead of failing.
+    unique:
+      patch.unique ??
+      (typeChanged && !canBeUnique(patch.type ?? current.type)
+        ? false
+        : current.unique),
     type: patch.type ?? current.type,
     options: keep('options', current.options),
     defaultValue: keep('defaultValue', followDefaultChoice(current, patch)),
