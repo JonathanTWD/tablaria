@@ -50,6 +50,15 @@ export class AllExceptionsFilter implements ExceptionFilter {
       return this.fromHttpException(exception);
     }
 
+    // Express middleware (body-parser) rejects bad requests with these, e.g.
+    // a body over the size limit (413) or malformed JSON (400).
+    if (isClientHttpError(exception)) {
+      return buildBody(
+        exception.status,
+        STATUS_CODES[exception.status] ?? 'Bad request',
+      );
+    }
+
     if (exception instanceof Prisma.PrismaClientKnownRequestError) {
       const known = PRISMA_ERRORS[exception.code];
       if (known) {
@@ -72,6 +81,25 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const text = Array.isArray(message) ? message.join('; ') : message;
     return buildBody(statusCode, text ?? exception.message, details);
   }
+}
+
+/** An http-errors 4xx error marked safe to show (`expose`), with its own status. */
+function isClientHttpError(
+  exception: unknown,
+): exception is { status: number } {
+  if (typeof exception !== 'object' || exception === null) {
+    return false;
+  }
+  const { status, expose } = exception as {
+    status?: unknown;
+    expose?: unknown;
+  };
+  return (
+    expose === true &&
+    typeof status === 'number' &&
+    status >= 400 &&
+    status < 500
+  );
 }
 
 function buildBody(

@@ -308,6 +308,37 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
   - **Misma celda:** solo hay aviso, y gana el último en guardar. Herramientas como Google Sheets, Airtable o Notion siguen el mismo criterio.
 - **Una sola instancia**: los tickets y las suscripciones viven en memoria. Con varias instancias haría falta un bus (Redis pub/sub) para repartir los avisos; ahora no es necesario.
 
+## ADR-021: Importar archivos
+
+**Contexto**: quien llega desde una hoja de cálculo necesita traer sus datos sin escribirlos a mano. Subir archivos al servidor abre la puerta a problemas conocidos: tamaño, formatos maliciosos, parsers de XML en los `.xlsx` y la vulnerabilidad pendiente de multer.
+
+**Decisión**:
+- **El navegador lee el archivo, la API valida.** El servidor nunca recibe el archivo, solo sus celdas como texto: `{ columns, rows }`, más `addMissingChoices`. `columns` dice qué columna de la tabla llena cada columna del archivo, o `null` para saltarla.
+- **La API no confía en el navegador**: convierte y valida cada celda con las mismas reglas que al crear un registro a mano (`recordDataSchema`).
+- **Dos pasos**:
+  - `POST /tables/:id/import/check` no cambia nada y devuelve las filas válidas, los primeros 50 errores (fila, columna, valor y motivo) y los valores que no coinciden con ninguna opción de las listas;
+  - `POST /tables/:id/import` importa todas las filas o ninguna, dentro de una transacción que bloquea la tabla.
+- **Conversión pensada para hojas en español**:
+  - números con coma o punto decimal y separador de miles («1.234,56», «12,5 €»);
+  - fechas ISO o día/mes/año;
+  - «Sí» y «No»;
+  - opciones de lista sin distinguir mayúsculas.
+  
+  Un texto que no encaja en el tipo es un error, nunca una celda vacía en silencio. Se deshace el apóstrofo con el que nuestra exportación protege las fórmulas, así que exportar e importar devuelve lo mismo.
+- **Columnas nuevas**: cada columna del archivo puede ir a una columna de la tabla, a una columna nueva (`{ create: definición }`) que se crea con la importación, o a ninguna. Así se puede importar en una tabla vacía.
+  - **Desde cero:** con `POST /organizations/:id/tables/import` (y su `/check`), una tabla se crea entera desde un archivo con las mismas reglas que una tabla nueva: rol de administrador en el espacio y límite de 100 tablas.
+  - **Identificación de errores:** los errores y las opciones que faltan se identifican por la posición de la columna en el archivo, porque una columna nueva todavía no tiene id para el cliente.
+  - **Obligatorias sin emparejar:** las columnas obligatorias sin ninguna columna del archivo se informan una sola vez, en `missingRequired`.
+- **Permisos**: importar filas exige ser editor. Añadir columnas u opciones nuevas cambia la estructura, y por eso exige ser administrador.
+- **Límites**:
+  - 5.000 filas y 50 columnas por importación;
+  - 2.000 caracteres por celda;
+  - 10.000 registros por tabla;
+  - 2 MB de cuerpo, solo en estas rutas: el resto de la API mantiene los 100 KB de body-parser;
+  - 10 peticiones por minuto.
+
+**Consecuencias**: no hace falta almacenar ni subir archivos. Excel (`.xlsx`) se leerá también en el navegador cuando ExcelJS cumpla la antigüedad mínima de pnpm, sin tocar la API. El asistente lee el CSV con un parser propio (RFC 4180, con separador `;`, `,` o tabulador detectado en la primera línea) y decodifica en UTF-8 o, si no es válido, en Windows-1252, que es lo que usa Excel en español al guardar CSV.
+
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
 Todas están especificadas en [MVP_PROMPT.md](MVP_PROMPT.md):

@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import { Logo } from "@/components/Logo";
 import { buttonVariants } from "@/components/ui/button-variants";
 import { useSession } from "@/features/auth/session";
@@ -15,6 +15,8 @@ const SECTION_LINKS = [
 export function SiteHeader() {
   const { t } = useTranslation(["landing", "common"]);
   const { data: user } = useSession();
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur">
@@ -22,7 +24,19 @@ export function SiteHeader() {
         aria-label={t("nav.label")}
         className="mx-auto flex h-16 max-w-landing items-center gap-2 px-4 sm:px-6"
       >
-        <Link to="/" aria-label={t("common:homeLink")} className="mr-4 rounded-md">
+        <Link
+          to="/"
+          aria-label={t("common:homeLink")}
+          className="mr-4 rounded-md"
+          // Already on the landing: back to the top (smoothly, see index.css), dropping any #section.
+          onClick={(event) => {
+            if (pathname === "/") {
+              event.preventDefault();
+              void navigate("/", { replace: true });
+              window.scrollTo({ top: 0 });
+            }
+          }}
+        >
           <Logo />
         </Link>
 

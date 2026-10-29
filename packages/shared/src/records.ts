@@ -7,7 +7,7 @@ import {
 } from "./column-types.js";
 
 export const MAX_RECORDS_PER_TABLE = 10_000;
-export const DEFAULT_PAGE_SIZE = 25;
+export const DEFAULT_PAGE_SIZE = 10;
 export const MAX_PAGE_SIZE = 100;
 export const SEARCH_MAX_LENGTH = 200;
 export const MAX_FILTERS = 20;

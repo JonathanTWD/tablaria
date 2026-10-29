@@ -48,7 +48,7 @@ describe("parseRecordsView", () => {
 
     expect(parseRecordsView(params)).toEqual({
       page: 1,
-      pageSize: 25,
+      pageSize: 10,
       search: "taladro",
       sort: undefined,
       order: "asc",

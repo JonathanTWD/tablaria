@@ -19,6 +19,7 @@ import {
   ArrowUp,
   ArrowUpDown,
   Ellipsis,
+  FileUp,
   Pencil,
   Plus,
   Rows3,
@@ -51,6 +52,7 @@ import { presenceColor } from "@/features/realtime/presence-colors";
 import { useTablePresence } from "@/features/realtime/realtime-context";
 import { EditableCell, ReadOnlyCell } from "./EditableCell";
 import { ExportButton } from "./ExportButton";
+import { ImportDialog } from "@/features/imports/ImportDialog";
 import { FiltersSheet } from "./FiltersSheet";
 import { RecordDialog } from "./RecordDialog";
 import { RecordsPagination } from "./RecordsPagination";
@@ -114,6 +116,7 @@ export function RecordsTable({ table }: { table: TableDetail }) {
   const canManage = hasRole(table.role, "ADMIN");
   const format = useCellFormatter();
   const [dialog, setDialog] = useState<DialogState>({ kind: null });
+  const [importing, setImporting] = useState(false);
 
   // A page past the end (e.g. after deleting its last record) moves to the last one.
   const lastPage = records.data && Math.max(records.data.meta.pageCount, 1);
@@ -166,19 +169,35 @@ export function RecordsTable({ table }: { table: TableDetail }) {
   const closeDialog = (open: boolean) =>
     !open && setDialog((current) => ({ ...current, kind: null }));
 
+  const importDialog = canEdit && (
+    <ImportDialog destination={{ kind: "table", table }} open={importing} onOpenChange={setImporting} />
+  );
+
   if (columns.length === 0) {
     return (
-      <EmptyState
-        title={t("empty.noColumnsTitle")}
-        description={t("empty.noColumnsDescription")}
-        action={
-          canManage && (
-            <Link to="columns" className={cn(buttonVariants(), "h-9")}>
-              {t("empty.noColumnsAction")}
-            </Link>
-          )
-        }
-      />
+      <>
+        <EmptyState
+          title={t("empty.noColumnsTitle")}
+          description={
+            canManage ? t("empty.noColumnsDescriptionImport") : t("empty.noColumnsDescription")
+          }
+          action={
+            canManage && (
+              <div className="flex flex-wrap justify-center gap-2">
+                <Link to="columns" className={cn(buttonVariants(), "h-9")}>
+                  {t("empty.noColumnsAction")}
+                </Link>
+                {/* Admins can create the columns from a file's headers. */}
+                <Button variant="outline" className="h-9" onClick={() => setImporting(true)}>
+                  <FileUp aria-hidden="true" />
+                  {t("toolbar.import")}
+                </Button>
+              </div>
+            )
+          }
+        />
+        {importDialog}
+      </>
     );
   }
 
@@ -198,6 +217,12 @@ export function RecordsTable({ table }: { table: TableDetail }) {
           onApply={(filters) => setView({ filters })}
         />
         <ExportButton tableId={table.id} view={view} />
+        {canEdit && (
+          <Button variant="outline" className="h-9" onClick={() => setImporting(true)}>
+            <FileUp aria-hidden="true" />
+            {t("toolbar.import")}
+          </Button>
+        )}
         {canEdit && (
           <Button className="h-9 sm:ml-auto" onClick={() => setDialog({ kind: "create" })}>
             <Plus aria-hidden="true" />
@@ -445,6 +470,7 @@ export function RecordsTable({ table }: { table: TableDetail }) {
           onOpenChange={closeDialog}
         />
       )}
+      {importDialog}
     </section>
   );
 }

@@ -1,5 +1,21 @@
 # Changelog
 
+## v1.4.0 — Importar
+
+- **Importar CSV** (fase 10): el botón «Importar CSV» de una tabla abre un asistente en tres pasos.
+  - **Elegir el archivo:** vale el que guarda Excel en español, con `;` y acentos en Windows-1252, o el que exporta WiseData.
+  - **Emparejar columnas:** las del mismo nombre se emparejan solas, ignorando mayúsculas y acentos, y el resto se elige o se salta.
+  - **Revisar:** dice cuántas filas son válidas y lista cada error con la fila de la hoja de cálculo, la columna, el valor y el motivo. No importa nada mientras quede alguno.
+  - **Conversión:** entiende números con coma decimal y separador de miles («1.099,00 €»), fechas día/mes/año, «Sí»/«No» y las opciones de lista sin distinguir mayúsculas.
+  - **Opciones nuevas:** quien administra la tabla puede añadirlas de paso.
+  - **Seguridad:** el archivo se lee en el navegador; la API recibe solo el texto de las celdas y valida cada una como al crear un registro.
+  - **Columnas nuevas:** quien administra la tabla puede llevar una columna del archivo a «Nueva columna», con el tipo detectado a partir de sus valores (texto, número, precio, fecha, Sí/No o lista de opciones) y que se puede cambiar. Así también se importa en una tabla vacía, que ahora ofrece «Importar CSV».
+  - **Tabla desde un archivo:** «Nueva tabla → Crear desde un archivo CSV» crea la tabla con el nombre del archivo, las columnas de su cabecera y todos sus registros.
+- **Orden de los registros importados**: los registros de una importación y los de la demo aparecen en el orden del archivo. Antes compartían la misma hora de creación y se mezclaban, algo que con 10 por página se notaba enseguida.
+- **10 registros por página**: nueva opción en la paginación, y pasa a ser la vista por defecto (antes 25).
+- **Seguridad** (auditoría OWASP de la release): el límite de 2 MB de las importaciones solo se aplica a peticiones con sesión válida. Sin sesión, el cuerpo se rechaza por tamaño antes de procesarlo, porque el límite de peticiones y la autenticación van después.
+- **Errores más claros**: un cuerpo de petición demasiado grande o mal formado responde 413 o 400, en vez de un error 500.
+
 ## v1.3.0 — Trabajo en equipo
 
 - **Compartir tablas**:
