@@ -9,6 +9,7 @@ import { LoggingThrottlerGuard } from './common/guards/logging-throttler.guard';
 import { validateEnv } from './config/env.schema';
 import { DatabaseModule } from './database/database.module';
 import { HealthModule } from './health/health.module';
+import { ImportsModule } from './imports/imports.module';
 import { MailModule } from './mail/mail.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { RecordsModule } from './records/records.module';
@@ -28,6 +29,7 @@ import { TablesModule } from './tables/tables.module';
     TablesModule,
     ColumnsModule,
     RecordsModule,
+    ImportsModule,
     StockAlertsModule,
     SharingModule,
     OrganizationsModule,

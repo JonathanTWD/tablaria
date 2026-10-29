@@ -13,7 +13,9 @@ export async function createTestApp(): Promise<INestApplication<App>> {
     imports: [AppModule],
   }).compile();
 
-  const app = moduleRef.createNestApplication<INestApplication<App>>();
+  const app = moduleRef.createNestApplication<INestApplication<App>>({
+    bodyParser: false,
+  });
   configureApp(app);
   // A listening server lets cookie-keeping agents reuse it across requests.
   await app.listen(0, '127.0.0.1');

@@ -5,7 +5,8 @@ import { configureApp } from './app.setup';
 import type { Env } from './config/env.schema';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // configureApp installs the body parsers, with a larger limit for imports.
+  const app = await NestFactory.create(AppModule, { bodyParser: false });
   configureApp(app);
 
   const config = app.get<ConfigService<Env, true>>(ConfigService);
