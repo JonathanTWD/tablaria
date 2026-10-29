@@ -24,6 +24,11 @@ const TICKET_TTL_MS = 30_000;
 const AUTH_TIMEOUT_MS = 10_000;
 const HEARTBEAT_MS = 30_000;
 const MAX_CONNECTIONS_PER_USER = 10;
+/**
+ * Connections still waiting for their ticket, from anyone. Each lasts at most
+ * AUTH_TIMEOUT_MS, so this caps what a flood of anonymous sockets can hold.
+ */
+const MAX_UNAUTHENTICATED_CONNECTIONS = 200;
 /** Client messages are tiny JSON commands; anything bigger is not ours. */
 const MAX_MESSAGE_BYTES = 1024;
 
@@ -33,6 +38,7 @@ const CLOSE = {
   forbiddenOrigin: 4403,
   tooManyConnections: 4429,
   badMessage: 4400,
+  serverError: 4500,
 } as const;
 
 interface Identity {
@@ -153,6 +159,13 @@ export class RealtimeService implements OnModuleDestroy {
       socket.close(CLOSE.forbiddenOrigin, 'Origin not allowed');
       return;
     }
+    const unauthenticated = [...this.clients].filter(
+      ({ userId }) => !userId,
+    ).length;
+    if (unauthenticated >= MAX_UNAUTHENTICATED_CONNECTIONS) {
+      socket.close(CLOSE.tooManyConnections, 'Too many connections');
+      return;
+    }
     const client: Client = {
       socket,
       userId: null,
@@ -178,7 +191,15 @@ export class RealtimeService implements OnModuleDestroy {
         socket.close(CLOSE.badMessage, 'Invalid message');
         return;
       }
-      void this.onMessage(client, raw.toString('utf8'));
+      // A failed access check (the database down) must not reject unhandled:
+      // Node would stop the whole API.
+      this.onMessage(client, raw.toString('utf8')).catch((error: unknown) => {
+        this.logger.error(
+          'Realtime message failed',
+          error instanceof Error ? error.stack : String(error),
+        );
+        client.socket.close(CLOSE.serverError, 'Try again later');
+      });
     });
     socket.on('close', () => {
       clearTimeout(authTimer);
