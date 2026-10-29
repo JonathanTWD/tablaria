@@ -13,34 +13,57 @@ export function escapeHtml(text: string): string {
   return text.replace(/[&<>"']/g, (character) => HTML_ESCAPES[character]);
 }
 
-const ROLE_TEXT = { VIEWER: 'ver', EDITOR: 'ver y editar' } as const;
+const TABLE_ROLE_TEXT = { VIEWER: 'ver', EDITOR: 'ver y editar' } as const;
+const ORGANIZATION_ROLE_TEXT = {
+  VIEWER: 'lector',
+  EDITOR: 'editor',
+  ADMIN: 'administrador',
+} as const;
+
+export interface InvitationEmail {
+  inviter: string;
+  target:
+    | { type: 'table'; name: string; role: keyof typeof TABLE_ROLE_TEXT }
+    | {
+        type: 'organization';
+        name: string;
+        role: keyof typeof ORGANIZATION_ROLE_TEXT;
+      };
+  url: string;
+  days: number;
+}
 
 export function invitationEmail({
   inviter,
-  tableName,
-  role,
+  target,
   url,
   days,
-}: {
-  inviter: string;
-  tableName: string;
-  role: keyof typeof ROLE_TEXT;
-  url: string;
-  days: number;
-}): Omit<MailMessage, 'to'> {
-  const summary = `${inviter} te invita a ${ROLE_TEXT[role]} la tabla «${tableName}» en WiseData.`;
+}: InvitationEmail): Omit<MailMessage, 'to'> {
+  // Both names come from other users: escaped in the HTML, plain in the text.
+  const sentence = (name: string) =>
+    target.type === 'table'
+      ? `te invita a ${TABLE_ROLE_TEXT[target.role]} la tabla «${name}» en WiseData.`
+      : `te invita a unirte a «${name}» en WiseData como ${ORGANIZATION_ROLE_TEXT[target.role]}.`;
   const expiry = `La invitación caduca en ${days} días. Si no esperabas este mensaje, puedes ignorarlo.`;
   const html = `<div style="font-family:system-ui,sans-serif;max-width:480px;line-height:1.5;color:#111">
 <h2 style="margin:0 0 16px">WiseData</h2>
-<p>${escapeHtml(inviter)} te invita a ${ROLE_TEXT[role]} la tabla «${escapeHtml(tableName)}» en WiseData.</p>
+<p>${escapeHtml(inviter)} ${sentence(escapeHtml(target.name))}</p>
 <p>${expiry}</p>
 <p><a href="${url}" style="display:inline-block;padding:10px 18px;border-radius:8px;background:#3024ff;color:#ffffff;text-decoration:none;font-weight:600">Ver la invitación</a></p>
 <p style="color:#555;font-size:13px">Si el botón no funciona, copia este enlace en tu navegador:<br>${url}</p>
 </div>`;
   return {
-    // Subjects are plain text, but the name still comes from another user.
-    subject: `${inviter} te ha compartido una tabla en WiseData`,
-    text: `${summary}\n\nAbre este enlace para verla:\n${url}\n\n${expiry}`,
+    // Subjects are plain text, but the inviter still comes from another user.
+    subject:
+      target.type === 'table'
+        ? `${inviter} te ha compartido una tabla en WiseData`
+        : `${inviter} te invita a una organización en WiseData`,
+    text: `${inviter} ${sentence(target.name)}
+
+Abre este enlace para verla:
+${url}
+
+${expiry}`,
     html,
   };
 }

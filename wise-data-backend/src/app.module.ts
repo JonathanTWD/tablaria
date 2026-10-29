@@ -10,6 +10,7 @@ import { validateEnv } from './config/env.schema';
 import { DatabaseModule } from './database/database.module';
 import { HealthModule } from './health/health.module';
 import { MailModule } from './mail/mail.module';
+import { OrganizationsModule } from './organizations/organizations.module';
 import { RecordsModule } from './records/records.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { SharingModule } from './sharing/sharing.module';
@@ -29,6 +30,7 @@ import { TablesModule } from './tables/tables.module';
     RecordsModule,
     StockAlertsModule,
     SharingModule,
+    OrganizationsModule,
     RealtimeModule,
   ],
   providers: [

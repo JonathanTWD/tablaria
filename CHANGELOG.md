@@ -2,6 +2,12 @@
 
 ## Sin publicar
 
+- **Organizaciones (API)** (fase 9, parte 3):
+  - **Espacios compartidos:** se crean organizaciones, que se renombran o se borran con sus tablas. Sus miembros ven todas las tablas con el permiso de su rol: lector, editor, administrador o propietario.
+  - **Miembros:** los administradores invitan por email (el mismo flujo, caducidad y límites antispam que al compartir una tabla), cambian roles y quitan miembros. Siempre queda al menos un propietario, y cualquiera puede salir.
+  - **Invitaciones:** la página de invitación y el email distinguen entre una tabla y una organización.
+  - **Límite de tablas:** pasa a ser de 100 por espacio.
+  - La interfaz para gestionarlas llega en la parte 4.
 - **Presencia**: la cabecera de la tabla muestra avatares de quién más la tiene abierta, con su nombre al pasar el ratón. La celda que alguien está editando se resalta para los demás con su color y su nombre. Para los lectores de pantalla se anuncia quién está en la tabla y quién edita cada celda.
 - **Editar a la vez sin perder cambios**:
   - **Formulario «Editar registro»:** envía solo los campos que cambias. Antes enviaba todos y podía deshacer lo que otra persona hubiera guardado en el mismo registro mientras lo tenías abierto.

@@ -69,6 +69,18 @@
     "accept": "Aceptar y abrir la tabla",
     "decline": "Ahora no",
     "accepted": "Ya tienes acceso a «{{table}}»",
+    "organization": {
+      "heading": "Te han invitado a una organización",
+      "summary": "{{inviter}} te invita a unirte a «{{name}}» como {{role}}. Verás sus tablas en WiseData.",
+      "roles": {
+        "VIEWER": "lector",
+        "EDITOR": "editor",
+        "ADMIN": "administrador",
+        "OWNER": "propietario"
+      },
+      "accept": "Aceptar y unirme",
+      "accepted": "Ya eres miembro de «{{name}}»"
+    },
     "notFoundTitle": "Esta invitación ya no es válida",
     "notFoundDescription": "Puede que haya caducado, que ya la hayas aceptado o que la hayan anulado. Pide a quien te invitó que te envíe otra.",
     "wrongAccountTitle": "Esta invitación es para otra cuenta",

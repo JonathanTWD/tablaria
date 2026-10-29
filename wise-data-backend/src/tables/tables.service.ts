@@ -6,7 +6,7 @@ import {
 import {
   columnDefinitionSchema,
   type createTableSchema,
-  MAX_TABLES_PER_USER,
+  MAX_TABLES_PER_SPACE,
   type SharedTableSummary,
   TABLE_TEMPLATES,
   type TableRole,
@@ -18,9 +18,14 @@ import type { z } from 'zod';
 import { toColumnData, toTableColumn } from '../columns/column-mapper';
 import { PrismaService } from '../database/prisma.service';
 import type { InventoryTable } from '../generated/prisma/client';
+import {
+  lockOrganization,
+  requireOrganizationRole,
+} from '../organizations/organization-access';
 import { RealtimeService } from '../realtime/realtime.service';
 import {
   accessibleTables,
+  higherRole,
   personalOrganizationId,
   requireTableRole,
   tableRole,
@@ -54,6 +59,31 @@ export class TablesService {
     });
     // The personal space belongs to its user alone.
     return tables.map((table) => toTableSummary(table, 'OWNER'));
+  }
+
+  /** The tables of an organization the user belongs to. */
+  async listInOrganization(
+    userId: string,
+    organizationId: string,
+  ): Promise<TableSummary[]> {
+    const { role } = await requireOrganizationRole(
+      this.prisma,
+      userId,
+      organizationId,
+      'VIEWER',
+    );
+    const tables = await this.prisma.inventoryTable.findMany({
+      where: { organizationId },
+      orderBy: { updatedAt: 'desc' },
+      include: {
+        ...WITH_COUNTS,
+        shares: { where: { userId }, select: { role: true } },
+      },
+    });
+    // A direct share can raise a member's role in one table.
+    return tables.map((table) =>
+      toTableSummary(table, higherRole(role, table.shares[0]?.role)),
+    );
   }
 
   /** Tables other people shared with the user directly, most recently edited first. */
@@ -95,7 +125,12 @@ export class TablesService {
     };
   }
 
-  async create(userId: string, input: CreateTable): Promise<TableDetail> {
+  /** Creates the table in the personal space, or in an organization it administers. */
+  async create(
+    userId: string,
+    input: CreateTable,
+    inOrganizationId?: string,
+  ): Promise<TableDetail> {
     const columns = input.templateId
       ? TABLE_TEMPLATES[input.templateId].map((column) =>
           columnDefinitionSchema.parse(column),
@@ -103,13 +138,17 @@ export class TablesService {
       : [];
 
     const table = await this.prisma.$transaction(async (tx) => {
-      const organizationId = await personalOrganizationId(tx, userId);
-      // Locking the organization serializes concurrent creates, so the limit holds.
-      await tx.$executeRaw`SELECT 1 FROM organizations WHERE id = ${organizationId}::uuid FOR UPDATE`;
+      if (inOrganizationId) {
+        await requireOrganizationRole(tx, userId, inOrganizationId, 'ADMIN');
+      }
+      const organizationId =
+        inOrganizationId ?? (await personalOrganizationId(tx, userId));
+      // Serializes concurrent creates, so the limit holds.
+      await lockOrganization(tx, organizationId);
       const count = await tx.inventoryTable.count({
         where: { organizationId },
       });
-      if (count >= MAX_TABLES_PER_USER) {
+      if (count >= MAX_TABLES_PER_SPACE) {
         throw new UnprocessableEntityException('Table limit reached');
       }
       return tx.inventoryTable.create({

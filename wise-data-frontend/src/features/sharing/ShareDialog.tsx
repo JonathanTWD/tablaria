@@ -4,8 +4,8 @@ import {
   inviteSchema,
   SHARE_ROLES,
   type InviteInput,
-  type ShareRole,
   type TableDetail,
+  type TableRole,
 } from "@wisedata/shared";
 import { Mail, UserMinus, X } from "lucide-react";
 import { useId } from "react";
@@ -71,9 +71,14 @@ export function ShareDialog({ table, open, onOpenChange }: ShareDialogProps) {
   );
 }
 
-function useRoleItems(): Record<ShareRole, string> {
+function useRoleItems(): Record<TableRole, string> {
   const { t } = useTranslation("tables");
-  return { VIEWER: t("share.roles.VIEWER"), EDITOR: t("share.roles.EDITOR") };
+  return {
+    VIEWER: t("share.roles.VIEWER"),
+    EDITOR: t("share.roles.EDITOR"),
+    ADMIN: t("share.roles.ADMIN"),
+    OWNER: t("share.roles.OWNER"),
+  };
 }
 
 const INVITE_ERRORS = {

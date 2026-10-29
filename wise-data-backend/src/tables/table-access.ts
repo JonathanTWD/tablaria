@@ -47,10 +47,14 @@ export async function tableRole(
     ...(table?.organization.memberships ?? []),
     ...(table?.shares ?? []),
   ].map(({ role }) => role);
-  return roles.reduce<Role | null>(
-    (best, role) => (best && ROLE_RANK[best] >= ROLE_RANK[role] ? best : role),
-    null,
-  );
+  return roles.reduce<Role | null>(higherRole, null);
+}
+
+export function higherRole<T extends Role | null | undefined>(
+  role: T,
+  other: Role | null | undefined,
+): T | Role {
+  return other && (!role || ROLE_RANK[other] > ROLE_RANK[role]) ? other : role;
 }
 
 /**

@@ -67,7 +67,7 @@ export class DemoService {
     });
   }
 
-  deleteExpiredAccounts(): Promise<Prisma.BatchPayload> {
+  async deleteExpiredAccounts(): Promise<Prisma.BatchPayload> {
     // Waiting one access-token lifetime past expiry means no request can still
     // carry a valid token for the account (refresh stops at expiry), so writes
     // never hit a missing owner. Tables, columns, records and tokens go with
@@ -75,9 +75,16 @@ export class DemoService {
     const deletableBefore = new Date(
       Date.now() - ACCESS_TOKEN_TTL_SECONDS * 1000,
     );
-    return this.prisma.user.deleteMany({
-      where: { demoExpiresAt: { lt: deletableBefore } },
-    });
+    const [deleted] = await this.prisma.$transaction([
+      this.prisma.user.deleteMany({
+        where: { demoExpiresAt: { lt: deletableBefore } },
+      }),
+      // Organizations a demo created are left without members: they go too.
+      this.prisma.organization.deleteMany({
+        where: { personalForId: null, memberships: { none: {} } },
+      }),
+    ]);
+    return deleted;
   }
 }
 

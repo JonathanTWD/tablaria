@@ -93,7 +93,7 @@ describe('Sharing tables (e2e)', () => {
       await guest.post('/api/invitations/preview').send({ token }).expect(200)
     ).body as InvitationPreview;
     expect(preview).toMatchObject({
-      tableName: 'Almacén',
+      target: { type: 'table', id: table.id, name: 'Almacén' },
       invitedBy: ownerUser.email,
       role: 'EDITOR',
       email: guestUser.email,
@@ -102,7 +102,9 @@ describe('Sharing tables (e2e)', () => {
     const accepted = (
       await guest.post('/api/invitations/accept').send({ token }).expect(200)
     ).body as AcceptedInvitation;
-    expect(accepted).toEqual({ tableId: table.id });
+    expect(accepted).toEqual({
+      target: { type: 'table', id: table.id, name: 'Almacén' },
+    });
 
     const opened = (await guest.get(base).expect(200)).body as TableDetail;
     expect(opened.role).toBe('EDITOR');

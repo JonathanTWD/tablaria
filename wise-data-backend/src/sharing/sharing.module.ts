@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { InvitationSender } from './invitations';
 import {
   InvitationsController,
   TableSharingController,
@@ -7,6 +8,7 @@ import { SharingService } from './sharing.service';
 
 @Module({
   controllers: [TableSharingController, InvitationsController],
-  providers: [SharingService],
+  providers: [SharingService, InvitationSender],
+  exports: [InvitationSender],
 })
 export class SharingModule {}

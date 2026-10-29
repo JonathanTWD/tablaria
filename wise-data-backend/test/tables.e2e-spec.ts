@@ -2,7 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import {
   type ApiErrorBody,
   MAX_COLUMNS_PER_TABLE,
-  MAX_TABLES_PER_USER,
+  MAX_TABLES_PER_SPACE,
   type TableColumn,
   type TableDetail,
   type TableSummary,
@@ -191,7 +191,7 @@ describe('Tables and columns (e2e)', () => {
       const { id: organizationId } =
         await prisma.organization.findFirstOrThrow();
       await prisma.inventoryTable.createMany({
-        data: Array.from({ length: MAX_TABLES_PER_USER }, (_, index) => ({
+        data: Array.from({ length: MAX_TABLES_PER_SPACE }, (_, index) => ({
           organizationId,
           name: `Tabla ${index}`,
         })),
