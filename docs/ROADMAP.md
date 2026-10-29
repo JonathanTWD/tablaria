@@ -44,8 +44,7 @@ La especificación completa del MVP está en [MVP_PROMPT.md](MVP_PROMPT.md).
 Cada tarea indica qué modelo conviene: **Opus** para lo que toca seguridad, permisos, migraciones o diseño nuevo; **básico** para tareas acotadas que siguen patrones ya existentes en el código (un modelo más ligero puede hacerlas si se le pasan los archivos indicados). Las marcadas con **tú** necesitan una cuenta o un ajuste fuera del código.
 
 **Difíciles (Opus)**
-- Cuenta: cambiar contraseña, cerrar sesión en todos los dispositivos, cambiar email (verificando el nuevo) y borrar la cuenta (qué pasa con las organizaciones donde es el único propietario).
-- Exportar todos mis datos (RGPD: portabilidad).
+- Cuenta: cambiar email verificando el nuevo. (Hecho: cambiar contraseña, cerrar sesión en todos los dispositivos, borrar la cuenta y exportar tus datos.)
 - Columnas de valor único (SKU, nº de serie) e importar actualizando por esa columna en vez de duplicar.
 - Deshacer la última importación.
 - Movimientos de stock: entradas y salidas con histórico y quién las hizo.

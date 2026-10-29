@@ -10,3 +10,4 @@ export * from "./sharing.js";
 export * from "./realtime.js";
 export * from "./organizations.js";
 export * from "./imports.js";
+export * from "./account.js";

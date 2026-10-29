@@ -152,6 +152,15 @@ export class RealtimeService implements OnModuleDestroy {
     }
   }
 
+  /** Closes every connection of the user: their sessions ended or the account is gone. */
+  disconnectUser(userId: string): void {
+    for (const client of this.clients) {
+      if (client.userId === userId) {
+        client.socket.close(CLOSE.unauthorized, 'Session ended');
+      }
+    }
+  }
+
   private onConnection(socket: WebSocket, request: IncomingMessage): void {
     // Browsers always send Origin; refusing others stops pages on other sites
     // from opening connections with a ticket they somehow got.
