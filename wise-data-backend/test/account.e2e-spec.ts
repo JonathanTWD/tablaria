@@ -143,6 +143,14 @@ describe('Account (e2e)', () => {
     const personalTable = (
       await owner.post('/api/tables').send({ name: 'Mía' }).expect(201)
     ).body as TableDetail;
+    // An invitation to the owner's address, still pending when they leave.
+    const colleagueTable = (
+      await colleague.post('/api/tables').send({ name: 'Suya' }).expect(201)
+    ).body as TableDetail;
+    await colleague
+      .post(`/api/tables/${colleagueTable.id}/invitations`)
+      .send({ email: ownerUser.email, role: 'VIEWER' })
+      .expect(201);
 
     await owner
       .post('/api/account/delete')
@@ -175,6 +183,10 @@ describe('Account (e2e)', () => {
         where: { id: personalTable.id },
       }),
     ).toBeNull();
+    // Nothing keeps their address: not even invitations sent to it.
+    expect(
+      await prisma.invitation.count({ where: { email: ownerUser.email } }),
+    ).toBe(0);
     // Where nobody else was, the organization goes too; where others are, it stays.
     expect(
       await prisma.organization.findUnique({ where: { id: solo.id } }),

@@ -72,7 +72,7 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
   - `POST /account/password` pide la contraseña actual, revoca todos los refresh tokens y da una sesión nueva a este navegador;
   - `POST /account/logout-everywhere` revoca todos los refresh tokens;
   - en ambos casos, los access tokens ya emitidos siguen valiendo hasta que caducan (15 minutos), porque no se consultan en la base de datos en cada petición. Las conexiones de tiempo real del usuario se cierran al momento;
-  - `POST /account/delete` (con la contraseña en el cuerpo) borra la cuenta, «Mi espacio» y las organizaciones donde el usuario es el único miembro. Responde 409 con la lista de organizaciones si es el único propietario de alguna con más miembros, para no dejarlas sin dueño. Bloquea cada organización mientras decide;
+  - `POST /account/delete` (con la contraseña en el cuerpo) borra la cuenta, «Mi espacio», las organizaciones donde el usuario es el único miembro y las invitaciones enviadas a su email: así nada guarda su dirección. Las copias de Neon la conservan hasta que caduca su periodo de retención. Responde 409 con la lista de organizaciones si es el único propietario de alguna con más miembros, para no dejarlas sin dueño. Bloquea cada organización mientras decide;
   - `GET /account/export` devuelve los datos de la cuenta y las tablas de «Mi espacio» con los registros por nombre de columna (RGPD, portabilidad);
   - una contraseña incorrecta responde 422, no 401: la sesión es válida y el cliente no debe intentar refrescarla. Las cuentas demo reciben 403.
 

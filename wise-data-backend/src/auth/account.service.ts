@@ -119,7 +119,7 @@ export class AccountService {
    * organization others still use: ownership must be handed over first.
    */
   async delete(userId: string, password: string): Promise<void> {
-    await this.requirePassword(userId, password);
+    const { email } = await this.requirePassword(userId, password);
     const deletedTables = await this.prisma.$transaction(async (tx) => {
       const owned = await tx.membership.findMany({
         where: { userId, role: 'OWNER', organization: { personalForId: null } },
@@ -162,6 +162,8 @@ export class AccountService {
         select: { id: true },
       });
       await tx.organization.deleteMany({ where: { id: { in: alone } } });
+      // Invitations to their address would keep it after the account is gone.
+      await tx.invitation.deleteMany({ where: { email } });
       // The personal space, memberships, shares and sessions go with the user.
       await tx.user.delete({ where: { id: userId } });
       return tables.map(({ id }) => id);
@@ -192,12 +194,13 @@ export class AccountService {
   private async requirePassword(
     userId: string,
     password: string,
-  ): Promise<void> {
+  ): Promise<User> {
     const user = await this.requireRealAccount(userId);
     if (!(await this.passwords.verify(user.passwordHash, password))) {
       // Not 401: the session is fine, only the password is wrong.
       throw new UnprocessableEntityException('Wrong password');
     }
+    return user;
   }
 }
 
