@@ -3,7 +3,8 @@ import type { TableColumn } from "./column-types.js";
 import type { TableRole } from "./sharing.js";
 import { TABLE_TEMPLATE_IDS } from "./templates.js";
 
-export const MAX_TABLES_PER_USER = 100;
+/** Per space: the personal one or each organization. */
+export const MAX_TABLES_PER_SPACE = 100;
 export const TABLE_NAME_MAX_LENGTH = 80;
 export const TABLE_DESCRIPTION_MAX_LENGTH = 500;
 

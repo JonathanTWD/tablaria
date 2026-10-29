@@ -73,3 +73,26 @@ export class TablesController {
     return this.tables.remove(userId, tableId);
   }
 }
+
+@Controller('organizations/:organizationId/tables')
+export class OrganizationTablesController {
+  constructor(private readonly tables: TablesService) {}
+
+  @Get()
+  list(
+    @CurrentUserId() userId: string,
+    @Param('organizationId', ParseUUIDPipe) organizationId: string,
+  ): Promise<TableSummary[]> {
+    return this.tables.listInOrganization(userId, organizationId);
+  }
+
+  @Post()
+  create(
+    @CurrentUserId() userId: string,
+    @Param('organizationId', ParseUUIDPipe) organizationId: string,
+    @Body(new ZodValidationPipe(createTableSchema))
+    body: z.output<typeof createTableSchema>,
+  ): Promise<TableDetail> {
+    return this.tables.create(userId, body, organizationId);
+  }
+}

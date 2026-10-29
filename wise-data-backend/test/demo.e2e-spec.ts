@@ -1,6 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import type {
   AuthUser,
+  OrganizationDetail,
   Paginated,
   TableRecord,
   TableSummary,
@@ -93,7 +94,13 @@ describe('Demo accounts (e2e)', () => {
   });
 
   it('deletes expired demo accounts with all their data', async () => {
-    const { user } = await startDemo();
+    const { client, user } = await startDemo();
+    const organization = (
+      await client
+        .post('/api/organizations')
+        .send({ name: 'De la demo' })
+        .expect(201)
+    ).body as OrganizationDetail;
     // Past expiry plus one access-token lifetime, so no token can still be valid.
     const tableIds = (
       await prisma.inventoryTable.findMany({
@@ -114,6 +121,10 @@ describe('Demo accounts (e2e)', () => {
     expect(
       await prisma.inventoryTable.count({ where: { id: { in: tableIds } } }),
     ).toBe(0);
+    // Organizations it created are left without members, and go too.
+    expect(
+      await prisma.organization.findUnique({ where: { id: organization.id } }),
+    ).toBeNull();
   });
 
   it('never emails demo addresses', async () => {
