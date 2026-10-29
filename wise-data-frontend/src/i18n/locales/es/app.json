@@ -106,10 +106,36 @@
       "title": "Apariencia",
       "description": "Elige cómo se ve WiseData en este dispositivo."
     },
+    "password": {
+      "title": "Contraseña",
+      "description": "Al cambiarla se cierra la sesión en el resto de dispositivos.",
+      "current": "Contraseña actual",
+      "submit": "Cambiar contraseña",
+      "changed": "Contraseña cambiada",
+      "wrong": "La contraseña actual no es correcta."
+    },
     "session": {
       "title": "Sesión",
-      "description": "Cierra la sesión en este navegador.",
-      "logout": "Cerrar sesión"
+      "description": "Cierra la sesión en este navegador o en todos los dispositivos donde la tengas abierta, por ejemplo si has usado un ordenador ajeno.",
+      "logout": "Cerrar sesión",
+      "everywhere": "Cerrar sesión en todos los dispositivos",
+      "everywhereDone": "Sesión cerrada en todos los dispositivos"
+    },
+    "data": {
+      "title": "Tus datos",
+      "description": "Descarga en un archivo JSON tu cuenta, tus espacios y las tablas de «Mi espacio» con todos sus registros.",
+      "export": "Descargar mis datos"
+    },
+    "delete": {
+      "section": "Borrar cuenta",
+      "description": "Se borran tu cuenta, «Mi espacio» con todas sus tablas y las organizaciones donde eres el único miembro. No se puede deshacer.",
+      "open": "Borrar mi cuenta",
+      "title": "¿Borrar tu cuenta?",
+      "confirm": "Escribe tu contraseña para confirmar. Perderás todas tus tablas y registros, y no se pueden recuperar.",
+      "password": "Contraseña",
+      "submit": "Borrar mi cuenta para siempre",
+      "done": "Cuenta borrada",
+      "blocked": "Eres el único propietario de estas organizaciones, y hay más personas en ellas. Nombra a otra persona propietaria (o borra la organización) antes de borrar tu cuenta:"
     }
   },
   "logoutError": "No se pudo cerrar la sesión. Inténtalo de nuevo.",

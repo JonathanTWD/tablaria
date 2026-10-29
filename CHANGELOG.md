@@ -1,5 +1,15 @@
 # Changelog
 
+## Sin publicar
+
+- **Tu cuenta** (Ajustes):
+  - **cambiar la contraseña**, pidiendo la actual; el resto de dispositivos pierde la sesión;
+  - **cerrar sesión en todos los dispositivos**;
+  - **descargar tus datos** en JSON: la cuenta, tus espacios y las tablas de «Mi espacio» con sus registros, por nombre de columna (RGPD, portabilidad);
+  - **borrar la cuenta** con su contraseña: se borran «Mi espacio» y las organizaciones donde eres el único miembro. Si eres el único propietario de una organización con más gente, primero hay que nombrar otro propietario, y se indica cuáles.
+  
+  Nada de esto aparece en la demo, que no tiene contraseña y se borra sola.
+
 ## v1.4.0 — Importar
 
 - **Importar CSV** (fase 10): el botón «Importar CSV» de una tabla abre un asistente en tres pasos.

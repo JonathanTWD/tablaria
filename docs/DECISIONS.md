@@ -68,6 +68,14 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 - **Rate limiting**: 5 peticiones/min por IP en los endpoints que comprueban credenciales o envían correos, y 30/min en `refresh`.
 - **Versiones**: `@nestjs/jwt` 11 y `nodemailer` 9, porque las mayores siguientes solo se distribuyen como ESM.
 
+- **Gestión de la cuenta** (añadido en la v1.5):
+  - `POST /account/password` pide la contraseña actual, revoca todos los refresh tokens y da una sesión nueva a este navegador;
+  - `POST /account/logout-everywhere` revoca todos los refresh tokens;
+  - en ambos casos, los access tokens ya emitidos siguen valiendo hasta que caducan (15 minutos), porque no se consultan en la base de datos en cada petición. Las conexiones de tiempo real del usuario se cierran al momento;
+  - `POST /account/delete` (con la contraseña en el cuerpo) borra la cuenta, «Mi espacio» y las organizaciones donde el usuario es el único miembro. Responde 409 con la lista de organizaciones si es el único propietario de alguna con más miembros, para no dejarlas sin dueño. Bloquea cada organización mientras decide;
+  - `GET /account/export` devuelve los datos de la cuenta y las tablas de «Mi espacio» con los registros por nombre de columna (RGPD, portabilidad);
+  - una contraseña incorrecta responde 422, no 401: la sesión es válida y el cliente no debe intentar refrescarla. Las cuentas demo reciben 403.
+
 ## ADR-009: Base de datos aislada para los tests e2e
 
 - **Decisión**:
