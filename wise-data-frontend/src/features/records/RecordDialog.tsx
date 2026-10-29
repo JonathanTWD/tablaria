@@ -29,6 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { RelationPicker } from "@/features/relations/RelationPicker";
 import { ApiError } from "@/lib/api-client";
 import { apiErrorMessage } from "@/lib/error-message";
 import { fromDraft, toDraft } from "./cell-draft";
@@ -44,6 +45,8 @@ interface RecordDialogProps {
   record?: TableRecord;
   /** Names of other people editing a cell of this record right now. */
   editingBy?: string[];
+  /** Labels of the records relation cells link to (ADR-022). */
+  linked?: Record<string, string>;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -72,6 +75,7 @@ function RecordForm({
   columns,
   record,
   editingBy = [],
+  linked = {},
   onDone,
 }: Omit<RecordDialogProps, "open" | "onOpenChange"> & { onDone: () => void }) {
   const { t } = useTranslation("records");
@@ -166,7 +170,23 @@ function RecordForm({
           return (
             <Field key={column.id} data-invalid={Boolean(message)}>
               <FieldLabel htmlFor={id}>{label}</FieldLabel>
-              {column.type === "boolean" || column.type === "select" ? (
+              {column.type === "relation" ? (
+                <Controller
+                  control={form.control}
+                  name={column.id}
+                  render={({ field }) => (
+                    <RelationPicker
+                      id={id}
+                      column={column}
+                      value={field.value || null}
+                      linked={linked}
+                      label={column.name}
+                      onChange={(next) => field.onChange(next ?? "")}
+                      className="h-9 border border-input"
+                    />
+                  )}
+                />
+              ) : column.type === "boolean" || column.type === "select" ? (
                 <Controller
                   control={form.control}
                   name={column.id}

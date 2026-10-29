@@ -52,7 +52,7 @@ Cada tarea indica qué modelo conviene: **Opus** para lo que toca seguridad, per
 - Enlaces públicos de solo lectura.
 - Imágenes y adjuntos (almacenamiento y subida segura).
 - API pública con tokens y webhooks.
-- Relaciones entre tablas: interfaz (en marcha, ADR-022), selección múltiple, consultas y resúmenes (lookup y rollup), búsqueda y orden por etiqueta. Columnas calculadas.
+- Relaciones entre tablas (hechas las básicas, ADR-022): selección múltiple, consultas y resúmenes (lookup y rollup), filtros, búsqueda y orden por etiqueta. Columnas calculadas.
 - Preguntas sobre los datos con IA (necesita una API key de pago).
 - Tiempo real con varias instancias (Redis), solo si hace falta escalar.
 

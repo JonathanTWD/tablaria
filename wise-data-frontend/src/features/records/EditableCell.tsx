@@ -20,6 +20,8 @@ import {
 import { SELECT_CHIP_CLASSES } from "@/features/columns/column-ui";
 import type { CellFormatter } from "@/features/columns/format-value";
 import { cn } from "@/lib/utils";
+import { useLinkedText } from "@/features/relations/linked-text";
+import { RelationPicker } from "@/features/relations/RelationPicker";
 import { fromDraft, toDraft } from "./cell-draft";
 
 interface EditableCellProps {
@@ -33,6 +35,8 @@ interface EditableCellProps {
   presence?: { recordId: string; setEditing: (cell: PresenceCell | null) => void };
   /** Someone else has this cell open: editing is allowed, with a warning. */
   editedBy?: string;
+  /** Labels of the records relation cells link to (ADR-022). */
+  linked?: Record<string, string>;
 }
 
 /**
@@ -73,7 +77,25 @@ export function EditableCell(props: EditableCellProps) {
   if (props.column.type === "select") {
     return <SelectCell {...props} />;
   }
+  if (props.column.type === "relation") {
+    return <RelationCell {...props} />;
+  }
   return <TextualCell {...props} />;
+}
+
+function RelationCell({ column, value, label, onSave, presence, linked = {} }: EditableCellProps) {
+  const [open, setOpen] = useState(false);
+  useAnnounceEditing(open, presence, column.id);
+  return (
+    <RelationPicker
+      column={column}
+      value={value}
+      linked={linked}
+      label={label}
+      onOpenChange={setOpen}
+      onChange={(next) => next !== value && onSave(next)}
+    />
+  );
 }
 
 function BooleanCell({ value, label, onSave }: EditableCellProps) {
@@ -266,8 +288,17 @@ export function ReadOnlyCell({
   column,
   value,
   format,
-}: Pick<EditableCellProps, "column" | "value" | "format">) {
+  linked = {},
+}: Pick<EditableCellProps, "column" | "value" | "format" | "linked">) {
   const { t } = useTranslation("records");
+  const linkedText = useLinkedText();
+  if (column.type === "relation") {
+    return (
+      <span className="flex h-8 min-w-28 items-center px-2 text-sm">
+        <span className="truncate">{linkedText(value, linked)}</span>
+      </span>
+    );
+  }
   if (column.type === "select") {
     const choice = column.options.choices.find((item) => item.label === value);
     return (

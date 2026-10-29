@@ -195,8 +195,13 @@
       "choices": "Añade al menos una opción (máximo 50).",
       "choiceLabel": "Escribe la opción (hasta 50 caracteres) sin repetir otra.",
       "defaultValue": "Este valor no encaja con el tipo de la columna.",
-      "alertBelow": "Escribe un número igual o mayor que 0."
-    }
+      "alertBelow": "Escribe un número igual o mayor que 0.",
+      "linkedTable": "Elige la tabla con la que enlazar."
+    },
+    "linkedTable": "Tabla enlazada",
+    "linkedTablePlaceholder": "Elige una tabla",
+    "linkedTableHint": "Cada registro podrá enlazar con un registro de esa tabla. Solo tablas de este espacio.",
+    "linkedTableError": "Esa tabla ya no existe o no es de este espacio."
   },
   "validation": {
     "tableName": "Escribe un nombre de hasta 80 caracteres.",

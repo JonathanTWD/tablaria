@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
-import type { Paginated, RecordStats, TableRecord } from "@wisedata/shared";
+import type { RecordPage, RecordStats, TableRecord } from "@wisedata/shared";
 import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import { mockApi } from "@/test/render";
@@ -21,9 +21,10 @@ describe("useUpdateRecord", () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false, staleTime: Infinity } },
     });
-    const page: Paginated<TableRecord> = {
+    const page: RecordPage = {
       data: [record],
       meta: { page: 1, pageSize: 25, total: 1, pageCount: 1 },
+      linked: {},
     };
     const stats: RecordStats = { total: 1, groups: [], others: null };
     const pageKey = recordsQuery(TABLE, parseRecordsView(new URLSearchParams())).queryKey;

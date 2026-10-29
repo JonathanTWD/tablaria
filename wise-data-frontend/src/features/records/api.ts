@@ -1,6 +1,6 @@
 import type {
-  Paginated,
   RecordData,
+  RecordPage,
   RecordStats,
   RecordStatsQuery,
   TableRecord,
@@ -37,7 +37,7 @@ function toExportQueryString(view: RecordsView): string {
 
 export const recordsApi = {
   list: (tableId: string, view: RecordsView) =>
-    apiRequest<Paginated<TableRecord>>(`/tables/${tableId}/records?${toQueryString(view)}`),
+    apiRequest<RecordPage>(`/tables/${tableId}/records?${toQueryString(view)}`),
   create: (tableId: string, data: RecordData) =>
     apiRequest<TableRecord>(`/tables/${tableId}/records`, { method: "POST", body: { data } }),
   update: (tableId: string, recordId: string, data: RecordData) =>

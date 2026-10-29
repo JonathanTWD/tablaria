@@ -175,5 +175,14 @@
       "unreadable": "No se pudo leer el archivo. Comprueba que es un CSV y vuelve a elegirlo.",
       "conflict": "Ya hay una columna con ese nombre o la tabla superaría las 50 columnas. Cambia el nombre en la cabecera del archivo o importa menos columnas."
     }
+  },
+  "relation": {
+    "hidden": "Registro de una tabla sin acceso",
+    "untitled": "Registro sin nombre",
+    "search": "Buscar en {{name}}",
+    "searchPlaceholder": "Buscar…",
+    "noResults": "Ningún registro coincide.",
+    "noAccess": "No tienes acceso a la tabla enlazada. Pide a quien la administra que te la comparta.",
+    "clear": "Quitar el enlace"
   }
 }

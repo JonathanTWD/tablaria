@@ -23,6 +23,8 @@ export interface ColumnFormValues {
   /** Number columns: warn when a value drops below this. Empty for no warning. */
   alertBelow: string;
   choices: { id: string; label: string; color: SelectColor }[];
+  /** Relation columns: the table they link to. */
+  tableId: string;
   /** Typed text, "true"/"false" for booleans, or the choice id for selects. */
   defaultValue: string;
 }
@@ -43,6 +45,7 @@ export function columnFormDefaults(column?: TableColumn): ColumnFormValues {
     currency: "EUR",
     alertBelow: "",
     choices: [newChoice(0)],
+    tableId: "",
     defaultValue: "",
   };
   if (!column) {
@@ -53,6 +56,9 @@ export function columnFormDefaults(column?: TableColumn): ColumnFormValues {
   }
   if (column.type === "select") {
     values.choices = column.options.choices;
+  }
+  if (column.type === "relation") {
+    values.tableId = column.options.tableId;
   }
   if (column.type === "number" && column.options) {
     values.alertBelow = String(column.options.alertBelow);
@@ -102,6 +108,8 @@ function toDraft(values: ColumnFormValues) {
       return { ...base, type: "select", options: { choices: values.choices } };
     case "currency":
       return { ...base, type: "currency", options: { currency: values.currency } };
+    case "relation":
+      return { ...base, type: "relation", options: { tableId: values.tableId }, defaultValue: null };
     case "number": {
       const alertBelow = values.alertBelow.trim();
       return {
@@ -138,6 +146,7 @@ export const columnFormSchema = z
     choices: z.array(
       z.object({ id: z.string(), label: z.string(), color: z.enum(SELECT_COLORS) }),
     ),
+    tableId: z.string(),
     defaultValue: z.string(),
   })
   .superRefine((values, ctx) => {
