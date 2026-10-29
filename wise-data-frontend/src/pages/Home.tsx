@@ -9,7 +9,7 @@ import { UseCases } from "@/features/landing/sections/UseCases";
 
 const Home = () => {
   return (
-    <div className="min-h-dvh bg-background text-foreground">
+    <div data-smooth-scroll className="min-h-dvh bg-background text-foreground">
       <title>WiseData | Tu inventario en tablas hechas a tu medida</title>
       <SiteHeader />
       <main>
