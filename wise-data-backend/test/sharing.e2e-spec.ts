@@ -108,6 +108,8 @@ describe('Sharing tables (e2e)', () => {
 
     const opened = (await guest.get(base).expect(200)).body as TableDetail;
     expect(opened.role).toBe('EDITOR');
+    // Access through a share, not as a member of the owner's space.
+    expect(opened.member).toBe(false);
     const shared = (await guest.get('/api/tables/shared').expect(200))
       .body as SharedTableSummary[];
     expect(shared).toEqual([

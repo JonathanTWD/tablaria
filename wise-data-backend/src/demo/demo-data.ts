@@ -1,9 +1,12 @@
 import type { CellValue, TableTemplateId } from '@wisedata/shared';
+import type { Role } from '../generated/prisma/client';
 
 export interface DemoTable {
   name: string;
   description: string;
   templateId: TableTemplateId;
+  /** In the example organization instead of the personal space. */
+  inOrganization?: boolean;
   /** Cell values keyed by the template's column names. */
   rows: Record<string, CellValue>[];
 }
@@ -130,6 +133,7 @@ export const DEMO_TABLES: DemoTable[] = [
     name: 'Almacén central',
     description: 'Existencias por ubicación y fecha de la última revisión.',
     templateId: 'basic-inventory',
+    inOrganization: true,
     rows: [
       {
         Producto: 'Cajas de cartón 40×30',
@@ -266,3 +270,19 @@ export const DEMO_TABLES: DemoTable[] = [
     ],
   },
 ];
+
+/**
+ * An organization the visitor owns, so the demo shows teamwork too. Its other
+ * members are fictitious accounts that nobody can sign in to.
+ */
+export const DEMO_ORGANIZATION: {
+  name: string;
+  members: { name: string; role: Exclude<Role, 'OWNER'> }[];
+} = {
+  name: 'Equipo de la tienda',
+  members: [
+    { name: 'marta.garcia', role: 'ADMIN' },
+    { name: 'javier.ruiz', role: 'EDITOR' },
+    { name: 'lucia.sanz', role: 'VIEWER' },
+  ],
+};

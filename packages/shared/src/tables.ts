@@ -48,6 +48,9 @@ export interface TableSummary {
 }
 
 export interface TableDetail extends TableSummary {
+  organizationId: string;
+  /** Whether the user belongs to its organization; otherwise it was shared with them. */
+  member: boolean;
   /** Ordered by position. */
   columns: TableColumn[];
 }
