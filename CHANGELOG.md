@@ -2,6 +2,11 @@
 
 ## Sin publicar
 
+- **Columnas de valor único** (API, la interfaz llega a continuación):
+  - **Una columna de texto o número puede ser única,** como el SKU o el número de serie: no deja guardar un valor que ya tiene otro registro, sin distinguir mayúsculas ni espacios.
+  - **Al activarla** en una columna que ya repite valores, dice cuáles para corregirlos antes.
+  - **Importar actualizando:** al importar se puede elegir una columna única como clave. Las filas cuyo valor ya existe actualizan ese registro en vez de duplicarlo, y el resto se crean.
+  - **Al importar sin clave,** un valor repetido en el archivo o que ya está en la tabla aparece como error de esa fila.
 - **Relaciones entre tablas**:
   - **Nuevo tipo de columna «Relación con otra tabla».** Al crearla eliges con qué tabla del mismo espacio enlaza, por ejemplo cada producto con su proveedor.
   - **Elegir el registro:** en la celda o en el formulario, un buscador lista los registros de esa tabla por su primera columna.

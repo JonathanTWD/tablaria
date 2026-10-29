@@ -106,7 +106,16 @@ export const columnNameSchema = z.string().trim().min(1).max(COLUMN_NAME_MAX_LEN
 const columnBase = {
   name: columnNameSchema,
   required: z.boolean().default(false),
+  /** No two records may hold the same value (SKU, serial number…); ADR-023. */
+  unique: z.boolean().default(false),
 };
+
+/** Types whose values identify a record: unique columns are one of these. */
+export const UNIQUE_COLUMN_TYPES = ["text", "number"] as const satisfies readonly ColumnType[];
+
+export function canBeUnique(type: ColumnType): boolean {
+  return (UNIQUE_COLUMN_TYPES as readonly ColumnType[]).includes(type);
+}
 
 /** Types without settings of their own. */
 function plainColumn<T extends ColumnType, V extends z.ZodType<CellValue>>(type: T, value: V) {
@@ -151,6 +160,13 @@ export const columnDefinitionSchema = z
     }),
   ])
   .superRefine((column, ctx) => {
+    if (column.unique && !canBeUnique(column.type)) {
+      ctx.addIssue({ code: "custom", path: ["unique"], message: "Only text and numbers can be unique" });
+    }
+    // Every record that leaves the cell empty would share the default.
+    if (column.unique && column.defaultValue !== null) {
+      ctx.addIssue({ code: "custom", path: ["defaultValue"], message: "A unique column has no default value" });
+    }
     if (
       column.type === "select" &&
       column.defaultValue !== null &&
@@ -176,6 +192,7 @@ export const updateColumnSchema = z
   .object({
     name: columnNameSchema,
     required: z.boolean(),
+    unique: z.boolean(),
     type: z.enum(COLUMN_TYPES),
     options: z.unknown(),
     defaultValue: z.unknown(),

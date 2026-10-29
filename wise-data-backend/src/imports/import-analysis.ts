@@ -16,6 +16,7 @@ import {
 } from '@wisedata/shared';
 import { randomUUID } from 'node:crypto';
 import type { z } from 'zod';
+import { uniqueKey } from '../records/unique-values';
 import { importCellValue } from './import-value';
 
 export type ImportRequest = z.output<typeof importSchema>;
@@ -32,8 +33,10 @@ export interface ImportPlan {
 
 export interface ImportAnalysis {
   check: ImportCheck;
-  /** Valid rows, ready to store (defaults applied). */
+  /** Valid rows that add a record, ready to store (defaults applied). */
   records: RecordData[];
+  /** Valid rows that update a record: only the cells the file brings. */
+  updates: { id: string; data: RecordData }[];
   /** Existing select columns with the choices the import adds. */
   extendedColumns: RecordColumn[];
   /** The new columns as they will be stored, with any choices the import adds. */
@@ -95,16 +98,36 @@ export function planImport(
   return { targets: resolved, columns: [...existing, ...created], created };
 }
 
+/** What unique columns already hold, for duplicates and updates (ADR-023). */
+export interface ImportUniqueness {
+  /** For each unique column of the table: each taken key and its record. */
+  taken: Map<string, Map<string, string>>;
+  /** Position of the file column whose value finds the record to update. */
+  updateBy?: number;
+}
+
 /**
  * Converts and validates every row against the planned columns, with the same
  * rules as creating a record by hand. With `addMissingChoices`, values no
- * select choice matches become new choices instead of errors.
+ * select choice matches become new choices instead of errors. Unique columns
+ * refuse values repeated in the file or held by another record; with
+ * `updateBy`, a row whose key a record holds updates that record.
  */
 export function analyzeImport(
   plan: ImportPlan,
   rows: string[][],
   addMissingChoices: boolean,
+  uniqueness: ImportUniqueness = { taken: new Map() },
 ): ImportAnalysis {
+  const keyColumn =
+    uniqueness.updateBy === undefined
+      ? undefined
+      : plan.targets[uniqueness.updateBy];
+  if (uniqueness.updateBy !== undefined && !keyColumn?.unique) {
+    throw new InvalidImportError(
+      'Updates need a file column mapped to a unique column',
+    );
+  }
   const missingChoices = findMissingChoices(plan.targets, rows);
   const extended = addMissingChoices
     ? withChoices(plan.columns, missingChoices, plan.targets)
@@ -128,9 +151,15 @@ export function analyzeImport(
     )
     .map(({ id }) => id);
   const schema = recordDataSchema(columns, { partial: false });
+  const updateSchema = recordDataSchema(columns, { partial: true });
+  // Keys already seen in the file, per unique column.
+  const seen = new Map<string, Set<string>>();
 
   const errors: ImportCellError[] = [];
   const records: RecordData[] = [];
+  const updates: ImportAnalysis['updates'] = [];
+  // Rows that would add a record, valid or not: they need the required columns.
+  let creating = 0;
   rows.forEach((cells, index) => {
     const row = index + 1;
     const data: Record<string, CellValue> = {};
@@ -147,7 +176,35 @@ export function analyzeImport(
         data[column.id] = cell.value;
       }
     });
-    const parsed = schema.safeParse(data);
+    // The record this row updates, found by the value of its key column.
+    const keyOf = (column: RecordColumn) => uniqueKey(data[column.id]);
+    const updateKey = keyColumn ? keyOf(keyColumn) : null;
+    const updateId =
+      keyColumn && updateKey !== null
+        ? uniqueness.taken.get(keyColumn.id)?.get(updateKey)
+        : undefined;
+    targets.forEach((column, position) => {
+      const key = column?.unique ? keyOf(column) : null;
+      if (!column || key === null) {
+        return;
+      }
+      const inFile = seen.get(column.id) ?? new Set<string>();
+      const holder = uniqueness.taken.get(column.id)?.get(key);
+      if (inFile.has(key) || (holder !== undefined && holder !== updateId)) {
+        rowErrors.push({
+          row,
+          column: position,
+          value: cells[position] ?? '',
+          reason: 'duplicate',
+        });
+      }
+      inFile.add(key);
+      seen.set(column.id, inFile);
+    });
+    if (!updateId) {
+      creating++;
+    }
+    const parsed = (updateId ? updateSchema : schema).safeParse(data);
     if (!parsed.success) {
       for (const issue of parsed.error.issues) {
         const position = fileColumnOf.get(String(issue.path[0]));
@@ -166,15 +223,24 @@ export function analyzeImport(
     }
     if (rowErrors.length > 0) {
       errors.push(...rowErrors);
+    } else if (parsed.success && updateId && keyColumn) {
+      // The key only finds the record: its stored spelling stays.
+      const changes = Object.fromEntries(
+        Object.entries(parsed.data).filter(([id]) => id !== keyColumn.id),
+      );
+      updates.push({ id: updateId, data: changes });
     } else if (parsed.success) {
       records.push(parsed.data);
     }
   });
+  // Updated rows keep their record's other cells: only new records need them.
+  const blocking = creating > 0 ? missingRequired : [];
 
   return {
     check: {
       rows: rows.length,
-      validRows: missingRequired.length > 0 ? 0 : records.length,
+      validRows: blocking.length > 0 ? 0 : records.length + updates.length,
+      toUpdate: blocking.length > 0 ? 0 : updates.length,
       errorCount: errors.length,
       errors: errors.slice(0, MAX_IMPORT_ERRORS),
       // A column holds at most MAX_SELECT_CHOICES choices: more is never needed here.
@@ -182,9 +248,10 @@ export function analyzeImport(
         column,
         values: values.slice(0, MAX_SELECT_CHOICES),
       })),
-      missingRequired,
+      missingRequired: blocking,
     },
     records,
+    updates,
     extendedColumns: [...extended.values()].filter(
       (column) => !plan.created.some(({ id }) => id === column.id),
     ),

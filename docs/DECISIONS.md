@@ -369,6 +369,25 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 
 **Consecuencias**: el modelo de metadatos aguanta relaciones sin migraciones de esquema por tabla, solo un valor nuevo en el enum `ColumnType`.
 
+## ADR-023: Columnas de valor único
+
+**Contexto**: en un inventario hay columnas que identifican cada registro, como el SKU o el número de serie. Si se repiten, el inventario deja de cuadrar, y reimportar una hoja actualizada duplicaba todos sus registros.
+
+**Decisión**:
+- **Opción `unique` en la columna**, solo para texto y números y sin valor por defecto, que compartirían todos los registros que dejan la celda vacía. Las celdas vacías nunca chocan entre sí.
+- **Qué cuenta como repetido:** el texto se compara sin mayúsculas ni espacios alrededor («SKU-1» y « sku-1 » son el mismo valor) y los números por su valor. En SQL, los dos lados de cada comparación pasan por `lower()` de PostgreSQL, para no depender de que coincida con el de JavaScript.
+- **Dónde se comprueba:** en el backend, dentro de la transacción que bloquea la fila de la tabla (`touchTable`), así que dos escrituras a la vez no pueden colar el mismo valor. Sin índice en la base de datos: los valores viven en JSONB por id de columna (ADR-012) y un índice único por columna exigiría índices dinámicos. Si hiciera falta por volumen, se añadiría un índice de expresión parcial por columna.
+- **Errores:**
+  - crear o editar un registro con un valor que ya tiene otro devuelve 409 y nombra la columna y el valor;
+  - marcar como única una columna que ya repite valores devuelve 409 con hasta cinco de ellos, para que se puedan corregir antes.
+- **Importar actualizando:** la importación acepta `updateBy`, la posición de una columna del archivo emparejada con una columna única.
+  - Una fila cuyo valor ya tiene un registro actualiza ese registro con las celdas que trae el archivo, en vez de crear otro; si no, crea uno nuevo.
+  - La clave solo sirve para encontrar el registro: conserva cómo estaba escrita.
+  - Las filas que actualizan no necesitan las columnas obligatorias que el archivo no trae, porque el registro ya las tiene.
+  - Sin `updateBy`, un valor repetido en el archivo o que ya tiene otro registro es un error de la fila (`duplicate`), como cualquier otro.
+
+**Consecuencias**: una comprobación más por cada columna única al escribir, acotada a la tabla. Cambiar el tipo de una columna a uno que no puede ser único le quita la opción.
+
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
 Todas están especificadas en [MVP_PROMPT.md](MVP_PROMPT.md):
