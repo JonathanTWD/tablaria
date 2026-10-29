@@ -1,8 +1,10 @@
 import {
   type CellValue,
+  type ColumnDefinition,
   type ImportCellError,
   type ImportCheck,
   type importSchema,
+  MAX_COLUMNS_PER_TABLE,
   MAX_IMPORT_ERRORS,
   MAX_SELECT_CHOICES,
   type RecordColumn,
@@ -18,59 +20,125 @@ import { importCellValue } from './import-value';
 
 export type ImportRequest = z.output<typeof importSchema>;
 
+/** The table's columns once the import has run: existing ones and new ones. */
+export interface ImportPlan {
+  /** For each column of the file, the column it fills (null: skipped). */
+  targets: (RecordColumn | null)[];
+  /** Every column of the table after the import, existing first. */
+  columns: RecordColumn[];
+  /** Columns the import creates, with the ids they will have. */
+  created: RecordColumn[];
+}
+
 export interface ImportAnalysis {
   check: ImportCheck;
   /** Valid rows, ready to store (defaults applied). */
   records: RecordData[];
-  /** Select columns with the choices the import adds, when it adds any. */
+  /** Existing select columns with the choices the import adds. */
   extendedColumns: RecordColumn[];
+  /** The new columns as they will be stored, with any choices the import adds. */
+  createdColumns: RecordColumn[];
+}
+
+/** A request that can't describe an import into this table. */
+export class InvalidImportError extends Error {
+  constructor(
+    message: string,
+    readonly conflict = false,
+  ) {
+    super(message);
+  }
 }
 
 /**
- * Converts and validates every row of an import against the table's columns,
- * with the same rules as creating a record by hand. With `addMissingChoices`,
- * values no select choice matches become new choices instead of errors.
+ * Resolves each column of the file to an existing column of the table or to
+ * a new one. New columns get their ids here, so the check and the import
+ * validate against exactly what will be stored.
+ */
+export function planImport(
+  existing: RecordColumn[],
+  targets: ImportRequest['columns'],
+): ImportPlan {
+  const byId = new Map(existing.map((column) => [column.id, column]));
+  const names = new Set(existing.map(({ name }) => name.toLocaleLowerCase()));
+  const created: RecordColumn[] = [];
+  const resolved = targets.map((target): RecordColumn | null => {
+    if (target === null) {
+      return null;
+    }
+    if (typeof target === 'string') {
+      const column = byId.get(target);
+      if (!column) {
+        throw new InvalidImportError(`Column ${target} is not in this table`);
+      }
+      return column;
+    }
+    const name = target.create.name.toLocaleLowerCase();
+    if (names.has(name)) {
+      throw new InvalidImportError(
+        `A column named "${target.create.name}" already exists`,
+        true,
+      );
+    }
+    names.add(name);
+    const column: RecordColumn = { ...target.create, id: randomUUID() };
+    created.push(column);
+    return column;
+  });
+  if (existing.length + created.length > MAX_COLUMNS_PER_TABLE) {
+    throw new InvalidImportError('Column limit reached', true);
+  }
+  return { targets: resolved, columns: [...existing, ...created], created };
+}
+
+/**
+ * Converts and validates every row against the planned columns, with the same
+ * rules as creating a record by hand. With `addMissingChoices`, values no
+ * select choice matches become new choices instead of errors.
  */
 export function analyzeImport(
-  columns: RecordColumn[],
-  request: ImportRequest,
+  plan: ImportPlan,
+  rows: string[][],
+  addMissingChoices: boolean,
 ): ImportAnalysis {
-  const byId = new Map(columns.map((column) => [column.id, column]));
-  const mapped = request.columns.map((id) => (id ? byId.get(id) : null));
-  const unknown = request.columns.findIndex(
-    (id, index) => id !== null && !mapped[index],
+  const missingChoices = findMissingChoices(plan.targets, rows);
+  const extended = addMissingChoices
+    ? withChoices(plan.columns, missingChoices, plan.targets)
+    : new Map<string, RecordColumn>();
+  const columns = plan.columns.map(
+    (column) => extended.get(column.id) ?? column,
   );
-  if (unknown !== -1) {
-    throw new UnknownImportColumnError(request.columns[unknown] ?? '');
-  }
-
-  const missingChoices = findMissingChoices(mapped, request.rows);
-  const extendedColumns = request.addMissingChoices
-    ? withChoices(columns, missingChoices)
-    : [];
-  const effective = columns.map(
-    (column) => extendedColumns.find(({ id }) => id === column.id) ?? column,
+  const targets = plan.targets.map(
+    (column) => column && (extended.get(column.id) ?? column),
   );
-  const effectiveById = new Map(effective.map((column) => [column.id, column]));
-  const schema = recordDataSchema(effective, { partial: false });
+  const fileColumnOf = new Map(
+    targets.flatMap((column, index) => (column ? [[column.id, index]] : [])),
+  );
+  // Required columns no column of the file fills fail every row: said once.
+  const missingRequired = columns
+    .filter(
+      (column) =>
+        column.required &&
+        column.defaultValue === null &&
+        !fileColumnOf.has(column.id),
+    )
+    .map(({ id }) => id);
+  const schema = recordDataSchema(columns, { partial: false });
 
   const errors: ImportCellError[] = [];
   const records: RecordData[] = [];
-  request.rows.forEach((cells, index) => {
+  rows.forEach((cells, index) => {
     const row = index + 1;
     const data: Record<string, CellValue> = {};
     const rowErrors: ImportCellError[] = [];
-    mapped.forEach((column, position) => {
+    targets.forEach((column, position) => {
       if (!column) {
         return;
       }
       const value = cells[position] ?? '';
-      const cell = importCellValue(
-        value,
-        effectiveById.get(column.id) ?? column,
-      );
+      const cell = importCellValue(value, column);
       if ('error' in cell) {
-        rowErrors.push({ row, columnId: column.id, value, reason: cell.error });
+        rowErrors.push({ row, column: position, value, reason: cell.error });
       } else {
         data[column.id] = cell.value;
       }
@@ -78,56 +146,57 @@ export function analyzeImport(
     const parsed = schema.safeParse(data);
     if (!parsed.success) {
       for (const issue of parsed.error.issues) {
-        const columnId = String(issue.path[0]);
-        if (!rowErrors.some((error) => error.columnId === columnId)) {
-          rowErrors.push({ row, columnId, value: '', reason: 'required' });
+        const position = fileColumnOf.get(String(issue.path[0]));
+        if (
+          position !== undefined &&
+          !rowErrors.some((error) => error.column === position)
+        ) {
+          rowErrors.push({
+            row,
+            column: position,
+            value: '',
+            reason: 'required',
+          });
         }
       }
     }
-    if (rowErrors.length > 0 || !parsed.success) {
+    if (rowErrors.length > 0) {
       errors.push(...rowErrors);
-    } else {
+    } else if (parsed.success) {
       records.push(parsed.data);
     }
   });
 
   return {
     check: {
-      rows: request.rows.length,
-      validRows: records.length,
+      rows: rows.length,
+      validRows: missingRequired.length > 0 ? 0 : records.length,
       errorCount: errors.length,
       errors: errors.slice(0, MAX_IMPORT_ERRORS),
       // A column holds at most MAX_SELECT_CHOICES choices: more is never needed here.
-      missingChoices: [...missingChoices].map(([columnId, values]) => ({
-        columnId,
+      missingChoices: [...missingChoices].map(([column, values]) => ({
+        column,
         values: values.slice(0, MAX_SELECT_CHOICES),
       })),
+      missingRequired,
     },
     records,
-    extendedColumns: extendedColumns.filter((column) => {
-      const original = byId.get(column.id);
-      return (
-        column.type === 'select' &&
-        original?.type === 'select' &&
-        column.options.choices.length > original.options.choices.length
-      );
-    }),
+    extendedColumns: [...extended.values()].filter(
+      (column) => !plan.created.some(({ id }) => id === column.id),
+    ),
+    createdColumns: plan.created.map(
+      (column) => extended.get(column.id) ?? column,
+    ),
   };
 }
 
-export class UnknownImportColumnError extends Error {
-  constructor(readonly columnId: string) {
-    super(`Column ${columnId} is not in this table`);
-  }
-}
-
-/** Distinct values (first spelling wins, ignoring case) that no choice matches. */
+/** By column of the file: distinct values (first spelling wins) no choice matches. */
 function findMissingChoices(
-  mapped: (RecordColumn | null | undefined)[],
+  targets: (RecordColumn | null)[],
   rows: string[][],
-): Map<string, string[]> {
-  const missing = new Map<string, string[]>();
-  mapped.forEach((column, position) => {
+): Map<number, string[]> {
+  const missing = new Map<number, string[]>();
+  targets.forEach((column, position) => {
     if (column?.type !== 'select') {
       return;
     }
@@ -144,39 +213,46 @@ function findMissingChoices(
       }
     }
     if (values.length > 0) {
-      missing.set(column.id, values);
+      missing.set(position, values);
     }
   });
   return missing;
 }
 
+/** The select columns with their missing values added as choices, by column id. */
 function withChoices(
   columns: RecordColumn[],
-  missing: Map<string, string[]>,
-): RecordColumn[] {
-  return columns.flatMap((column) => {
-    const values = missing.get(column.id);
-    if (column.type !== 'select' || !values) {
-      return [];
+  missing: Map<number, string[]>,
+  targets: (RecordColumn | null)[],
+): Map<string, RecordColumn> {
+  const extended = new Map<string, RecordColumn>();
+  for (const [position, values] of missing) {
+    const column = targets[position];
+    const current = column && columns.find(({ id }) => id === column.id);
+    if (current?.type !== 'select') {
+      continue;
     }
     // Values too long for a choice, or past the limit, stay errors.
-    const room = MAX_SELECT_CHOICES - column.options.choices.length;
+    const room = MAX_SELECT_CHOICES - current.options.choices.length;
     const fitting = values
       .filter((label) => label.length <= SELECT_CHOICE_MAX_LENGTH)
       .slice(0, Math.max(room, 0));
+    if (fitting.length === 0) {
+      continue;
+    }
     const added: SelectChoice[] = fitting.map((label, index) => ({
       id: randomUUID(),
       label,
       color:
         SELECT_COLORS[
-          (column.options.choices.length + index) % SELECT_COLORS.length
+          (current.options.choices.length + index) % SELECT_COLORS.length
         ],
     }));
-    return [
-      {
-        ...column,
-        options: { choices: [...column.options.choices, ...added] },
-      },
-    ];
-  });
+    const definition: ColumnDefinition = {
+      ...current,
+      options: { choices: [...current.options.choices, ...added] },
+    };
+    extended.set(current.id, { ...definition, id: current.id });
+  }
+  return extended;
 }

@@ -1,8 +1,10 @@
 import { INestApplication } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import type {
   AuthUser,
   ImportCheck,
   ImportResult,
+  OrganizationSummary,
   Paginated,
   TableColumn,
   TableDetail,
@@ -77,6 +79,20 @@ describe('Importing rows (e2e)', () => {
     ];
   }
 
+  /** A second account with editor access to the table, by invitation. */
+  async function addEditor(owner: TestClient, base: string) {
+    const editor = await createSignedInClient(app);
+    const editorUser = (await editor.get('/api/auth/me').expect(200))
+      .body as AuthUser;
+    await owner
+      .post(`${base}/invitations`)
+      .send({ email: editorUser.email, role: 'EDITOR' })
+      .expect(201);
+    const token = extractToken(await latestEmail(editorUser.email));
+    await editor.post('/api/invitations/accept').send({ token }).expect(200);
+    return editor;
+  }
+
   async function records(client: TestClient, base: string) {
     return (await client.get(`${base}/records`).expect(200))
       .body as Paginated<TableRecord>;
@@ -102,12 +118,18 @@ describe('Importing rows (e2e)', () => {
       errorCount: 0,
       errors: [],
       missingChoices: [],
+      missingRequired: [],
     });
     expect((await records(owner, base)).meta.total).toBe(0);
 
     const result = (await owner.post(`${base}/import`).send(body).expect(201))
       .body as ImportResult;
-    expect(result).toEqual({ imported: 2, addedChoices: 0 });
+    expect(result).toEqual({
+      tableId: context.table.id,
+      imported: 2,
+      addedChoices: 0,
+      addedColumns: 0,
+    });
     const data = (await records(owner, base)).data.map((record) => record.data);
     expect(data).toEqual(
       expect.arrayContaining([
@@ -124,7 +146,7 @@ describe('Importing rows (e2e)', () => {
 
   it('reports every invalid cell and imports nothing while any remains', async () => {
     const context = await setup();
-    const { owner, base, product, stock, checked, status } = context;
+    const { owner, base } = context;
     const body = {
       columns: columnsOf(context),
       rows: [
@@ -139,19 +161,13 @@ describe('Importing rows (e2e)', () => {
     ).body as ImportCheck;
     expect(check.validRows).toBe(1);
     expect(check.errors).toEqual([
-      { row: 1, columnId: stock.id, value: '12 uds', reason: 'invalid' },
-      { row: 1, columnId: checked.id, value: '31/02/2026', reason: 'invalid' },
-      {
-        row: 1,
-        columnId: status.id,
-        value: 'Agotado',
-        reason: 'unknownChoice',
-      },
-      { row: 2, columnId: product.id, value: '', reason: 'required' },
+      // Columns by their position in the file.
+      { row: 1, column: 1, value: '12 uds', reason: 'invalid' },
+      { row: 1, column: 3, value: '31/02/2026', reason: 'invalid' },
+      { row: 1, column: 4, value: 'Agotado', reason: 'unknownChoice' },
+      { row: 2, column: 0, value: '', reason: 'required' },
     ]);
-    expect(check.missingChoices).toEqual([
-      { columnId: status.id, values: ['Agotado'] },
-    ]);
+    expect(check.missingChoices).toEqual([{ column: 4, values: ['Agotado'] }]);
 
     await owner.post(`${base}/import`).send(body).expect(422);
     expect((await records(owner, base)).meta.total).toBe(0);
@@ -160,15 +176,7 @@ describe('Importing rows (e2e)', () => {
   it('adds missing choices only for those who manage the table', async () => {
     const context = await setup();
     const { owner, base, status } = context;
-    const editor = await createSignedInClient(app);
-    const editorUser = (await editor.get('/api/auth/me').expect(200))
-      .body as AuthUser;
-    await owner
-      .post(`${base}/invitations`)
-      .send({ email: editorUser.email, role: 'EDITOR' })
-      .expect(201);
-    const token = extractToken(await latestEmail(editorUser.email));
-    await editor.post('/api/invitations/accept').send({ token }).expect(200);
+    const editor = await addEditor(owner, base);
 
     const body = {
       columns: columnsOf(context),
@@ -184,7 +192,7 @@ describe('Importing rows (e2e)', () => {
 
     const result = (await owner.post(`${base}/import`).send(body).expect(201))
       .body as ImportResult;
-    expect(result).toEqual({ imported: 1, addedChoices: 1 });
+    expect(result).toMatchObject({ imported: 1, addedChoices: 1 });
     const columns = (await owner.get(`${base}/columns`).expect(200))
       .body as TableColumn[];
     const updated = columns.find(({ id }) => id === status.id);
@@ -233,5 +241,127 @@ describe('Importing rows (e2e)', () => {
       .post(`${base}/records`)
       .send({ data: { [product.id]: 'x'.repeat(200_000) } })
       .expect(413);
+  });
+
+  it('creates columns from the file, for admins only', async () => {
+    const context = await setup();
+    const { owner, base, product } = context;
+    const editor = await addEditor(owner, base);
+    const body = {
+      columns: [
+        product.id,
+        { create: { name: 'Proveedor', type: 'text' } },
+        {
+          create: {
+            name: 'Precio',
+            type: 'currency',
+            options: { currency: 'EUR' },
+          },
+        },
+      ],
+      rows: [['Taladro', 'Bosch', '89,90']],
+    };
+
+    await editor.post(`${base}/import/check`).send(body).expect(403);
+    await editor.post(`${base}/import`).send(body).expect(403);
+    // A new column can't take the name of one the table has.
+    await owner
+      .post(`${base}/import/check`)
+      .send({
+        ...body,
+        columns: [product.id, { create: { name: 'stock', type: 'number' } }],
+      })
+      .expect(409);
+
+    const result = (await owner.post(`${base}/import`).send(body).expect(201))
+      .body as ImportResult;
+    expect(result).toMatchObject({ imported: 1, addedColumns: 2 });
+    const columns = (await owner.get(`${base}/columns`).expect(200))
+      .body as TableColumn[];
+    expect(columns.map(({ name, position }) => [name, position])).toEqual([
+      ['Producto', 0],
+      ['Stock', 1],
+      ['Revisión', 2],
+      ['Estado', 3],
+      ['Proveedor', 4],
+      ['Precio', 5],
+    ]);
+    const [record] = (await records(owner, base)).data;
+    expect(Object.values(record.data)).toEqual(
+      expect.arrayContaining(['Taladro', 'Bosch', 89.9]),
+    );
+  });
+
+  it('says once which required columns the file leaves empty', async () => {
+    const context = await setup();
+    const { owner, base, stock } = context;
+    const body = { columns: [stock.id], rows: [['3'], ['4']] };
+
+    const check = (
+      await owner.post(`${base}/import/check`).send(body).expect(200)
+    ).body as ImportCheck;
+    expect(check).toMatchObject({
+      validRows: 0,
+      errorCount: 0,
+      missingRequired: [context.product.id],
+    });
+    await owner.post(`${base}/import`).send(body).expect(422);
+  });
+
+  it('creates a whole table from a file, in a space the user administers', async () => {
+    const owner = await createSignedInClient(app);
+    const [personal] = (await owner.get('/api/organizations').expect(200))
+      .body as OrganizationSummary[];
+    const url = `/api/organizations/${personal.id}/tables/import`;
+    const body = {
+      name: 'Inventario de Excel',
+      columns: [
+        { create: { name: 'Producto', type: 'text', required: true } },
+        null,
+        {
+          create: {
+            name: 'Estado',
+            type: 'select',
+            options: {
+              choices: [{ id: 'a', label: 'Disponible', color: 'green' }],
+            },
+          },
+        },
+      ],
+      rows: [
+        ['Taladro', 'ignorada', 'Disponible'],
+        ['Sierra', 'ignorada', 'Agotado'],
+      ],
+      addMissingChoices: true,
+    };
+
+    const check = (await owner.post(`${url}/check`).send(body).expect(200))
+      .body as ImportCheck;
+    expect(check).toMatchObject({ validRows: 2, errorCount: 0 });
+    // A new table has no columns to reuse.
+    await owner
+      .post(url)
+      .send({ ...body, columns: [randomUUID()] })
+      .expect(400);
+
+    const result = (await owner.post(url).send(body).expect(201))
+      .body as ImportResult;
+    expect(result).toMatchObject({ imported: 2, addedColumns: 2 });
+    const table = (await owner.get(`/api/tables/${result.tableId}`).expect(200))
+      .body as TableDetail;
+    expect(table).toMatchObject({
+      name: 'Inventario de Excel',
+      recordCount: 2,
+      organizationId: personal.id,
+    });
+    const status = table.columns.find(({ name }) => name === 'Estado');
+    expect(
+      status?.type === 'select' &&
+        status.options.choices.map(({ label }) => label),
+    ).toEqual(['Disponible', 'Agotado']);
+
+    // Nobody else creates tables in this space.
+    const stranger = await createSignedInClient(app);
+    await stranger.post(url).send(body).expect(404);
   });
 });

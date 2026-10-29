@@ -79,7 +79,7 @@ export async function requireTableRole(
 }
 
 /**
- * Checks the role, then marks the table as edited now. As a side effect of the
+ * Checks the role (and returns it), then marks the table as edited now. As a side effect of the
  * update its row stays locked until the transaction ends, so changes to its
  * columns never interleave.
  */
@@ -88,12 +88,13 @@ export async function touchTable(
   userId: string,
   tableId: string,
   minimum: Role,
-): Promise<void> {
-  await requireTableRole(tx, userId, tableId, minimum);
+): Promise<Role> {
+  const role = await requireTableRole(tx, userId, tableId, minimum);
   await tx.inventoryTable.update({
     where: { id: tableId },
     data: { updatedAt: new Date() },
   });
+  return role;
 }
 
 /** The user's personal organization, created on first use. */

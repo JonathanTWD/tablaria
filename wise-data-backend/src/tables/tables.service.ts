@@ -4,6 +4,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import {
+  type ColumnDefinition,
   columnDefinitionSchema,
   type createTableSchema,
   MAX_TABLES_PER_SPACE,
@@ -17,7 +18,7 @@ import {
 import type { z } from 'zod';
 import { toColumnData, toTableColumn } from '../columns/column-mapper';
 import { PrismaService } from '../database/prisma.service';
-import type { InventoryTable } from '../generated/prisma/client';
+import type { InventoryTable, Prisma } from '../generated/prisma/client';
 import {
   lockOrganization,
   requireOrganizationRole,
@@ -145,35 +146,13 @@ export class TablesService {
         )
       : [];
 
-    const table = await this.prisma.$transaction(async (tx) => {
-      if (inOrganizationId) {
-        await requireOrganizationRole(tx, userId, inOrganizationId, 'ADMIN');
-      }
-      const organizationId =
-        inOrganizationId ?? (await personalOrganizationId(tx, userId));
-      // Serializes concurrent creates, so the limit holds.
-      await lockOrganization(tx, organizationId);
-      const count = await tx.inventoryTable.count({
-        where: { organizationId },
-      });
-      if (count >= MAX_TABLES_PER_SPACE) {
-        throw new UnprocessableEntityException('Table limit reached');
-      }
-      return tx.inventoryTable.create({
-        data: {
-          organizationId,
-          createdById: userId,
-          name: input.name,
-          description: input.description ?? null,
-          columns: {
-            create: columns.map((column, position) => ({
-              ...toColumnData(column),
-              position,
-            })),
-          },
-        },
-      });
-    });
+    const table = await this.prisma.$transaction((tx) =>
+      insertTable(tx, userId, inOrganizationId, {
+        name: input.name,
+        description: input.description ?? null,
+        columns,
+      }),
+    );
     return this.get(userId, table.id);
   }
 
@@ -197,6 +176,48 @@ export class TablesService {
     await this.prisma.inventoryTable.delete({ where: { id: tableId } });
     this.realtime.publish(tableId, 'deleted');
   }
+}
+
+/**
+ * Creates a table in the personal space, or in an organization the user
+ * administers, within the space's table limit. Columns may bring their id.
+ */
+export async function insertTable(
+  tx: Prisma.TransactionClient,
+  userId: string,
+  inOrganizationId: string | undefined,
+  data: {
+    name: string;
+    description: string | null;
+    columns: (ColumnDefinition & { id?: string })[];
+  },
+): Promise<InventoryTable> {
+  if (inOrganizationId) {
+    await requireOrganizationRole(tx, userId, inOrganizationId, 'ADMIN');
+  }
+  const organizationId =
+    inOrganizationId ?? (await personalOrganizationId(tx, userId));
+  // Serializes concurrent creates, so the limit holds.
+  await lockOrganization(tx, organizationId);
+  const count = await tx.inventoryTable.count({ where: { organizationId } });
+  if (count >= MAX_TABLES_PER_SPACE) {
+    throw new UnprocessableEntityException('Table limit reached');
+  }
+  return tx.inventoryTable.create({
+    data: {
+      organizationId,
+      createdById: userId,
+      name: data.name,
+      description: data.description,
+      columns: {
+        create: data.columns.map((column, position) => ({
+          ...toColumnData(column),
+          ...(column.id && { id: column.id }),
+          position,
+        })),
+      },
+    },
+  });
 }
 
 function toTableSummary(table: TableWithCounts, role: TableRole): TableSummary {

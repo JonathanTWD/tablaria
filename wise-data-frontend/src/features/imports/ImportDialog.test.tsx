@@ -46,9 +46,16 @@ describe("ImportDialog", () => {
     mockApi((url, init) => {
       sent.push({ path: url.pathname, body: JSON.parse(String(init.body)) });
       if (url.pathname.endsWith("/import/check")) {
-        return { rows: 2, validRows: 2, errorCount: 0, errors: [], missingChoices: [] } satisfies ImportCheck;
+        return {
+          rows: 2,
+          validRows: 2,
+          errorCount: 0,
+          errors: [],
+          missingChoices: [],
+          missingRequired: [],
+        } satisfies ImportCheck;
       }
-      return { imported: 2, addedChoices: 0 };
+      return { tableId: table.id, imported: 2, addedChoices: 0, addedColumns: 0 };
     });
     renderWithProviders(<ImportDialog table={table} open onOpenChange={() => undefined} />);
 
@@ -82,8 +89,9 @@ describe("ImportDialog", () => {
       rows: 2,
       validRows: 1,
       errorCount: 1,
-      errors: [{ row: 2, columnId: STOCK_ID, value: "12 uds", reason: "invalid" }],
+      errors: [{ row: 2, column: 1, value: "12 uds", reason: "invalid" }],
       missingChoices: [],
+      missingRequired: [],
     }));
     renderWithProviders(<ImportDialog table={table} open onOpenChange={() => undefined} />);
 
