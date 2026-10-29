@@ -267,7 +267,20 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
   - a una organización se invita como lector, editor o administrador; los propietarios salen de promocionar a un miembro;
   - aceptar una invitación nunca rebaja el rol que ya se tiene;
   - el límite de tablas pasa a ser de 100 por espacio, el personal o cada organización.
-- **Demo**: incluye una tabla compartida y una organización de ejemplo con miembros ficticios que no pueden iniciar sesión.
+- **Espacio activo en la interfaz** (añadido en la parte 4):
+  - un selector en la barra lateral elige qué espacio muestran la barra y el inicio;
+  - la elección se guarda en el navegador, como el estado de la barra lateral, y no en la URL: así sobrevive a la navegación entre tablas;
+  - si el espacio guardado ya no existe para el usuario, se vuelve al personal;
+  - abrir una tabla de otra organización a la que perteneces cambia a ese espacio;
+  - las tablas compartidas contigo siguen fuera de los espacios, en «Compartidas conmigo»;
+  - el detalle de una tabla indica su organización y si accedes como miembro. Si es así, el menú lleva a la organización (desde donde se sale de ella) en vez de ofrecer «Salir de la tabla».
+- **Invitaciones a personas sin cuenta**:
+  - el inicio de sesión que viene de una invitación explica que hay que crear la cuenta con el email invitado;
+  - al registrarse, la invitación se recuerda en el navegador y, al confirmar la cuenta, se abre directamente;
+  - solo se recuerdan rutas `/invitations?…`, y siempre pasan por la misma validación de redirecciones internas.
+- **Demo**: incluye la organización de ejemplo «Equipo de la tienda», con la tabla «Almacén central» y tres miembros ficticios.
+  - Los miembros ficticios no pueden iniciar sesión: tienen una contraseña aleatoria y una dirección `.invalid`.
+  - Caducan con la cuenta de demo y no cuentan para el límite de demos activas.
 
 **Consecuencias**: el aislamiento pasa de ser «mis tablas» a «tablas a las que tengo acceso por organización o porque me las compartieron». Cada ruta lleva tests e2e por vía de acceso y por rol, y cada PR de la fase pasa la revisión de seguridad.
 
