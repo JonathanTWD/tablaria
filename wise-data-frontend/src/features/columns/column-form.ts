@@ -1,4 +1,5 @@
 import {
+  canBeUnique,
   COLUMN_TYPES,
   columnDefinitionSchema,
   columnNameSchema,
@@ -19,6 +20,8 @@ export interface ColumnFormValues {
   name: string;
   type: ColumnType;
   required: boolean;
+  /** Text and number columns: no two records may share a value. */
+  unique: boolean;
   currency: string;
   /** Number columns: warn when a value drops below this. Empty for no warning. */
   alertBelow: string;
@@ -42,6 +45,7 @@ export function columnFormDefaults(column?: TableColumn): ColumnFormValues {
     name: column?.name ?? "",
     type: column?.type ?? "text",
     required: column?.required ?? false,
+    unique: column?.unique ?? false,
     currency: "EUR",
     alertBelow: "",
     choices: [newChoice(0)],
@@ -98,10 +102,14 @@ function parseDefault(values: ColumnFormValues): CellValue {
 
 /** Unvalidated column definition built from the form values. */
 function toDraft(values: ColumnFormValues) {
+  // Kept while other types are tried, but only sent for types that can be unique.
+  const unique = values.unique && canBeUnique(values.type);
   const base = {
     name: values.name,
     required: values.required,
-    defaultValue: parseDefault(values),
+    unique,
+    // Every record left empty would share the default, so unique columns have none.
+    defaultValue: unique ? null : parseDefault(values),
   };
   switch (values.type) {
     case "select":
@@ -141,6 +149,7 @@ export const columnFormSchema = z
     name: z.string(),
     type: z.enum(COLUMN_TYPES),
     required: z.boolean(),
+    unique: z.boolean(),
     currency: z.string(),
     alertBelow: z.string(),
     choices: z.array(

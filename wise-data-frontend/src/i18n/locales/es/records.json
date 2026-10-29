@@ -35,7 +35,8 @@
     "label": "{{column}} de {{row}}",
     "invalidHint": "Ese valor no encaja con la columna. Corrígelo o pulsa Escape para cancelar.",
     "invalid": "El valor no encaja con la columna «{{column}}»; se ha descartado.",
-    "saveError": "No se pudo guardar el cambio. Se ha restaurado el valor anterior."
+    "saveError": "No se pudo guardar el cambio. Se ha restaurado el valor anterior.",
+    "duplicate": "Otro registro ya tiene «{{value}}» en {{column}}. Se ha restaurado el valor anterior."
   },
   "pagination": {
     "label": "Paginación",
@@ -92,6 +93,7 @@
     "changedColumns": "Las columnas de la tabla han cambiado. Revisa los datos y vuelve a intentarlo.",
     "errors": {
       "required": "Este campo es obligatorio.",
+      "duplicate": "Otro registro ya tiene este valor, y esta columna no admite repetidos.",
       "text": "Usa como máximo 2000 caracteres.",
       "number": "Escribe un número, por ejemplo 12 o 3,5.",
       "currency": "Escribe un importe, por ejemplo 19,99.",
@@ -136,6 +138,11 @@
     "back": "Volver a las columnas",
     "ready_one": "{{count}} registro listo para importar.",
     "ready_other": "{{count}} registros listos para importar.",
+    "updates_one": "De ellos, {{count}} actualiza el registro que ya tiene el mismo valor en «{{column}}».",
+    "updates_other": "De ellos, {{count}} actualizan los registros que ya tienen el mismo valor en «{{column}}».",
+    "updateBy": "Actualizar los registros que coincidan en",
+    "updateNone": "Ninguna columna: solo añadir registros",
+    "updateByHint": "Si el valor de esa columna ya está en un registro, la fila lo actualiza en vez de añadir otro. Solo aparecen las columnas de valor único.",
     "summary": "{{valid}} de {{count}} filas son válidas; hay {{errors}} errores.",
     "missingRequired": "Estas columnas son obligatorias y ninguna columna del archivo va a ellas: {{names}}. Empareja una con cada una para poder importar.",
     "missingChoices": "Valores que no son opciones de su lista",
@@ -165,6 +172,7 @@
     "submit_other": "Importar {{count}} registros",
     "done_one": "{{count}} registro importado",
     "done_other": "{{count}} registros importados",
+    "doneWithUpdates": "Importación terminada. Nuevos: {{imported}}. Actualizados: {{updated}}.",
     "createdTable_one": "Tabla «{{name}}» creada con {{count}} registro",
     "createdTable_other": "Tabla «{{name}}» creada con {{count}} registros",
     "errors": {

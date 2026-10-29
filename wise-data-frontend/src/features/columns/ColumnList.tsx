@@ -133,6 +133,7 @@ function ColumnRow({
       ? `${t(`types.${column.type}`)} · ${column.options.currency}`
       : t(`types.${column.type}`),
     column.required && t("columns.required"),
+    column.unique && t("columns.unique"),
     defaultValue && t("columns.default", { value: defaultValue }),
     column.type === "number" &&
       column.options &&

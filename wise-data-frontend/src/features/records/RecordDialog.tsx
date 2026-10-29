@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/select";
 import { RelationPicker } from "@/features/relations/RelationPicker";
 import { ApiError } from "@/lib/api-client";
-import { apiErrorMessage } from "@/lib/error-message";
+import { apiErrorMessage, repeatedValues } from "@/lib/error-message";
 import { fromDraft, toDraft } from "./cell-draft";
 import { useCreateRecord, useUpdateRecord } from "./queries";
 
@@ -123,6 +123,12 @@ function RecordForm({
       toast.success(record ? t("dialog.saved") : t("dialog.created"));
       onDone();
     };
+    // A unique column refused the value: point at its field.
+    const onError = (error: Error) => {
+      for (const { path } of repeatedValues(error)) {
+        form.setError(path, { type: "duplicate" }, { shouldFocus: true });
+      }
+    };
     if (record) {
       // Only what this person changed: sending every field would undo what
       // others saved on the same record while the dialog was open.
@@ -133,18 +139,20 @@ function RecordForm({
         onDone();
         return;
       }
-      update.mutate({ recordId: record.id, changes }, { onSuccess });
+      update.mutate({ recordId: record.id, changes }, { onSuccess, onError });
     } else {
-      create.mutate(data, { onSuccess });
+      create.mutate(data, { onSuccess, onError });
     }
   });
 
   const formError =
-    mutation.error instanceof ApiError && mutation.error.status === 422
-      ? t("dialog.limit")
-      : mutation.error instanceof ApiError && mutation.error.status === 400
-        ? t("dialog.changedColumns")
-        : mutation.error && apiErrorMessage(mutation.error);
+    repeatedValues(mutation.error).length > 0
+      ? null
+      : mutation.error instanceof ApiError && mutation.error.status === 422
+        ? t("dialog.limit")
+        : mutation.error instanceof ApiError && mutation.error.status === 400
+          ? t("dialog.changedColumns")
+          : mutation.error && apiErrorMessage(mutation.error);
 
   return (
     <form noValidate onSubmit={onSubmit}>
@@ -163,7 +171,11 @@ function RecordForm({
           const error = errors[column.id];
           const message =
             error &&
-            (error.type === "required" ? t("dialog.errors.required") : t(`dialog.errors.${column.type}`));
+            (error.type === "required"
+              ? t("dialog.errors.required")
+              : error.type === "duplicate"
+                ? t("dialog.errors.duplicate")
+                : t(`dialog.errors.${column.type}`));
           const label = `${column.name}${column.type === "currency" ? ` (${column.options.currency})` : ""}${column.required ? " *" : ""}`;
           const describedBy = message ? `${id}-error` : undefined;
 
