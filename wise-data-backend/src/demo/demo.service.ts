@@ -14,11 +14,12 @@ import { PrismaService } from '../database/prisma.service';
 import { withoutEmptyCells } from '../records/record-data';
 import type { Prisma, User } from '../generated/prisma/client';
 import { personalOrganizationId } from '../tables/table-access';
-import { DEMO_TABLES, type DemoTable } from './demo-data';
+import { DEMO_ORGANIZATION, DEMO_TABLES, type DemoTable } from './demo-data';
 
 export const DEMO_TTL_MS = 24 * 60 * 60 * 1000;
 /** Keeps the free database small even if many people try the demo at once. */
 export const MAX_ACTIVE_DEMO_ACCOUNTS = 300;
+const VISITOR_EMAIL_PREFIX = 'demo-';
 
 /**
  * Temporary accounts for "Try the demo": already verified, filled with example
@@ -35,8 +36,12 @@ export class DemoService {
     // Cleaning up here needs no scheduler, which a free host would put to sleep anyway.
     await this.deleteExpiredAccounts();
 
+    // Visitors only, not the fictitious members of their example organizations.
     const active = await this.prisma.user.count({
-      where: { demoExpiresAt: { not: null } },
+      where: {
+        demoExpiresAt: { not: null },
+        email: { startsWith: VISITOR_EMAIL_PREFIX },
+      },
     });
     if (active >= MAX_ACTIVE_DEMO_ACCOUNTS) {
       throw new ServiceUnavailableException(
@@ -48,19 +53,49 @@ export class DemoService {
     const passwordHash = await this.passwords.hash(generateSecureToken());
     const now = new Date();
 
+    const demoExpiresAt = new Date(now.getTime() + DEMO_TTL_MS);
+    const suffix = randomUUID().slice(0, 8);
+
     return this.prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
         data: {
           // .invalid is reserved (RFC 2606), so no real mailbox can ever match it.
-          email: `demo-${randomUUID()}@demo.invalid`,
+          email: `${VISITOR_EMAIL_PREFIX}${randomUUID()}@demo.invalid`,
           passwordHash,
           emailVerifiedAt: now,
-          demoExpiresAt: new Date(now.getTime() + DEMO_TTL_MS),
+          demoExpiresAt,
         },
       });
-      const organizationId = await personalOrganizationId(tx, user.id);
+      const personalId = await personalOrganizationId(tx, user.id);
+      // Expiring with the visitor, the fictitious members are deleted with them.
+      const members = await tx.user.createManyAndReturn({
+        data: DEMO_ORGANIZATION.members.map(({ name }) => ({
+          email: `${name}.${suffix}@demo.invalid`,
+          passwordHash,
+          emailVerifiedAt: now,
+          demoExpiresAt,
+        })),
+        select: { id: true },
+      });
+      const organization = await tx.organization.create({
+        data: {
+          name: DEMO_ORGANIZATION.name,
+          memberships: {
+            create: [
+              { userId: user.id, role: 'OWNER' },
+              ...members.map(({ id }, index) => ({
+                userId: id,
+                role: DEMO_ORGANIZATION.members[index].role,
+              })),
+            ],
+          },
+        },
+      });
       // Lists show the most recently edited table first, so create the first one last.
       for (const table of [...DEMO_TABLES].reverse()) {
+        const organizationId = table.inOrganization
+          ? organization.id
+          : personalId;
         await createDemoTable(tx, organizationId, user.id, table);
       }
       return user;

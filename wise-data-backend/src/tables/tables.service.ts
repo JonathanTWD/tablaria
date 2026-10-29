@@ -119,8 +119,16 @@ export class TablesService {
     if (!table || !role) {
       throw new NotFoundException('Table not found');
     }
+    const membership = await this.prisma.membership.findUnique({
+      where: {
+        organizationId_userId: { organizationId: table.organizationId, userId },
+      },
+      select: { role: true },
+    });
     return {
       ...toTableSummary(table, role),
+      organizationId: table.organizationId,
+      member: membership !== null,
       columns: table.columns.map(toTableColumn),
     };
   }

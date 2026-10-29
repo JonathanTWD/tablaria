@@ -155,6 +155,13 @@ describe('Organizations (e2e)', () => {
     expect(tables).toEqual([
       expect.objectContaining({ id: table.id, role: 'VIEWER' }),
     ]);
+    const opened = (await guest.get(`/api/tables/${table.id}`).expect(200))
+      .body as TableDetail;
+    expect(opened).toMatchObject({
+      organizationId: organization.id,
+      member: true,
+      role: 'VIEWER',
+    });
     const detail = (await guest.get(base).expect(200))
       .body as OrganizationDetail;
     expect(detail.role).toBe('VIEWER');

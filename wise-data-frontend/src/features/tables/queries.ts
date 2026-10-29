@@ -15,7 +15,9 @@ import { columnsApi, tablesApi } from "./api";
 
 export const tableKeys = {
   all: ["tables"] as const,
+  /** Every space's list; invalidating it refreshes all of them. */
   list: () => [...tableKeys.all, "list"] as const,
+  spaceList: (organizationId: string) => [...tableKeys.list(), organizationId] as const,
   detail: (tableId: string) => [...tableKeys.all, "detail", tableId] as const,
   records: (tableId: string) => [...tableKeys.all, "records", tableId] as const,
   // Apart from `records`: those queries all hold record pages, which edits patch in place.
@@ -24,11 +26,13 @@ export const tableKeys = {
   sharing: (tableId: string) => [...tableKeys.all, "sharing", tableId] as const,
 };
 
-/** Every table of the user, most recently edited first. */
-export const tablesQuery = queryOptions({
-  queryKey: tableKeys.list(),
-  queryFn: tablesApi.list,
-});
+/** The tables of a space, most recently edited first. */
+export function tablesQuery(organizationId: string) {
+  return queryOptions({
+    queryKey: tableKeys.spaceList(organizationId),
+    queryFn: () => tablesApi.list(organizationId),
+  });
+}
 
 export function tableQuery(tableId: string) {
   return queryOptions({
@@ -50,10 +54,10 @@ function refreshTable(queryClient: QueryClient, tableId: string) {
   ]);
 }
 
-export function useCreateTable() {
+export function useCreateTable(organizationId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (body: CreateTableInput) => tablesApi.create(body),
+    mutationFn: (body: CreateTableInput) => tablesApi.create(organizationId, body),
     onSuccess: (table) => {
       queryClient.setQueryData(tableKeys.detail(table.id), table);
       return queryClient.invalidateQueries({ queryKey: tableKeys.list() });

@@ -60,7 +60,9 @@
     "retry": "Reintentar",
     "share": "Compartir",
     "leave": "Salir de la tabla",
+    "organization": "Ver su organización",
     "sharedWithYou": "Compartida contigo · {{role}}",
+    "yourRole": "Tu rol: {{role}}",
     "live": "En directo",
     "offline": "Reconectando…"
   },

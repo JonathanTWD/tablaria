@@ -2,6 +2,19 @@
 
 ## Sin publicar
 
+- **Organizaciones (interfaz)** (fase 9, parte 4):
+  - **Selector de espacio:** arriba de la barra lateral se elige entre «Mi espacio» y tus organizaciones. La barra y el inicio muestran las tablas de ese espacio, y desde ahí se crea una organización nueva.
+  - **Página de la organización:**
+    - invitar por email como lector, editor o administrador;
+    - ver los miembros y las invitaciones pendientes, y cambiar roles o quitar miembros, con las mismas reglas que la API;
+    - renombrar la organización;
+    - salir de ella o borrarla con sus tablas.
+  - **Según el rol:** solo los administradores crean tablas en una organización. Los lectores y editores ven su rol en la tabla, y el menú los lleva a la organización en lugar de ofrecer «Salir de la tabla».
+  - **Invitados sin cuenta:**
+    - el inicio de sesión les indica que creen la cuenta con el email invitado;
+    - al confirmarla, van directos a aceptar la invitación;
+    - aceptar una invitación a una organización abre la app en ella.
+  - **Demo:** incluye la organización de ejemplo «Equipo de la tienda», con el almacén central y tres compañeros ficticios.
 - **Organizaciones (API)** (fase 9, parte 3):
   - **Espacios compartidos:** se crean organizaciones, que se renombran o se borran con sus tablas. Sus miembros ven todas las tablas con el permiso de su rol: lector, editor, administrador o propietario.
   - **Miembros:** los administradores invitan por email (el mismo flujo, caducidad y límites antispam que al compartir una tabla), cambian roles y quitan miembros. Siempre queda al menos un propietario, y cualquiera puede salir.

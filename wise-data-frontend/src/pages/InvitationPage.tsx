@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AuthHeading } from "@/features/auth/components/AuthHeading";
 import { useLogout, useSession } from "@/features/auth/session";
 import { sharingApi } from "@/features/sharing/api";
+import { saveSpace } from "@/features/organizations/space-context";
 import { useAcceptInvitation } from "@/features/sharing/queries";
 import { ApiError } from "@/lib/api-client";
 import { apiErrorMessage } from "@/lib/error-message";
@@ -103,6 +104,8 @@ export default function InvitationPage() {
             void navigate(`/app/tables/${target.id}`, { replace: true });
           } else {
             toast.success(t("invitation.organization.accepted", { name: target.name }));
+            // The app opens in the organization just joined.
+            saveSpace(target.id);
             void navigate("/app", { replace: true });
           }
         },

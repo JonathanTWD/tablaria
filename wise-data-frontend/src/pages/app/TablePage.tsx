@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { hasRole } from "@wisedata/shared";
-import { ArrowLeft, Ellipsis, LogOut, Pencil, Trash2, UserPlus } from "lucide-react";
-import { Suspense, useState } from "react";
+import { ArrowLeft, Building2, Ellipsis, LogOut, Pencil, Trash2, UserPlus } from "lucide-react";
+import { Suspense, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, NavLink, Outlet, useParams } from "react-router";
+import { Link, NavLink, Outlet, useNavigate, useParams } from "react-router";
 import { FullPageLoader } from "@/components/FullPageLoader";
 import { buttonVariants } from "@/components/ui/button-variants";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ import {
   useTablePresence,
 } from "@/features/realtime/realtime-context";
 import { useSession } from "@/features/auth/session";
+import { useSpace } from "@/features/organizations/space-context";
 import { LeaveTableDialog } from "@/features/sharing/LeaveTableDialog";
 import { ShareDialog } from "@/features/sharing/ShareDialog";
 import { DeleteTableDialog } from "@/features/tables/DeleteTableDialog";
@@ -42,6 +43,17 @@ export default function TablePage() {
   const { data: user } = useSession();
   const others = viewers.filter(({ userId }) => userId !== user?.id);
   const [dialog, setDialog] = useState<"share" | "edit" | "delete" | "leave" | null>(null);
+  const navigate = useNavigate();
+  const { space, setSpaceId } = useSpace();
+  // Tables shared with the user stay outside their spaces.
+  const tableSpace = table.data?.member ? table.data.organizationId : undefined;
+
+  // Opening a table of another space switches to it, so the sidebar lists the tables next to it.
+  useEffect(() => {
+    if (tableSpace && space && tableSpace !== space.id) {
+      setSpaceId(tableSpace);
+    }
+  }, [tableSpace, space, setSpaceId]);
 
   const backLink = (
     <Link
@@ -95,8 +107,11 @@ export default function TablePage() {
   const { data } = table;
   const manages = hasRole(data.role, "ADMIN");
   const meta = [
-    // Tables shared with the user say so, with what they can do.
-    !manages && t("page.sharedWithYou", { role: t(`share.roles.${data.role}`) }),
+    // Without admin rights, the user sees what they can do and, for shared tables, why.
+    !manages &&
+      t(data.member ? "page.yourRole" : "page.sharedWithYou", {
+        role: t(`share.roles.${data.role}`),
+      }),
     t("count.columns", { count: data.columnCount }),
     t("count.records", { count: data.recordCount }),
     t("edited", { time: formatRelativeTime(data.updatedAt, i18n.language) }),
@@ -153,6 +168,14 @@ export default function TablePage() {
                     {t("delete.open")}
                   </DropdownMenuItem>
                 </>
+              ) : data.member ? (
+                // Access comes from the organization: it's left from its page.
+                <DropdownMenuItem
+                  onClick={() => void navigate(`/app/organizations/${data.organizationId}`)}
+                >
+                  <Building2 aria-hidden="true" />
+                  {t("page.organization")}
+                </DropdownMenuItem>
               ) : (
                 <DropdownMenuItem variant="destructive" onClick={() => setDialog("leave")}>
                   <LogOut aria-hidden="true" />
@@ -191,13 +214,14 @@ export default function TablePage() {
         <Outlet context={data} />
       </Suspense>
 
-      {manages ? (
+      {manages && (
         <ShareDialog
           table={data}
           open={dialog === "share"}
           onOpenChange={(open) => setDialog(open ? "share" : null)}
         />
-      ) : (
+      )}
+      {!manages && !data.member && (
         <LeaveTableDialog
           table={data}
           open={dialog === "leave"}

@@ -29,6 +29,8 @@ const table: TableDetail = {
   name: "Productos",
   description: null,
   role: "OWNER",
+  organizationId: "5b6c7d8e-1111-4aaa-8bbb-000000000009",
+  member: true,
   columnCount: 2,
   recordCount: 1,
   createdAt: "2026-01-01T00:00:00.000Z",

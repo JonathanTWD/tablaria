@@ -7,7 +7,7 @@
   },
   "sidebar": {
     "title": "Barra lateral",
-    "description": "Navegación de WiseData: inicio, ajustes y tus tablas.",
+    "description": "Navegación de WiseData: espacios, inicio, ajustes y tablas.",
     "toggle": "Mostrar u ocultar la barra lateral"
   },
   "userMenu": {
@@ -20,6 +20,10 @@
     "greeting": "Hola, {{name}}",
     "emptyTitle": "Crea tu primera tabla",
     "emptyDescription": "Empieza con una plantilla de inventario, catálogo o equipos, o con una tabla vacía en la que tú decides las columnas.",
+    "emptyOrganizationTitle": "Esta organización aún no tiene tablas",
+    "emptyOrganizationDescription": "Cuando un administrador cree una, la verás aquí.",
+    "space": "{{name}} · {{role}}",
+    "manageSpace": "Gestionar organización",
     "metrics": {
       "tables": "Tablas",
       "records": "Registros",
@@ -52,6 +56,7 @@
       "loadError": "No se pudo cargar el resumen."
     },
     "tablesTitle": "Tus tablas",
+    "organizationTablesTitle": "Tablas de la organización",
     "sharedTitle": "Compartidas contigo",
     "sharedBy": "De {{name}} · {{role}}",
     "loadError": "No se pudieron cargar tus tablas.",
