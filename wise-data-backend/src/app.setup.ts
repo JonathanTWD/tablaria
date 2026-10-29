@@ -24,10 +24,12 @@ export function configureApp(app: INestApplication): void {
   app.use(helmet());
   app.use(cookieParser());
   // An import carries a whole file's rows; every other route keeps the 100 KB default.
-  app.use(
+  for (const path of [
     `/${API_PREFIX}/tables/:tableId/import`,
-    json({ limit: IMPORT_BODY_LIMIT }),
-  );
+    `/${API_PREFIX}/organizations/:organizationId/tables/import`,
+  ]) {
+    app.use(path, json({ limit: IMPORT_BODY_LIMIT }));
+  }
   app.use(json());
   app.use(urlencoded({ extended: true }));
   app.enableCors({

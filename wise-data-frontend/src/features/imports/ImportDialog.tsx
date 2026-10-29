@@ -4,6 +4,7 @@ import {
   type ImportInput,
   MAX_COLUMNS_PER_TABLE,
   MAX_IMPORT_ROWS,
+  type TableColumn,
   type TableDetail,
 } from "@wisedata/shared";
 import { FileUp, Loader2 } from "lucide-react";
@@ -182,6 +183,7 @@ function ImportWizard({ table, onDone }: { table: TableDetail; onDone: () => voi
     <ReviewStep
       table={table}
       result={check.data}
+      targets={mapping.map((id) => table.columns.find((column) => column.id === id))}
       firstRowNumber={hasHeader ? 2 : 1}
       addMissingChoices={addMissingChoices}
       onAddMissingChoicesChange={(value) => {
@@ -375,6 +377,7 @@ function MappingStep({
 function ReviewStep({
   table,
   result,
+  targets,
   firstRowNumber,
   addMissingChoices,
   onAddMissingChoicesChange,
@@ -386,6 +389,8 @@ function ReviewStep({
 }: {
   table: TableDetail;
   result: ImportCheck;
+  /** The table column each column of the file fills. */
+  targets: (TableColumn | undefined)[];
   firstRowNumber: number;
   addMissingChoices: boolean;
   onAddMissingChoicesChange: (value: boolean) => void;
@@ -399,7 +404,8 @@ function ReviewStep({
   const ids = useId();
   const columnsById = new Map(table.columns.map((column) => [column.id, column]));
   const canAddChoices = hasRole(table.role, "ADMIN");
-  const ready = result.errorCount === 0 && result.validRows > 0;
+  const ready =
+    result.errorCount === 0 && result.missingRequired.length === 0 && result.validRows > 0;
 
   return (
     <div className="flex flex-col gap-5">
@@ -410,15 +416,23 @@ function ReviewStep({
           : t("import.summary", { valid: result.validRows, count: result.rows, errors: result.errorCount })}
       </p>
 
+      {result.missingRequired.length > 0 && (
+        <FormAlert>
+          {t("import.missingRequired", {
+            names: result.missingRequired.map((id) => columnsById.get(id)?.name).join(", "),
+          })}
+        </FormAlert>
+      )}
+
       {result.missingChoices.length > 0 && (
         <section aria-labelledby={`${ids}-choices`} className="flex flex-col gap-2 rounded-lg border border-border p-3">
           <h3 id={`${ids}-choices`} className="text-sm font-medium">
             {t("import.missingChoices")}
           </h3>
           <ul className="flex flex-col gap-1 text-sm">
-            {result.missingChoices.map(({ columnId, values }) => (
-              <li key={columnId}>
-                <span className="font-medium">{columnsById.get(columnId)?.name}:</span> {values.join(", ")}
+            {result.missingChoices.map(({ column, values }) => (
+              <li key={column}>
+                <span className="font-medium">{targets[column]?.name}:</span> {values.join(", ")}
               </li>
             ))}
           </ul>
@@ -447,9 +461,9 @@ function ReviewStep({
           </h3>
           <ul className="mt-2 flex max-h-56 flex-col gap-1 overflow-y-auto rounded-lg border border-border p-3 text-sm">
             {result.errors.map((cellError) => {
-              const column = columnsById.get(cellError.columnId);
+              const column = targets[cellError.column];
               return (
-                <li key={`${cellError.row}-${cellError.columnId}`}>
+                <li key={`${cellError.row}-${cellError.column}`}>
                   {t(cellError.value ? "import.errorLine" : "import.errorLineEmpty", {
                     row: cellError.row + firstRowNumber - 1,
                     column: column?.name ?? "",

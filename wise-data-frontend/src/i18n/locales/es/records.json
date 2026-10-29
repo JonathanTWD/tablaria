@@ -127,6 +127,7 @@
     "ready_one": "{{count}} registro listo para importar.",
     "ready_other": "{{count}} registros listos para importar.",
     "summary": "{{valid}} de {{count}} filas son válidas; hay {{errors}} errores.",
+    "missingRequired": "Estas columnas son obligatorias y ninguna columna del archivo va a ellas: {{names}}. Empareja una con cada una para poder importar.",
     "missingChoices": "Valores que no son opciones de su lista",
     "addChoices": "Añadirlos como opciones nuevas",
     "choicesAdminOnly": "Solo quien administra la tabla puede añadir opciones. Corrige esos valores en el archivo o pídeselo.",

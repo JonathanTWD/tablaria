@@ -325,7 +325,11 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
   - opciones de lista sin distinguir mayúsculas.
   
   Un texto que no encaja en el tipo es un error, nunca una celda vacía en silencio. Se deshace el apóstrofo con el que nuestra exportación protege las fórmulas, así que exportar e importar devuelve lo mismo.
-- **Permisos**: importar filas exige ser editor. Añadir opciones nuevas cambia la columna, y por eso exige ser administrador.
+- **Columnas nuevas**: cada columna del archivo puede ir a una columna de la tabla, a una columna nueva (`{ create: definición }`) que se crea con la importación, o a ninguna. Así se puede importar en una tabla vacía.
+  - **Desde cero:** con `POST /organizations/:id/tables/import` (y su `/check`), una tabla se crea entera desde un archivo con las mismas reglas que una tabla nueva: rol de administrador en el espacio y límite de 100 tablas.
+  - **Identificación de errores:** los errores y las opciones que faltan se identifican por la posición de la columna en el archivo, porque una columna nueva todavía no tiene id para el cliente.
+  - **Obligatorias sin emparejar:** las columnas obligatorias sin ninguna columna del archivo se informan una sola vez, en `missingRequired`.
+- **Permisos**: importar filas exige ser editor. Añadir columnas u opciones nuevas cambia la estructura, y por eso exige ser administrador.
 - **Límites**:
   - 5.000 filas y 50 columnas por importación;
   - 2.000 caracteres por celda;

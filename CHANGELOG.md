@@ -9,6 +9,7 @@
   - **Conversión:** entiende números con coma decimal y separador de miles («1.099,00 €»), fechas día/mes/año, «Sí»/«No» y las opciones de lista sin distinguir mayúsculas.
   - **Opciones nuevas:** quien administra la tabla puede añadirlas de paso.
   - **Seguridad:** el archivo se lee en el navegador; la API recibe solo el texto de las celdas y valida cada una como al crear un registro.
+  - **Columnas nuevas (API):** una importación puede crear columnas a partir del archivo, también en una tabla vacía, o crear una tabla entera desde el archivo. Solo para administradores; la interfaz llega en la siguiente parte.
 - **Errores más claros**: un cuerpo de petición demasiado grande o mal formado responde 413 o 400, en vez de un error 500.
 
 ## v1.3.0 — Trabajo en equipo
