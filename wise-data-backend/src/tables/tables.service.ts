@@ -24,6 +24,7 @@ import {
   requireOrganizationRole,
 } from '../organizations/organization-access';
 import { RealtimeService } from '../realtime/realtime.service';
+import { dropRelationsTo } from '../relations/relations';
 import {
   accessibleTables,
   higherRole,
@@ -172,9 +173,17 @@ export class TablesService {
 
   async remove(userId: string, tableId: string): Promise<void> {
     await requireTableRole(this.prisma, userId, tableId, 'ADMIN');
-    // Columns, records and shares go with it (ON DELETE CASCADE).
-    await this.prisma.inventoryTable.delete({ where: { id: tableId } });
+    const linking = await this.prisma.$transaction(async (tx) => {
+      // Relation columns elsewhere would link to nothing: they go too.
+      const tables = await dropRelationsTo(tx, tableId);
+      // Columns, records and shares go with it (ON DELETE CASCADE).
+      await tx.inventoryTable.delete({ where: { id: tableId } });
+      return tables;
+    });
     this.realtime.publish(tableId, 'deleted');
+    for (const linkingTable of linking) {
+      this.realtime.publish(linkingTable, 'columns');
+    }
   }
 }
 

@@ -73,6 +73,10 @@ export function planImport(
       }
       return column;
     }
+    if (target.create.type === 'relation') {
+      // Which table it links to is decided in the column settings, not in a file.
+      throw new InvalidImportError('An import cannot create relation columns');
+    }
     const name = target.create.name.toLocaleLowerCase();
     if (names.has(name)) {
       throw new InvalidImportError(

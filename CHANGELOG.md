@@ -2,6 +2,13 @@
 
 ## Sin publicar
 
+- **Relaciones entre tablas (API)**:
+  - nuevo tipo de columna «Relación con otra tabla», que enlaza cada registro con un registro de otra tabla del mismo espacio;
+  - los listados traen el nombre del registro enlazado solo si puedes abrir esa tabla;
+  - borrar un registro o una tabla limpia los enlaces que apuntaban a ellos;
+  - la exportación CSV muestra el nombre.
+  
+  La interfaz llega en la siguiente parte.
 - **Tu cuenta** (Ajustes):
   - **cambiar la contraseña**, pidiendo la actual; el resto de dispositivos pierde la sesión;
   - **cerrar sesión en todos los dispositivos**;

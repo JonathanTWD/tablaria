@@ -19,6 +19,7 @@ import { parseOrThrow } from '../common/pipes/zod-validation.pipe';
 import { PrismaService } from '../database/prisma.service';
 import { RealtimeService } from '../realtime/realtime.service';
 import { Prisma } from '../generated/prisma/client';
+import { requireLinkableTable } from '../relations/relations';
 import { accessibleTables, touchTable } from '../tables/table-access';
 import { toColumnData, toTableColumn } from './column-mapper';
 import { convertCellValue } from './convert-value';
@@ -58,6 +59,7 @@ export class ColumnsService {
         if (_count >= MAX_COLUMNS_PER_TABLE) {
           throw new UnprocessableEntityException('Column limit reached');
         }
+        await requireLinkableTable(tx, tableId, definition);
 
         const column = await tx.column.create({
           data: {
@@ -103,6 +105,7 @@ export class ColumnsService {
           columnDefinitionSchema,
           mergeColumnPatch(current, patch),
         );
+        await requireLinkableTable(tx, tableId, next);
         const clearedValues = await convertStoredValues(
           tx,
           tableId,
@@ -251,7 +254,14 @@ async function convertStoredValues(
   next: ColumnDefinition,
 ): Promise<number> {
   // Select choices may have been renamed or removed even when the type stays.
-  if (current.type === next.type && next.type !== 'select') {
+  const sameRelation =
+    current.type === 'relation' &&
+    next.type === 'relation' &&
+    current.options.tableId === next.options.tableId;
+  if (
+    sameRelation ||
+    (current.type === next.type && !['select', 'relation'].includes(next.type))
+  ) {
     return 0;
   }
 
@@ -269,7 +279,9 @@ async function convertStoredValues(
     }
     const source =
       typeof value === 'string' ? (renames.get(value) ?? value) : value;
-    const converted = convertCellValue(source, next);
+    // A record id means nothing once the column stops linking to its table.
+    const converted =
+      current.type === 'relation' ? null : convertCellValue(source, next);
     if (converted !== value) {
       changes[id] = converted;
       cleared += converted === null ? 1 : 0;

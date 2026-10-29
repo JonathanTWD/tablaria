@@ -347,6 +347,28 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 
 **Consecuencias**: no hace falta almacenar ni subir archivos. Excel (`.xlsx`) se leerá también en el navegador cuando ExcelJS cumpla la antigüedad mínima de pnpm, sin tocar la API. El asistente lee el CSV con un parser propio (RFC 4180, con separador `;`, `,` o tabulador detectado en la primera línea) y decodifica en UTF-8 o, si no es válido, en Windows-1252, que es lo que usa Excel en español al guardar CSV.
 
+## ADR-022: Relaciones entre tablas
+
+**Contexto**: en un inventario las tablas se refieren unas a otras: cada producto tiene un proveedor, cada equipo una persona asignada. Copiar el nombre a mano en cada fila se desordena enseguida.
+
+**Decisión**:
+- **Tipo de columna `relation`.** Sus opciones dicen a qué tabla enlaza (`{ tableId }`), y cada celda guarda el id de un registro de esa tabla. Se queda en el JSONB de siempre, sin tablas físicas nuevas. Por ahora es un único registro por celda; la selección múltiple vendrá después.
+- **Solo dentro del mismo espacio.** La tabla enlazada debe ser del mismo espacio (personal u organización), así que un enlace nunca cruza organizaciones.
+- **Permisos:**
+  - un listado incluye en `linked` la etiqueta (primera columna) de cada registro enlazado, pero solo si el usuario puede abrir la tabla enlazada; si no, ve que hay un enlace, nunca qué es;
+  - para crear o cambiar un enlace hay que poder abrir la tabla enlazada (403 si no);
+  - el registro debe existir en ella (422 si no).
+- **Integridad:**
+  - borrar un registro vacía las celdas que lo enlazaban, en la misma transacción, y avisa a sus tablas;
+  - borrar una tabla borra las columnas de relación de otras tablas que apuntaban a ella;
+  - cambiar a qué tabla enlaza una columna, o cambiar su tipo, vacía sus valores.
+- **Exportar e importar:**
+  - la exportación CSV escribe la etiqueta del registro enlazado;
+  - una importación no crea columnas de relación ni rellena las existentes, porque el archivo no dice a qué registro se refiere. Se enlazan después en la tabla.
+- **Fuera de esta primera versión:** buscar por la etiqueta, ordenar por ella, columnas de consulta y de resumen (lookup y rollup) e importar por etiqueta.
+
+**Consecuencias**: el modelo de metadatos aguanta relaciones sin migraciones de esquema por tabla, solo un valor nuevo en el enum `ColumnType`.
+
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
 Todas están especificadas en [MVP_PROMPT.md](MVP_PROMPT.md):

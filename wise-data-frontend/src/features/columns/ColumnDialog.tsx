@@ -66,6 +66,9 @@ interface ColumnDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+/** Relation columns need a linked table, chosen in their own settings (ADR-022). */
+const CREATABLE_TYPES = COLUMN_TYPES.filter((type) => type !== "relation");
+
 export function ColumnDialog({ open, onOpenChange, column, ...props }: ColumnDialogProps) {
   const { t } = useTranslation(["tables", "common"]);
   return (
@@ -205,7 +208,7 @@ function ColumnForm({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {COLUMN_TYPES.map((value) => {
+                  {CREATABLE_TYPES.map((value) => {
                     const Icon = COLUMN_TYPE_ICONS[value];
                     return (
                       <SelectItem key={value} value={value} className="py-1.5">
