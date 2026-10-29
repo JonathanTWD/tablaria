@@ -19,7 +19,7 @@ La especificación completa del MVP está en [MVP_PROMPT.md](MVP_PROMPT.md).
 - [x] **Fase 8.5 — Pantallas grandes**: la app aprovecha el ancho (tabla a ancho completo, inicio con columna lateral) la landing se adapta a monitores de 27" y más, y la barra lateral se pliega a iconos.
 ### Colaboración (en este orden)
 
-1. **Compartir tablas y organizaciones** (fase 9, ADR-019): sirve tanto a particulares como a equipos. Se entrega en este orden:
+1. **Compartir tablas y organizaciones** (hecho, fase 9, ADR-019): sirve tanto a particulares como a equipos. Se entregó en este orden:
    1. modelo de datos, migración y una puerta de acceso común;
    2. compartir tablas desde el espacio personal, con invitaciones y «Compartidas conmigo»;
    3. organizaciones con miembros y roles;

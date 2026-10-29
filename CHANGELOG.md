@@ -2,6 +2,7 @@
 
 ## Sin publicar
 
+- **Textos al día**: la landing ya no dice que compartir tablas o exportar a CSV estén pendientes. Las preguntas frecuentes explican cómo compartir y quién ve tus datos, y la comparativa añade el trabajo en equipo. El README y la hoja de ruta recogen lo nuevo.
 - **Organizaciones (interfaz)** (fase 9, parte 4):
   - **Selector de espacio:** arriba de la barra lateral se elige entre «Mi espacio» y tus organizaciones. La barra y el inicio muestran las tablas de ese espacio, y desde ahí se crea una organización nueva.
   - **Página de la organización:**
@@ -40,7 +41,7 @@
     - el lector ve y exporta, pero no puede editar;
     - el editor cambia registros, pero no la tabla ni sus columnas;
     - los avisos de stock incluyen las tablas compartidas.
-- **Base para compartir y organizaciones** (fase 9, parte 1): las tablas pasan a pertenecer a una organización, y cada cuenta tiene un espacio personal al que la migración mueve sus tablas. Ahora el acceso a una tabla se decide en un único sitio: el rol en su organización o el compartido directamente (lector, editor, administrador o propietario). Desde fuera no cambia nada todavía; compartir llega en la parte 2.
+- **Base para compartir y organizaciones** (fase 9, parte 1): las tablas pasan a pertenecer a una organización, y cada cuenta tiene un espacio personal al que la migración mueve sus tablas. Ahora el acceso a una tabla se decide en un único sitio: el rol en su organización o el compartido directamente (lector, editor, administrador o propietario).
 - **Pantallas grandes**: la app ya no limita todas las páginas a 1024 px.
   - La tabla de registros usa todo el ancho: a 1707 px pasa de 960 a 1403 px y deja de necesitar scroll horizontal.
   - El inicio se centra hasta 1600 px y, en pantallas anchas, pone «Bajo mínimo» y el gráfico en una columna lateral junto a las tablas.
