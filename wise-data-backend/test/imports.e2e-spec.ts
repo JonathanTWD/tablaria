@@ -364,4 +364,21 @@ describe('Importing rows (e2e)', () => {
     const stranger = await createSignedInClient(app);
     await stranger.post(url).send(body).expect(404);
   });
+
+  it("keeps the file's order in the table", async () => {
+    const { owner, base, product } = await setup();
+    const names = Array.from(
+      { length: 30 },
+      (_, index) => `Producto ${index + 1}`,
+    );
+
+    await owner
+      .post(`${base}/import`)
+      .send({ columns: [product.id], rows: names.map((name) => [name]) })
+      .expect(201);
+
+    const page = (await owner.get(`${base}/records?pageSize=30`).expect(200))
+      .body as Paginated<TableRecord>;
+    expect(page.data.map((record) => record.data[product.id])).toEqual(names);
+  });
 });

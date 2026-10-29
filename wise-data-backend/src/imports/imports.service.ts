@@ -19,7 +19,7 @@ import { PrismaService } from '../database/prisma.service';
 import type { Prisma, Role } from '../generated/prisma/client';
 import { requireOrganizationRole } from '../organizations/organization-access';
 import { RealtimeService } from '../realtime/realtime.service';
-import { withoutEmptyCells } from '../records/record-data';
+import { inInsertionOrder, withoutEmptyCells } from '../records/record-data';
 import { requireTableRole, touchTable } from '../tables/table-access';
 import { insertTable } from '../tables/tables.service';
 import {
@@ -187,10 +187,13 @@ async function storeRecords(
   analysis: ImportAnalysis,
 ): Promise<void> {
   await tx.record.createMany({
-    data: analysis.records.map((data) => ({
-      tableId,
-      data: withoutEmptyCells(data),
-    })),
+    // The file's order is the table's order.
+    data: inInsertionOrder(
+      analysis.records.map((data) => ({
+        tableId,
+        data: withoutEmptyCells(data),
+      })),
+    ),
   });
 }
 
