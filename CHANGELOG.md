@@ -1,6 +1,6 @@
 # Changelog
 
-## Sin publicar
+## v1.4.0 — Importar
 
 - **Importar CSV** (fase 10): el botón «Importar CSV» de una tabla abre un asistente en tres pasos.
   - **Elegir el archivo:** vale el que guarda Excel en español, con `;` y acentos en Windows-1252, o el que exporta WiseData.
@@ -13,6 +13,7 @@
   - **Tabla desde un archivo:** «Nueva tabla → Crear desde un archivo CSV» crea la tabla con el nombre del archivo, las columnas de su cabecera y todos sus registros.
 - **Orden de los registros importados**: los registros de una importación y los de la demo aparecen en el orden del archivo. Antes compartían la misma hora de creación y se mezclaban, algo que con 10 por página se notaba enseguida.
 - **10 registros por página**: nueva opción en la paginación, y pasa a ser la vista por defecto (antes 25).
+- **Seguridad** (auditoría OWASP de la release): el límite de 2 MB de las importaciones solo se aplica a peticiones con sesión válida. Sin sesión, el cuerpo se rechaza por tamaño antes de procesarlo, porque el límite de peticiones y la autenticación van después.
 - **Errores más claros**: un cuerpo de petición demasiado grande o mal formado responde 413 o 400, en vez de un error 500.
 
 ## v1.3.0 — Trabajo en equipo
