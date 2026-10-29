@@ -11,6 +11,7 @@
   - **Seguridad:** el archivo se lee en el navegador; la API recibe solo el texto de las celdas y valida cada una como al crear un registro.
   - **Columnas nuevas:** quien administra la tabla puede llevar una columna del archivo a «Nueva columna», con el tipo detectado a partir de sus valores (texto, número, precio, fecha, Sí/No o lista de opciones) y que se puede cambiar. Así también se importa en una tabla vacía, que ahora ofrece «Importar CSV».
   - **Tabla desde un archivo:** «Nueva tabla → Crear desde un archivo CSV» crea la tabla con el nombre del archivo, las columnas de su cabecera y todos sus registros.
+- **10 registros por página**: nueva opción en la paginación, y pasa a ser la vista por defecto (antes 25).
 - **Errores más claros**: un cuerpo de petición demasiado grande o mal formado responde 413 o 400, en vez de un error 500.
 
 ## v1.3.0 — Trabajo en equipo
