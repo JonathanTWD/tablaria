@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import {
   MAX_RECORDS_PER_TABLE,
+  type Paginated,
   type RecordPage,
   type RecordColumn,
   type RecordData,
@@ -67,35 +68,15 @@ export class RecordsService {
     }
 
     const columns = table.columns.map(toTableColumn);
-    const { where, orderBy } = buildRecordQuery(tableId, columns, query);
-    const offset = (query.page - 1) * query.pageSize;
-    const [rows, [{ total }]] = await Promise.all([
-      this.prisma.$queryRaw<RecordRow[]>`
-        SELECT r.id, r."tableId", r.data, r."createdAt", r."updatedAt"
-        FROM records r
-        WHERE ${where}
-        ORDER BY ${orderBy}
-        LIMIT ${query.pageSize} OFFSET ${offset}`,
-      this.prisma.$queryRaw<{ total: bigint }[]>`
-        SELECT count(*) AS total FROM records r WHERE ${where}`,
-    ]);
-
-    const count = Number(total);
-    const records = rows.map(toTableRecord);
+    const page = await queryRecordPage(this.prisma, tableId, columns, query);
     return {
-      data: records,
+      ...page,
       linked: await linkedLabels(
         this.prisma,
         userId,
         columns,
-        records.map(({ data }) => data),
+        page.data.map(({ data }) => data),
       ),
-      meta: {
-        page: query.page,
-        pageSize: query.pageSize,
-        total: count,
-        pageCount: Math.ceil(count / query.pageSize),
-      },
     };
   }
 
@@ -309,6 +290,40 @@ export class RecordsService {
       this.realtime.publish(linkingTable, 'records');
     }
   }
+}
+
+/**
+ * One page of the records that match the view (search, filters, sort).
+ * `columns` are the ones the view may use: any other column it names is a 400.
+ */
+export async function queryRecordPage(
+  db: PrismaService,
+  tableId: string,
+  columns: RecordColumn[],
+  query: RecordListQuery,
+): Promise<Paginated<TableRecord>> {
+  const { where, orderBy } = buildRecordQuery(tableId, columns, query);
+  const offset = (query.page - 1) * query.pageSize;
+  const [rows, [{ total }]] = await Promise.all([
+    db.$queryRaw<RecordRow[]>`
+      SELECT r.id, r."tableId", r.data, r."createdAt", r."updatedAt"
+      FROM records r
+      WHERE ${where}
+      ORDER BY ${orderBy}
+      LIMIT ${query.pageSize} OFFSET ${offset}`,
+    db.$queryRaw<{ total: bigint }[]>`
+      SELECT count(*) AS total FROM records r WHERE ${where}`,
+  ]);
+  const count = Number(total);
+  return {
+    data: rows.map(toTableRecord),
+    meta: {
+      page: query.page,
+      pageSize: query.pageSize,
+      total: count,
+      pageCount: Math.ceil(count / query.pageSize),
+    },
+  };
 }
 
 async function loadColumns(

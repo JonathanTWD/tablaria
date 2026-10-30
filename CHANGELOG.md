@@ -2,6 +2,11 @@
 
 ## Sin publicar
 
+- **Enlaces públicos de solo lectura** (Compartir → «Enlace público de solo lectura»):
+  - **Ver sin cuenta:** quien administra una tabla puede crear un enlace para verla sin iniciar sesión y sin poder cambiar nada, con búsqueda y paginación.
+  - **Seguridad:** el enlace se muestra una vez para copiarlo, porque solo se guarda su huella. Crear uno nuevo desactiva el anterior, y también se puede desactivar sin más.
+  - **Qué no se ve:** las columnas de relación, porque apuntarían a otras tablas.
+  - **En la demo** no está disponible.
 - **Historial de actividad** (pestaña «Actividad» de cada tabla):
   - **Qué se ve:** quién creó, editó o borró registros y columnas, las importaciones y los movimientos de stock, agrupado por día y empezando por lo más reciente.
   - **Ediciones:** las seguidas de una persona en un mismo registro se juntan en una entrada, y dicen qué columnas cambiaron, no los valores.

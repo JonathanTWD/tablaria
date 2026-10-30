@@ -19,20 +19,21 @@ export class ApiError extends Error {
   }
 }
 
-type HttpMethod = "GET" | "POST" | "PATCH" | "DELETE";
+type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 interface RequestOptions {
   method?: HttpMethod;
   body?: unknown;
   /** Auth endpoints answer 401 for bad credentials; refreshing would be wrong there. */
   skipRefresh?: boolean;
+  headers?: Record<string, string>;
 }
 
-function send(path: string, method: HttpMethod, body: unknown) {
+function send(path: string, method: HttpMethod, body: unknown, headers: Record<string, string> = {}) {
   return fetch(`${API_BASE}${path}`, {
     method,
     credentials: "same-origin",
-    headers: body === undefined ? undefined : { "Content-Type": "application/json" },
+    headers: body === undefined ? headers : { ...headers, "Content-Type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
 }
@@ -62,12 +63,12 @@ async function readErrorBody(response: Response): Promise<ApiErrorBody | null> {
 /** Sends the request, refreshing the session once on a 401, and throws ApiError unless it succeeds. */
 async function fetchWithSession(
   path: string,
-  { method = "GET", body, skipRefresh = false }: RequestOptions = {},
+  { method = "GET", body, skipRefresh = false, headers }: RequestOptions = {},
 ): Promise<Response> {
-  let response = await send(path, method, body);
+  let response = await send(path, method, body, headers);
 
   if (response.status === 401 && !skipRefresh && (await refreshSession())) {
-    response = await send(path, method, body);
+    response = await send(path, method, body, headers);
   }
 
   if (!response.ok) {

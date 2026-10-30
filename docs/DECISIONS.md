@@ -446,6 +446,27 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 
 **Consecuencias**: cada escritura añade una fila en la misma transacción. El índice `(tableId, createdAt)` mantiene rápida la lectura paginada.
 
+## ADR-026: Enlaces públicos de solo lectura
+
+**Contexto**: a veces hay que enseñar una tabla a alguien sin cuenta: un cliente que consulta existencias o un proveedor que revisa un pedido. Invitar exige registrarse.
+
+**Decisión**:
+- **Un enlace por tabla,** en la tabla `public_links`. Lo crean, regeneran o desactivan sus administradores. Crear uno nuevo invalida el anterior, y borrar la tabla borra el enlace.
+- **Solo se guarda el hash** (SHA-256) de un token aleatorio de 256 bits, como en las invitaciones.
+  - El enlace se muestra una vez, al crearlo. Si se pierde, se crea otro.
+  - Así, una copia filtrada de la base de datos no da acceso a los datos actuales.
+- **El token va tras el `#`** (`/p#token`). Los navegadores nunca envían el fragmento, así que no acaba en los registros del servidor, ni en el `Referer`, ni en el historial de un proxy.
+  - La página lo lee y lo manda en la cabecera `X-Public-Token` a `GET /api/public/table`, la única ruta sin sesión aparte de las de autenticación.
+  - Esa ruta tiene un límite de 30 peticiones por minuto, responde `Cache-Control: no-store` y `X-Robots-Tag: noindex`, y la página lleva `noindex`.
+- **Qué se ve:** nombre, descripción, columnas y registros, con búsqueda y paginación, sin poder cambiar nada.
+  - Las columnas de relación se quitan, tanto de las columnas como de los datos, porque apuntan a tablas que el enlace no abre.
+  - Tampoco se pueden usar para ordenar ni filtrar (400).
+- **Respuesta igual para todo enlace que no vale:** un token mal formado, inexistente o desactivado da siempre 404, así que no se sabe cuál de los tres es.
+- **No disponible en la demo:** si no, cualquiera podría publicar texto bajo este dominio durante un día.
+- **Registro:** crear y desactivar un enlace queda en el registro de permisos (ADR-019), con ids y sin datos personales.
+
+**Consecuencias**: el enlace da acceso de lectura a quien lo tenga, sin saber quién es. Por eso se puede desactivar o cambiar en cualquier momento, y el diálogo lo explica.
+
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
 Todas están especificadas en [MVP_PROMPT.md](MVP_PROMPT.md):

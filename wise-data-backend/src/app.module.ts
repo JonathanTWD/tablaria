@@ -13,6 +13,7 @@ import { HealthModule } from './health/health.module';
 import { ImportsModule } from './imports/imports.module';
 import { MailModule } from './mail/mail.module';
 import { OrganizationsModule } from './organizations/organizations.module';
+import { PublicLinksModule } from './public-links/public-links.module';
 import { RecordsModule } from './records/records.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { SharingModule } from './sharing/sharing.module';
@@ -35,6 +36,7 @@ import { TablesModule } from './tables/tables.module';
     StockAlertsModule,
     StockMovementsModule,
     ActivityModule,
+    PublicLinksModule,
     SharingModule,
     OrganizationsModule,
     RealtimeModule,
