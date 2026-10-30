@@ -220,5 +220,36 @@
     "shared": "Compartidas conmigo",
     "loadError": "No se pudieron cargar las tablas."
   },
-  "cancel": "Cancelar"
+  "cancel": "Cancelar",
+  "activity": {
+    "title": "Actividad",
+    "description": "Quién cambió qué en esta tabla, empezando por lo más reciente.",
+    "emptyTitle": "Todavía no hay actividad",
+    "emptyDescription": "Aquí aparecerán los registros y columnas que se creen, cambien o borren.",
+    "loadError": "No se pudo cargar la actividad.",
+    "retry": "Reintentar",
+    "more": "Ver más",
+    "you": "Tú",
+    "someone": "Una cuenta de demostración o borrada",
+    "unnamed": "sin nombre",
+    "created_one": "{{count}} registro nuevo",
+    "created_other": "{{count}} registros nuevos",
+    "updated_one": "{{count}} actualizado",
+    "updated_other": "{{count}} actualizados",
+    "actions": {
+      "recordCreated": "Nuevo registro «{{label}}»",
+      "recordUpdated": "Cambios en «{{label}}»: {{columns}}",
+      "recordDeleted": "Registro «{{label}}» borrado",
+      "imported": "Importación de un archivo",
+      "columnCreated": "Nueva columna «{{label}}»",
+      "columnUpdated": "Columna «{{label}}» modificada",
+      "columnRenamed": "Columna «{{from}}» renombrada a «{{label}}»",
+      "columnDeleted": "Columna «{{label}}» borrada",
+      "stock": {
+        "in": "Entrada de {{quantity}} en {{column}} de «{{label}}»",
+        "out": "Salida de {{quantity}} en {{column}} de «{{label}}»",
+        "count": "Recuento de {{column}} en «{{label}}» ({{delta}})"
+      }
+    }
+  }
 }

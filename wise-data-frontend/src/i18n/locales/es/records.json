@@ -3,7 +3,8 @@
   "tabs": {
     "label": "Secciones de la tabla",
     "records": "Registros",
-    "columns": "Columnas"
+    "columns": "Columnas",
+    "activity": "Actividad"
   },
   "toolbar": {
     "search": "Buscar registros",

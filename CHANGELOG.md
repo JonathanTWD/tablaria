@@ -2,6 +2,11 @@
 
 ## Sin publicar
 
+- **Historial de actividad** (pestaña «Actividad» de cada tabla):
+  - **Qué se ve:** quién creó, editó o borró registros y columnas, las importaciones y los movimientos de stock, agrupado por día y empezando por lo más reciente.
+  - **Ediciones:** las seguidas de una persona en un mismo registro se juntan en una entrada, y dicen qué columnas cambiaron, no los valores.
+  - **Nombres:** los registros y columnas borrados siguen apareciendo con el nombre que tenían.
+  - **Quién lo ve:** cualquiera que pueda abrir la tabla. Se actualiza en tiempo real.
 - **Movimientos de stock:**
   - **Columna de stock:** una columna de número puede llevar la cuenta de su stock (interruptor «Columna de stock» al crearla o editarla). Las plantillas de inventario y la demo ya la traen, y su referencia o SKU ahora es de valor único.
   - **Entradas, salidas y recuentos** desde «Movimientos de stock» en el menú de cada registro, con nota opcional y una vista previa del stock que quedará. Una salida no puede dejar el stock por debajo de cero.

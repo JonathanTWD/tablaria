@@ -24,6 +24,8 @@ export const tableKeys = {
   stats: (tableId: string) => [...tableKeys.all, "stats", tableId] as const,
   /** Stock histories of the table's records (ADR-024). */
   movements: (tableId: string) => [...tableKeys.all, "movements", tableId] as const,
+  /** Who changed what in the table (ADR-025). */
+  activity: (tableId: string) => [...tableKeys.all, "activity", tableId] as const,
   shared: () => [...tableKeys.all, "shared"] as const,
   sharing: (tableId: string) => [...tableKeys.all, "sharing", tableId] as const,
 };

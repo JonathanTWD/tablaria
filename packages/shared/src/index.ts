@@ -12,3 +12,4 @@ export * from "./realtime.js";
 export * from "./organizations.js";
 export * from "./imports.js";
 export * from "./account.js";
+export * from "./activity.js";

@@ -24,6 +24,7 @@ function refresh(queryClient: QueryClient, tableId: string, scope: RealtimeScope
       tableKeys.records(tableId),
       tableKeys.stats(tableId),
       tableKeys.movements(tableId),
+      tableKeys.activity(tableId),
       stockAlertsQuery.queryKey,
     );
   }
