@@ -1,8 +1,8 @@
 # Changelog
 
-## Sin publicar
+## v1.5.1 — Tablaria
 
-- **Nuevo nombre: Tablaria** (ADR-027). Cambian la marca, las carpetas, el paquete compartido y los nombres internos. Se publica en nuevas direcciones de Render, así que hay que volver a iniciar sesión una vez; los datos son los mismos.
+- **Nuevo nombre: Tablaria** (ADR-027). Cambian la marca, las carpetas, el paquete compartido y los nombres internos. La app se publica en el nuevo dominio [tablaria.es](https://tablaria.es) y los correos salen desde `mail.tablaria.es`. Hay que volver a iniciar sesión una vez; los datos son los mismos.
 
 ## v1.5.0 — Inventario conectado
 
