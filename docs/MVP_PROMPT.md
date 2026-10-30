@@ -1,12 +1,12 @@
-# Prompt: WiseData MVP
+# Prompt: Tablaria MVP
 
-> Prompt para un agente de código (Claude Code / Codex) que debe llevar WiseData desde su estado actual hasta un Producto Mínimo Viable completo. Ejecutar fase por fase.
+> Prompt para un agente de código (Claude Code / Codex) que debe llevar Tablaria desde su estado actual hasta un Producto Mínimo Viable completo. Ejecutar fase por fase.
 
 ---
 
 ## Rol y meta
 
-Eres un ingeniero full-stack senior trabajando en el repositorio **WiseData**. Tu meta es entregar un **MVP funcional, seguro y mantenible** de una aplicación web de gestión de inventario flexible: cada usuario se registra, crea sus propias tablas, define columnas tipadas y gestiona registros con búsqueda, filtros, orden y paginación en el servidor.
+Eres un ingeniero full-stack senior trabajando en el repositorio **Tablaria**. Tu meta es entregar un **MVP funcional, seguro y mantenible** de una aplicación web de gestión de inventario flexible: cada usuario se registra, crea sus propias tablas, define columnas tipadas y gestiona registros con búsqueda, filtros, orden y paginación en el servidor.
 
 Antes de escribir código, lee y respeta **`AGENTS.md`** (reglas estables del proyecto). Este prompt concreta las decisiones tomadas para el MVP; si algo aquí contradice `AGENTS.md`, gana este prompt y debes registrar la decisión en `docs/DECISIONS.md`.
 
@@ -16,8 +16,8 @@ Antes de escribir código, lee y respeta **`AGENTS.md`** (reglas estables del pr
 
 ## Estado actual del repositorio (punto de partida)
 
-- `wise-data-frontend/`: React 19, TypeScript 6, Vite 8 (React Compiler vía Babel), React Router 8, TanStack Table 9 (instalado, sin usar), Tailwind 4, shadcn/ui estilo `base-nova` (Base UI), lucide-react, `ogl`. Solo existe la landing (`pages/Home.tsx`, `components/header/Header.tsx`, `components/home/Hero.tsx` con el fondo WebGL `components/react-bits/Lightfall.tsx`).
-- `wise-data-backend/`: plantilla NestJS 11 sin modificar (`Hello World`), TypeScript 5.7, Jest.
+- `tablaria-frontend/`: React 19, TypeScript 6, Vite 8 (React Compiler vía Babel), React Router 8, TanStack Table 9 (instalado, sin usar), Tailwind 4, shadcn/ui estilo `base-nova` (Base UI), lucide-react, `ogl`. Solo existe la landing (`pages/Home.tsx`, `components/header/Header.tsx`, `components/home/Hero.tsx` con el fondo WebGL `components/react-bits/Lightfall.tsx`).
+- `tablaria-backend/`: plantilla NestJS 11 sin modificar (`Hello World`), TypeScript 5.7, Jest.
 - Sin PostgreSQL, ORM, auth, Docker, `.env.example`, `docs/ROADMAP.md` ni `docs/DECISIONS.md`. `README.MD` solo contiene una línea.
 - Problemas conocidos:
   1. `pnpm build` del frontend falla: `tsconfig.app.json` usa `baseUrl` (TS5101, obsoleto en TS 6). Usa `paths` sin `baseUrl`.
@@ -32,7 +32,7 @@ Antes de escribir código, lee y respeta **`AGENTS.md`** (reglas estables del pr
 
 | Área | Decisión |
 |---|---|
-| Repo | **pnpm workspace** en la raíz: `wise-data-frontend`, `wise-data-backend`, `packages/shared`. Mantén los nombres de carpeta actuales. |
+| Repo | **pnpm workspace** en la raíz: `tablaria-frontend`, `tablaria-backend`, `packages/shared`. Mantén los nombres de carpeta actuales. |
 | Tipos compartidos | `packages/shared`: tipos de la API, esquemas **zod**, definición de tipos de columna y plantillas de tabla. Compílalo para que lo consuman tanto Vite (ESM) como Nest (CommonJS); verifica ambos builds. |
 | Base de datos | PostgreSQL 16 + **Prisma** (migraciones versionadas en el repo). |
 | Modelo de datos | Basado en metadatos. Los valores de cada registro se guardan en **JSONB** (`records.data = { [columnId]: value }`) usando el **id** de la columna como clave, nunca su nombre. |
@@ -153,7 +153,7 @@ Requisitos:
 
 ## Documentación
 
-- `README.md` raíz: qué es WiseData, stack, requisitos, cómo arrancar con Docker y sin Docker, variables de entorno, scripts y cómo ejecutar los tests. Sustituye los README de plantilla de Vite y Nest por versiones breves y propias.
+- `README.md` raíz: qué es Tablaria, stack, requisitos, cómo arrancar con Docker y sin Docker, variables de entorno, scripts y cómo ejecutar los tests. Sustituye los README de plantilla de Vite y Nest por versiones breves y propias.
 - `docs/DECISIONS.md` (formato ADR corto): workspace + shared, Prisma, JSONB vs EAV, consultas raw parametrizadas, cookies httpOnly + rotación, validación con zod en lugar de class-validator, interfaz Mailer (Mailpit/Resend API), mismo origen vía `/api`, TanStack Query, estado de tabla en la URL y react-i18next.
 - `docs/ROADMAP.md`: MVP (marcado por fases) y futuro (colaboración en tiempo real, permisos avanzados, historial de actividad, import/export CSV, más tipos de columna, IA).
 - `.env.example` en la raíz y por paquete donde haga falta. **Nunca** commitear `.env` ni secretos.

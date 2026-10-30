@@ -1,5 +1,9 @@
 # Changelog
 
+## Sin publicar
+
+- **Nuevo nombre: Tablaria** (ADR-027). Cambian la marca, las carpetas, el paquete compartido y los nombres internos. Se publica en nuevas direcciones de Render, así que hay que volver a iniciar sesión una vez; los datos son los mismos.
+
 ## v1.5.0 — Inventario conectado
 
 - **Seguridad** (auditoría OWASP Top 10:2025 de la release):
@@ -44,7 +48,7 @@
 ## v1.4.0 — Importar
 
 - **Importar CSV** (fase 10): el botón «Importar CSV» de una tabla abre un asistente en tres pasos.
-  - **Elegir el archivo:** vale el que guarda Excel en español, con `;` y acentos en Windows-1252, o el que exporta WiseData.
+  - **Elegir el archivo:** vale el que guarda Excel en español, con `;` y acentos en Windows-1252, o el que exporta Tablaria.
   - **Emparejar columnas:** las del mismo nombre se emparejan solas, ignorando mayúsculas y acentos, y el resto se elige o se salta.
   - **Revisar:** dice cuántas filas son válidas y lista cada error con la fila de la hoja de cálculo, la columna, el valor y el motivo. No importa nada mientras quede alguno.
   - **Conversión:** entiende números con coma decimal y separador de miles («1.099,00 €»), fechas día/mes/año, «Sí»/«No» y las opciones de lista sin distinguir mayúsculas.
@@ -109,13 +113,13 @@
 ## v1.1.0 — Demo pública
 
 - **Probar la demo**: entrada al instante, sin registro, en una cuenta temporal con tres tablas de ejemplo, que se borra a las 24 h.
-- **Vista previa al compartir**: metaetiquetas Open Graph y de X/Twitter, imagen de 1200×630 y favicon de WiseData.
+- **Vista previa al compartir**: metaetiquetas Open Graph y de X/Twitter, imagen de 1200×630 y favicon de Tablaria.
 - **Despliegue**: la API aplica las migraciones al arrancar, avisa mientras el servidor gratuito despierta y registra la IP de los bloqueos por límite de peticiones.
 - **Mantenimiento**: dependencias y GitHub Actions actualizadas, Dependabot agrupado y Node ≥ 22.22.
 
 ## v1.0.0 — MVP
 
-Primera versión completa de WiseData.
+Primera versión completa de Tablaria.
 
 ### Cuentas y seguridad
 - Registro con verificación por email, inicio de sesión, recuperación de contraseña y cierre de sesión.

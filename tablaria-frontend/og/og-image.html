@@ -1,0 +1,154 @@
+<!doctype html>
+<!--
+  Source of public/og-image.png, the preview shown when the site is shared
+  (LinkedIn, X, WhatsApp…). Rendered at 1200×630 by render.mjs,
+  which reuses the Chromium that Playwright installs for the e2e tests.
+-->
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      @font-face {
+        font-family: "Geist";
+        src: url("../node_modules/@fontsource-variable/geist/files/geist-latin-wght-normal.woff2") format("woff2");
+        font-weight: 100 900;
+      }
+      * { box-sizing: border-box; margin: 0; }
+      body {
+        width: 1200px;
+        height: 630px;
+        overflow: hidden;
+        font-family: "Geist", system-ui, sans-serif;
+        color: #e8e9f5;
+        background:
+          radial-gradient(ellipse 60% 70% at 85% 30%, rgba(59, 43, 234, 0.45), transparent 70%),
+          radial-gradient(ellipse 50% 60% at 0% 100%, rgba(143, 134, 255, 0.18), transparent 70%),
+          #0d0e24;
+        position: relative;
+      }
+      /* The faint spreadsheet grid the landing uses as its only decoration. */
+      .grid {
+        position: absolute;
+        inset: 0;
+        background-image:
+          linear-gradient(rgba(232, 233, 245, 0.05) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(232, 233, 245, 0.05) 1px, transparent 1px);
+        background-size: 48px 48px;
+        mask-image: radial-gradient(ellipse 80% 80% at 40% 40%, black, transparent 85%);
+      }
+      .content {
+        position: absolute;
+        left: 72px;
+        top: 64px;
+        width: 530px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        font-size: 30px;
+        font-weight: 650;
+        letter-spacing: -0.02em;
+      }
+      .brand svg { width: 52px; height: 52px; }
+      h1 {
+        margin-top: 56px;
+        font-size: 60px;
+        line-height: 1.04;
+        font-weight: 650;
+        letter-spacing: -0.035em;
+        color: #fff;
+      }
+      p {
+        margin-top: 24px;
+        font-size: 24px;
+        line-height: 1.45;
+        color: #a9abd0;
+      }
+      .cta {
+        margin-top: 40px;
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 22px;
+        border-radius: 12px;
+        background: #8f86ff;
+        color: #0d0e24;
+        font-size: 22px;
+        font-weight: 650;
+      }
+      .cta span { opacity: 0.7; font-weight: 500; }
+      .card {
+        position: absolute;
+        left: 650px;
+        top: 112px;
+        width: 490px;
+        border-radius: 20px;
+        border: 1px solid #2a2d5c;
+        background: #151737;
+        box-shadow: 0 40px 80px -30px rgba(0, 0, 0, 0.7);
+        overflow: hidden;
+      }
+      .card-head {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 18px 22px;
+        border-bottom: 1px solid #2a2d5c;
+        font-size: 20px;
+        font-weight: 600;
+      }
+      .dot { width: 10px; height: 10px; border-radius: 50%; background: #8f86ff; }
+      table { width: 100%; border-collapse: collapse; font-size: 17px; }
+      th {
+        text-align: left;
+        padding: 12px 22px;
+        color: #a9abd0;
+        font-weight: 500;
+        background: #1c1f45;
+      }
+      td { padding: 14px 22px; border-top: 1px solid #22254f; white-space: nowrap; }
+      .num { text-align: right; font-variant-numeric: tabular-nums; }
+      .chip { padding: 3px 10px; border-radius: 7px; font-size: 15px; }
+      .ok { background: rgba(34, 197, 94, 0.18); color: #bbf7d0; }
+      .out { background: rgba(239, 68, 68, 0.2); color: #fecaca; }
+    </style>
+  </head>
+  <body>
+    <div class="grid"></div>
+
+    <div class="content">
+      <div class="brand">
+        <svg viewBox="0 0 32 32" aria-hidden="true">
+          <rect width="32" height="32" rx="8" fill="#3b2bea" />
+          <g transform="translate(5 5) scale(0.9167)" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="1" fill="#fff" />
+            <path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z" />
+            <path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36.02 11.9-4.5Z" />
+          </g>
+        </svg>
+        Tablaria
+      </div>
+      <h1>Tu inventario, en tablas hechas a tu medida.</h1>
+      <p>Columnas con tipo, búsqueda, filtros y edición directa en la celda.</p>
+      <div class="cta">Prueba la demo <span>· sin registrarte</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><span class="dot"></span>Ferretería López</div>
+      <table>
+        <thead>
+          <tr><th>Producto</th><th class="num">Precio</th><th>Estado</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Taladro percutor</td><td class="num">89,90 €</td><td><span class="chip ok">Disponible</span></td></tr>
+          <tr><td>Atornillador 12 V</td><td class="num">64,50 €</td><td><span class="chip ok">Disponible</span></td></tr>
+          <tr><td>Sierra de calar</td><td class="num">74,00 €</td><td><span class="chip out">Agotado</span></td></tr>
+          <tr><td>Destornilladores (8 pzas)</td><td class="num">18,95 €</td><td><span class="chip ok">Disponible</span></td></tr>
+          <tr><td>Cinta métrica 5 m</td><td class="num">8,75 €</td><td><span class="chip ok">Disponible</span></td></tr>
+          <tr><td>Nivel de burbuja</td><td class="num">14,20 €</td><td><span class="chip out">Agotado</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </body>
+</html>

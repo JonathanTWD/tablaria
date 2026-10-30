@@ -5,7 +5,7 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 ## ADR-001: pnpm workspace con paquete `shared`
 
 - **Contexto**: frontend y backend deben compartir los tipos de la API, los esquemas de validación y los tipos de columna sin duplicarlos.
-- **Decisión**: pnpm workspace en la raíz (`wise-data-frontend`, `wise-data-backend`, `packages/*`) con un único lockfile. `@wisedata/shared` se compila con `tsc` dos veces: a ESM (para Vite) y a CommonJS (para Nest y Jest), expuestos mediante `exports` condicionales.
+- **Decisión**: pnpm workspace en la raíz (`tablaria-frontend`, `tablaria-backend`, `packages/*`) con un único lockfile. `@tablaria/shared` se compila con `tsc` dos veces: a ESM (para Vite) y a CommonJS (para Nest y Jest), expuestos mediante `exports` condicionales.
 - **Consecuencias**: `shared` debe compilarse antes que los demás paquetes (los scripts de la raíz lo hacen). Evitamos un bundler extra. Los imports relativos dentro de `shared` llevan extensión `.js`.
 
 ## ADR-002: TypeScript 6 en todo el repositorio
@@ -35,7 +35,7 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 ## ADR-006: Formato único de error y filtro global
 
 - **Contexto**: AGENTS.md exige errores consistentes y no exponer stack traces ni errores SQL.
-- **Decisión**: un `AllExceptionsFilter` global convierte todo a `ApiErrorBody` (`statusCode`, `error`, `message`, `details?`), tipo definido en `@wisedata/shared`. Los errores de Prisma P2002 pasan a 409 y P2025 a 404; cualquier otro error pasa a un 500 genérico y se registra en el log.
+- **Decisión**: un `AllExceptionsFilter` global convierte todo a `ApiErrorBody` (`statusCode`, `error`, `message`, `details?`), tipo definido en `@tablaria/shared`. Los errores de Prisma P2002 pasan a 409 y P2025 a 404; cualquier otro error pasa a un 500 genérico y se registra en el log.
 - **Consecuencias**: el frontend puede tratar todos los errores con un único tipo. Los errores de validación del `ZodValidationPipe` llegan como 400 con `details` por campo.
 
 ## ADR-007: Configuración validada con zod y seguridad HTTP base
@@ -47,8 +47,8 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 
 - **Contexto**: la autenticación es la parte más sensible del MVP y la sesión debe sobrevivir a XSS en el frontend.
 - **Decisión**:
-  - **Access token**: JWT HS256 de 15 min en la cookie `wd_access` (path `/api`).
-  - **Refresh token**: token opaco aleatorio de 256 bits en la cookie `wd_refresh` (path `/api/auth`, 7 días). Solo se guarda su hash SHA-256.
+  - **Access token**: JWT HS256 de 15 min en la cookie `tb_access` (path `/api`).
+  - **Refresh token**: token opaco aleatorio de 256 bits en la cookie `tb_refresh` (path `/api/auth`, 7 días). Solo se guarda su hash SHA-256.
   - **Rotación**: cada refresh rota el token y lo encadena en una familia por login. Reutilizar un token ya rotado revoca toda la familia (detección de robo). El "reclamo" de un token es una actualización condicional, así que dos peticiones concurrentes no pueden usarlo dos veces.
   - **Cookies**: `httpOnly`, `SameSite=Lax` y `Secure` en producción. Con una API solo JSON, SameSite=Lax cubre CSRF.
   - **Tokens de email**: verificación (24 h) y reseteo (1 h) son de un solo uso, solo se guarda su hash y emitir uno nuevo invalida los anteriores.
@@ -99,7 +99,7 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
   - Ante un 401 hace un único refresh compartido por todas las peticiones concurrentes, y trata el 409 ("otra pestaña ya renovó") como éxito.
   - Los endpoints públicos de auth no disparan el refresh (`skipRefresh`).
 - **Formularios**:
-  - react-hook-form con los esquemas zod de `@wisedata/shared` y validación al salir del campo (`onTouched`).
+  - react-hook-form con los esquemas zod de `@tablaria/shared` y validación al salir del campo (`onTouched`).
   - Mensajes propios por campo en español; zod usa su locale `es` como respaldo.
 - **i18n**: react-i18next con un JSON por namespace (`common`, `landing`, `auth`, `app`, `tables`, `records`) y claves tipadas. Para añadir inglés basta con una carpeta `en` con los mismos archivos.
 - **Tema**:
@@ -115,7 +115,7 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 
 ## ADR-011: Tablas y columnas
 
-- **Definición de columnas en un solo sitio**: `@wisedata/shared` define, para cada tipo, el esquema de su valor y de sus ajustes (`options`), y un `columnDefinitionSchema` con unión discriminada por `type`. La API y el formulario validan con el mismo esquema.
+- **Definición de columnas en un solo sitio**: `@tablaria/shared` define, para cada tipo, el esquema de su valor y de sus ajustes (`options`), y un `columnDefinitionSchema` con unión discriminada por `type`. La API y el formulario validan con el mismo esquema.
 - **Propiedad**:
   - Todas las consultas filtran por `ownerId`, así que la tabla de otro usuario responde 404, igual que una que no existe.
   - Los cambios de columnas empiezan con un `UPDATE` de la tabla filtrado por dueño (`touchOwnedTable`). Ese update comprueba la propiedad, marca la tabla como editada y bloquea su fila hasta el final de la transacción, de modo que dos cambios de columnas de la misma tabla nunca se intercalan. En la fase 5, las escrituras de registros pasarán por el mismo paso: así actualizan la última edición y no se cruzan con una conversión de tipo.
@@ -134,7 +134,7 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 
 ## ADR-012: Registros y consultas sobre JSONB
 
-- **Validación**: `recordDataSchema(columns)` en `@wisedata/shared` valida los datos de un registro contra las columnas de su tabla. Rechaza ids de columna desconocidos, valores que no encajan con el tipo y opciones que no existen, y exige las columnas obligatorias. Al crear, lo que falta toma el valor por defecto; al editar, solo se validan las celdas enviadas, y `null` vacía la celda. Las celdas vacías no se guardan: la clave desaparece de `data`.
+- **Validación**: `recordDataSchema(columns)` en `@tablaria/shared` valida los datos de un registro contra las columnas de su tabla. Rechaza ids de columna desconocidos, valores que no encajan con el tipo y opciones que no existen, y exige las columnas obligatorias. Al crear, lo que falta toma el valor por defecto; al editar, solo se validan las celdas enviadas, y `null` vacía la celda. Las celdas vacías no se guardan: la clave desaparece de `data`.
 - **Escrituras**: crear, editar y borrar empiezan con `touchOwnedTable`. Eso comprueba la propiedad, actualiza la última edición de la tabla y bloquea su fila, así que una escritura nunca se cruza con una conversión de tipo de columna.
 - **Listado** (`GET /tables/:tableId/records`):
   - Paginación con `page` y `pageSize` (como mucho 100), y respuesta `{ data, meta }`.
@@ -159,8 +159,8 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
   - **Web:** Render Static Site. Reescribe `/api/*` hacia la API, así que todo queda en el mismo origen y las cookies funcionan sin tocar CORS.
   - **API:** Render Web Service con el Dockerfile.
   - **Base de datos:** Neon. La PostgreSQL gratuita de Render caduca.
-  - **Correo:** Resend, desde `mail.wise-data.es`.
-  - **Dominio:** `wise-data.es`, en IONOS.
+  - **Correo:** Resend, desde un subdominio de correo verificado (`mail.<dominio>`).
+  - **Dominio:** `tablaria.es`, en Hostalia, con el correo de Resend en `mail.tablaria.es`. Ver ADR-027.
   - **Lo que hay que configurar a mano en Render:** las cabeceras de seguridad (CSP incluida) en el panel del Static Site y `TRUST_PROXY_HOPS` en la API.
 - **Migraciones al arrancar**:
   - El plan gratuito de Render no tiene paso previo al despliegue. Por eso el contenedor ejecuta `prisma migrate deploy` antes de `node dist/main`, y la CLI de Prisma pasa a ser dependencia de producción.
@@ -172,7 +172,7 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
   - **Caducidad:** a las 24 h (`demoExpiresAt`) la cuenta se borra en cascada con todos sus datos. La limpieza se hace al crear la siguiente demo, sin cron, que en un servidor que se duerme no serviría.
   - **Límites:** 300 cuentas demo activas a la vez (503 si se supera) y 3 demos por minuto por IP.
 - **Servidor dormido**: si la carga inicial o "Probar la demo" tardan más de 3 s, la interfaz explica que el servidor está despertando, en lugar de mostrar solo un spinner.
-- **Vista previa al compartir**: metaetiquetas Open Graph y de X/Twitter en `index.html` (los rastreadores no ejecutan JavaScript), con una imagen de 1200×630 generada desde `wise-data-frontend/og/og-image.html`. El favicon pasa a ser el icono de WiseData.
+- **Vista previa al compartir**: metaetiquetas Open Graph y de X/Twitter en `index.html` (los rastreadores no ejecutan JavaScript), con una imagen de 1200×630 generada desde `tablaria-frontend/og/og-image.html`. El favicon pasa a ser el icono de Tablaria.
 - **Diagnóstico del proxy**: cada petición bloqueada por el límite de peticiones deja en el log la IP con la que se contó. Si no coincide con la IP pública del cliente, `TRUST_PROXY_HOPS` no está bien ajustado.
 
 ## ADR-014: Exportación de registros
@@ -186,7 +186,7 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 ## ADR-015: Alertas de stock bajo
 
 - **Umbral en la columna**: el umbral vive en `options.alertBelow` de las columnas numéricas (nulo si no avisa), dentro del mismo esquema zod compartido. No hace falta migración, porque las opciones ya se guardan como JSON, y lo valida la API como cualquier otra opción. No se aplica a precios: un precio bajo no es una alerta.
-- **Una sola regla**: `stockLevel()` en `@wisedata/shared` decide si un valor está bien, bajo (por debajo del umbral) o agotado (0 o menos). La tabla lo usa para marcar las celdas y la API aplica la misma comparación en SQL.
+- **Una sola regla**: `stockLevel()` en `@tablaria/shared` decide si un valor está bien, bajo (por debajo del umbral) o agotado (0 o menos). La tabla lo usa para marcar las celdas y la API aplica la misma comparación en SQL.
 - **Endpoint agregado**: `GET /stock-alerts` resuelve todo en una sola consulta parametrizada: une las tablas del usuario con sus columnas numéricas con umbral y con sus registros, y compara cada valor con el umbral guardado en la propia columna (los ids de columna salen de la base de datos, nunca de la petición). Un `CASE` evita convertir a número celdas que no lo son. Devuelve los 8 más urgentes y el total, así el panel no carga todas las tablas.
 - **Panel sin saltos**: el inicio espera a las tablas y a los avisos antes de pintarse, para que la tarjeta no empuje la lista de tablas cuando ya se ve.
 - **Sin notificaciones**: los avisos se ven al abrir el panel. Emails o notificaciones push quedan fuera del MVP.
@@ -216,7 +216,7 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 
 - **Componente `Sidebar` de shadcn (Base UI)**, en modo `icon`: plegada, deja una tira de 3rem con iconos y tooltips en lugar de desaparecer. Así navegar sigue costando un clic.
 - **Tablas agrupadas en un menú**: con la barra plegada, todas las tablas tendrían el mismo icono, así que se juntan en un solo botón «Tablas» que abre un menú con la lista.
-- **Estado en `localStorage`** (`wisedata:sidebar-open`) en lugar de la cookie `sidebar_state` del componente original. Es una app de navegador sin renderizado en servidor, y la cookie solo viajaría a la API en cada petición.
+- **Estado en `localStorage`** (`tablaria:sidebar-open`) en lugar de la cookie `sidebar_state` del componente original. Es una app de navegador sin renderizado en servidor, y la cookie solo viajaría a la API en cada petición.
 - **Instalación manual**: `shadcn add sidebar` intentaba volver a resolver dependencias y chocaba con la antigüedad mínima de pnpm. Por eso `sidebar.tsx` se copió del registro, cambiando solo:
   - las rutas de importación;
   - la cookie, que se quita;
@@ -228,7 +228,7 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 
 ## ADR-019: Compartir tablas y organizaciones
 
-**Contexto**: hoy cada tabla tiene un `ownerId`, y unas 40 consultas en 6 servicios comprueban la propiedad. WiseData tiene que servir tanto a particulares, que comparten alguna tabla suelta, como a equipos, que trabajan con todas.
+**Contexto**: hoy cada tabla tiene un `ownerId`, y unas 40 consultas en 6 servicios comprueban la propiedad. Tablaria tiene que servir tanto a particulares, que comparten alguna tabla suelta, como a equipos, que trabajan con todas.
 
 **Decisión**:
 - **Dos formas de dar acceso**:
@@ -466,6 +466,25 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 - **Registro:** crear y desactivar un enlace queda en el registro de permisos (ADR-019), con ids y sin datos personales.
 
 **Consecuencias**: el enlace da acceso de lectura a quien lo tenga, sin saber quién es. Por eso se puede desactivar o cambiar en cualquier momento, y el diálogo lo explica.
+
+## ADR-027: Nuevo nombre, Tablaria
+
+**Contexto**: el nombre anterior compartía palabra con la empresa donde se hicieron las prácticas, y el producto se parecía a uno que desarrollaban allí. En un proyecto de portfolio, eso podía leerse como que la idea venía de allí.
+
+**Decisión**:
+- **El proyecto pasa a llamarse Tablaria:**
+  - la marca de la interfaz, los correos y los documentos;
+  - las carpetas `tablaria-frontend` y `tablaria-backend`, el paquete `@tablaria/shared` y la base de datos local;
+  - las claves de `localStorage` y las cookies de sesión (`tb_access` y `tb_refresh`).
+- **Se publica en servicios nuevos de Render** con el dominio `tablaria.es` (Hostalia). El dominio anterior deja de usarse.
+- **La URL pública de la web es configurable** (`SITE_URL`, al compilar): la canónica y la vista previa al compartir no dependen de ningún dominio fijo.
+- **El historial de git no se reescribe.**
+
+**Consecuencias**:
+- Al cambiar las cookies y el origen, todo el mundo tiene que volver a iniciar sesión una vez.
+- Las preferencias guardadas en el navegador (tema, barra lateral y espacio elegido) vuelven a sus valores iniciales.
+- Los datos no cambian: la base de datos de Neon es la misma.
+- Los correos salen desde `mail.tablaria.es` una vez verificado en Resend. Hasta entonces, desde el subdominio anterior.
 
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 

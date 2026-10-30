@@ -1,14 +1,14 @@
 # Development services. The apps run on the host with `pnpm dev`.
-name: wisedata
+name: tablaria
 
 services:
   db:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-wisedata}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-wisedata}
-      POSTGRES_DB: ${POSTGRES_DB:-wisedata}
+      POSTGRES_USER: ${POSTGRES_USER:-tablaria}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tablaria}
+      POSTGRES_DB: ${POSTGRES_DB:-tablaria}
     ports:
       - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"
     volumes:

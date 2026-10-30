@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-WiseData is a full-stack inventory management web application.
+Tablaria is a full-stack inventory management web application.
 
 The main goal is to allow users to:
 
@@ -73,9 +73,9 @@ The MVP should prioritize a functional, maintainable core over unnecessary compl
 The project should maintain a clear separation between frontend and backend:
 
 ```text
-wise-data/
-├── wise-data-frontend/
-├── wise-data-backend/
+tablaria/
+├── tablaria-frontend/
+├── tablaria-backend/
 ├── docs/
 ├── docker-compose.yml
 ├── AGENTS.md
@@ -639,7 +639,7 @@ A task is considered complete when:
 
 # Final Principle
 
-Build WiseData as a real maintainable application, not as a demo full of unnecessary abstractions.
+Build Tablaria as a real maintainable application, not as a demo full of unnecessary abstractions.
 
 Prefer:
 

@@ -1,20 +1,20 @@
-# Self-hosted WiseData: the whole stack in containers.
+# Self-hosted Tablaria: the whole stack in containers.
 #   cp .env.prod.example .env.prod   # then fill in the secrets
 #   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 # Without an email provider, add `--profile mailpit` and read the emails at http://localhost:8025.
-name: wisedata-prod
+name: tablaria-prod
 
 x-api-env: &api-env
-  DATABASE_URL: postgresql://${POSTGRES_USER:-wisedata}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-wisedata}?schema=public
+  DATABASE_URL: postgresql://${POSTGRES_USER:-tablaria}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-tablaria}?schema=public
 
 services:
   db:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-wisedata}
+      POSTGRES_USER: ${POSTGRES_USER:-tablaria}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB:-wisedata}
+      POSTGRES_DB: ${POSTGRES_DB:-tablaria}
     volumes:
       - db-data:/var/lib/postgresql/data
     healthcheck:
@@ -26,7 +26,7 @@ services:
   api:
     build:
       context: .
-      dockerfile: wise-data-backend/Dockerfile
+      dockerfile: tablaria-backend/Dockerfile
       target: runtime
     restart: unless-stopped
     environment:
@@ -42,7 +42,7 @@ services:
       COOKIE_SECURE: ${COOKIE_SECURE:-}
       DEMO_ENABLED: ${DEMO_ENABLED:-true}
       MAIL_TRANSPORT: ${MAIL_TRANSPORT:-smtp}
-      MAIL_FROM: ${MAIL_FROM:-WiseData <no-reply@wisedata.local>}
+      MAIL_FROM: ${MAIL_FROM:-Tablaria <no-reply@tablaria.local>}
       SMTP_HOST: ${SMTP_HOST:-mailpit}
       SMTP_PORT: ${SMTP_PORT:-1025}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
@@ -54,7 +54,7 @@ services:
   web:
     build:
       context: .
-      dockerfile: wise-data-frontend/Dockerfile
+      dockerfile: tablaria-frontend/Dockerfile
     restart: unless-stopped
     ports:
       - "${WEB_PORT:-8080}:8080"

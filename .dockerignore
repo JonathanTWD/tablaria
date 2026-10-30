@@ -13,4 +13,4 @@ docs
 e2e/tests
 e2e/test-results
 e2e/playwright-report
-wise-data-backend/src/generated
+tablaria-backend/src/generated
