@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery } from "@tanstack/react-query";
 import {
+  canBeUnique,
   COLUMN_TYPES,
   MAX_SELECT_CHOICES,
   SELECT_COLORS,
@@ -51,7 +52,7 @@ import {
   useUpdateColumn,
 } from "@/features/tables/queries";
 import { ApiError } from "@/lib/api-client";
-import { apiErrorMessage } from "@/lib/error-message";
+import { apiErrorMessage, repeatedValues } from "@/lib/error-message";
 import { cn } from "@/lib/utils";
 import {
   columnFormDefaults,
@@ -116,11 +117,13 @@ function ColumnForm({
   const mutation = column ? update : create;
 
   const type = useWatch({ control: form.control, name: "type" });
+  const unique = useWatch({ control: form.control, name: "unique" }) && canBeUnique(type);
   const choiceValues = useWatch({ control: form.control, name: "choices" });
   const { errors } = form.formState;
 
   const onError = (error: Error) => {
-    if (error instanceof ApiError && error.status === 409) {
+    // A 409 with values is a unique column whose records repeat them.
+    if (error instanceof ApiError && error.status === 409 && repeatedValues(error).length === 0) {
       form.setError("name", { type: "conflict" }, { shouldFocus: true });
     }
   };
@@ -153,13 +156,16 @@ function ColumnForm({
     }
   });
 
+  const repeated = repeatedValues(mutation.error).map(({ message }) => message);
   const formError =
-    mutation.error instanceof ApiError && mutation.error.status === 409
-      ? null
-      : mutation.error instanceof ApiError && mutation.error.status === 422
-        ? // For a relation, the linked table is the likelier cause than the column limit.
-          t(type === "relation" ? "columnForm.linkedTableError" : "columnForm.limit")
-        : mutation.error && apiErrorMessage(mutation.error);
+    repeated.length > 0
+      ? t("columnForm.errors.repeated", { values: repeated.join(", "), count: repeated.length })
+      : mutation.error instanceof ApiError && mutation.error.status === 409
+        ? null
+        : mutation.error instanceof ApiError && mutation.error.status === 422
+          ? // For a relation, the linked table is the likelier cause than the column limit.
+            t(type === "relation" ? "columnForm.linkedTableError" : "columnForm.limit")
+          : mutation.error && apiErrorMessage(mutation.error);
 
   const typeItems = Object.fromEntries(
     COLUMN_TYPES.map((value) => [value, t(`types.${value}`)]),
@@ -396,8 +402,32 @@ function ColumnForm({
           />
         </Field>
 
-        {/* A default record would link every new record to the same one. */}
-        {type !== "relation" && (
+        {canBeUnique(type) && (
+          <Field orientation="horizontal">
+            <FieldContent>
+              <FieldLabel htmlFor={`${ids}-unique`}>{t("columnForm.unique")}</FieldLabel>
+              <FieldDescription id={`${ids}-unique-hint`}>
+                {t("columnForm.uniqueHint")}
+              </FieldDescription>
+            </FieldContent>
+            <Controller
+              control={form.control}
+              name="unique"
+              render={({ field }) => (
+                <Switch
+                  id={`${ids}-unique`}
+                  aria-describedby={`${ids}-unique-hint`}
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              )}
+            />
+          </Field>
+        )}
+
+        {/* A default record would link every new record to the same one, and
+            a unique column can't give the same value to every record. */}
+        {type !== "relation" && !unique && (
           <DefaultValueField
             id={`${ids}-default`}
             type={type}

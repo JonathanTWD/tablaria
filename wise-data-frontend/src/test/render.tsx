@@ -47,12 +47,15 @@ type Handler = (url: URL, init: RequestInit) => unknown;
 
 /**
  * Replaces `fetch` with JSON responses from `handler`. Returning a number
- * answers with that status and an empty error body.
+ * answers with that status and an empty error body; a Response is sent as is.
  */
 export function mockApi(handler: Handler) {
   const fetchMock = vi.fn(async (input: RequestInfo | URL, init: RequestInit = {}) => {
     const url = new URL(String(input), "http://localhost");
     const result = handler(url, init);
+    if (result instanceof Response) {
+      return result;
+    }
     if (typeof result === "number") {
       return new Response(JSON.stringify({ statusCode: result, error: "", message: "" }), {
         status: result,

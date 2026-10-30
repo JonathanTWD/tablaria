@@ -44,7 +44,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCellFormatter, type CellFormatter } from "@/features/columns/format-value";
-import { apiErrorMessage } from "@/lib/error-message";
+import { apiErrorMessage, repeatedValues } from "@/lib/error-message";
 import { cn } from "@/lib/utils";
 import { DeleteRecordDialog } from "./DeleteRecordDialog";
 import { useSession } from "@/features/auth/session";
@@ -166,7 +166,14 @@ export function RecordsTable({ table }: { table: TableDetail }) {
   const save = (record: TableRecord, column: TableColumn, value: TableRecord["data"][string]) =>
     update.mutate(
       { recordId: record.id, changes: { [column.id]: value } },
-      { onError: () => toast.error(t("cell.saveError")) },
+      {
+        onError: (error) =>
+          toast.error(
+            repeatedValues(error).length > 0
+              ? t("cell.duplicate", { value: format(column, value), column: column.name })
+              : t("cell.saveError"),
+          ),
+      },
     );
 
   const hasQuery = view.search !== "" || view.filters.length > 0;

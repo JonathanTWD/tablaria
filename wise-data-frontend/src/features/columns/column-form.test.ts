@@ -18,3 +18,15 @@ describe("column form low-stock threshold", () => {
     }
   });
 });
+
+describe("column form unique values", () => {
+  it("sends no default for a unique column", () => {
+    const sku = { ...columnFormDefaults(), name: "SKU", unique: true, defaultValue: "A-1" };
+    expect(toColumnDefinition(sku)).toMatchObject({ unique: true, defaultValue: null });
+  });
+
+  it("drops the flag for types that can't be unique", () => {
+    const active = { ...columnFormDefaults(), name: "Activo", type: "boolean" as const, unique: true };
+    expect(toColumnDefinition(active).unique).toBe(false);
+  });
+});

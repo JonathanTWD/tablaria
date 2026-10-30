@@ -60,4 +60,31 @@ describe("RecordDialog", () => {
     // Price untouched: someone else may have changed it meanwhile.
     await waitFor(() => expect(sent).toEqual([{ data: { [NAME_ID]: "Cajas grandes" } }]));
   });
+
+  it("marks the field whose value another record holds in a unique column", async () => {
+    const user = userEvent.setup();
+    mockApi(
+      () =>
+        new Response(
+          JSON.stringify({
+            statusCode: 409,
+            error: "Conflict",
+            message: "Value already used in a unique column",
+            details: [{ path: NAME_ID, message: "Cajas" }],
+          }),
+          { status: 409, headers: { "Content-Type": "application/json" } },
+        ),
+    );
+    renderWithProviders(
+      <RecordDialog tableId="table-1" columns={columns} open onOpenChange={() => undefined} />,
+    );
+
+    await user.type(screen.getByLabelText(/Nombre/), "Cajas");
+    await user.click(screen.getByRole("button", { name: /Añadir|Crear|Guardar/ }));
+
+    expect(
+      await screen.findByText("Otro registro ya tiene este valor, y esta columna no admite repetidos."),
+    ).toBeVisible();
+    expect(screen.getByLabelText(/Nombre/)).toHaveFocus();
+  });
 });

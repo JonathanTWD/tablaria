@@ -48,6 +48,7 @@ const MAX_BODY_CHARS = 2_000_000;
 /** Select values for the choices that aren't a table column (select values can't be null). */
 const SKIP = "skip";
 const NEW = "new";
+const NO_UPDATE = "none";
 
 /** What a column of the file becomes. */
 type Target =
@@ -121,6 +122,8 @@ function ImportWizard({ destination, onDone }: { destination: ImportDestination;
   const [targets, setTargets] = useState<Target[]>([]);
   const [tableName, setTableName] = useState("");
   const [addMissingChoices, setAddMissingChoices] = useState(false);
+  // Null until picked: a file whose keys the table holds is most often an update.
+  const [updateChoice, setUpdateChoice] = useState<number | typeof NO_UPDATE | null>(null);
   const check = useCheckImport(destination);
   const run = useRunImport(destination);
 
@@ -153,6 +156,16 @@ function ImportWizard({ destination, onDone }: { destination: ImportDestination;
     return definition ? { name: definition.name, type: definition.type } : null;
   });
 
+  // File columns mapped to a unique column: each can find the records to update (ADR-023).
+  const keyColumns = targets.flatMap((target, index) => {
+    const column = target.kind === "existing" ? tableColumns.find(({ id }) => id === target.id) : undefined;
+    return column?.unique ? [{ index, name: column.name }] : [];
+  });
+  const updateKey =
+    updateChoice === NO_UPDATE
+      ? undefined
+      : (keyColumns.find(({ index }) => index === updateChoice) ?? keyColumns[0]);
+
   const body = (addChoices = addMissingChoices): ImportBody => ({
     columns: targets.map(
       (target, index): ImportTarget =>
@@ -164,6 +177,7 @@ function ImportWizard({ destination, onDone }: { destination: ImportDestination;
     ),
     rows: dataRows,
     addMissingChoices: addChoices,
+    updateBy: updateKey?.index,
     name: tableName.trim(),
   });
   // The rows go to the API as JSON; a file over its limit is refused here first.
@@ -189,6 +203,7 @@ function ImportWizard({ destination, onDone }: { destination: ImportDestination;
     setFile(null);
     setTargets([]);
     setAddMissingChoices(false);
+    setUpdateChoice(null);
     check.reset();
     run.reset();
   };
@@ -256,6 +271,9 @@ function ImportWizard({ destination, onDone }: { destination: ImportDestination;
         }
         tableName={destination.kind === "newTable" ? tableName : null}
         onTableNameChange={setTableName}
+        keyColumns={keyColumns}
+        updateBy={updateKey?.index}
+        onUpdateByChange={setUpdateChoice}
         hasHeader={hasHeader}
         onHasHeaderChange={(value) => {
           setHasHeader(value);
@@ -282,6 +300,7 @@ function ImportWizard({ destination, onDone }: { destination: ImportDestination;
     <ReviewStep
       result={check.data}
       targets={targetInfo}
+      updateColumnName={updateKey?.name}
       requiredNames={check.data.missingRequired.map(
         (id) => tableColumns.find((column) => column.id === id)?.name ?? "",
       )}
@@ -303,7 +322,11 @@ function ImportWizard({ destination, onDone }: { destination: ImportDestination;
               toast.success(t("import.createdTable", { name: tableName.trim(), count: result.imported }));
               void navigate(`/app/tables/${result.tableId}`);
             } else {
-              toast.success(t("import.done", { count: result.imported }));
+              toast.success(
+                result.updated > 0
+                  ? t("import.doneWithUpdates", { imported: result.imported, updated: result.updated })
+                  : t("import.done", { count: result.imported }),
+              );
             }
             onDone();
           },
@@ -401,6 +424,9 @@ function MappingStep({
   onNewColumn,
   tableName,
   onTableNameChange,
+  keyColumns,
+  updateBy,
+  onUpdateByChange,
   hasHeader,
   onHasHeaderChange,
   error,
@@ -423,6 +449,11 @@ function MappingStep({
   /** Null when importing into an existing table. */
   tableName: string | null;
   onTableNameChange: (name: string) => void;
+  /** File columns mapped to a unique column, which can find records to update. */
+  keyColumns: { index: number; name: string }[];
+  /** The file column whose values find the records to update, if any. */
+  updateBy: number | undefined;
+  onUpdateByChange: (value: number | typeof NO_UPDATE) => void;
   hasHeader: boolean;
   onHasHeaderChange: (value: boolean) => void;
   error: string | null | undefined;
@@ -440,6 +471,10 @@ function MappingStep({
   };
   const typeItems = Object.fromEntries(IMPORTABLE_TYPES.map((type) => [type, t(`tables:types.${type}`)]));
   const used = new Set(targets.flatMap((target) => (target.kind === "existing" ? [target.id] : [])));
+  const updateItems = {
+    [NO_UPDATE]: t("import.updateNone"),
+    ...Object.fromEntries(keyColumns.map(({ index, name }) => [String(index), name])),
+  };
 
   return (
     <div className="flex flex-col gap-5">
@@ -542,6 +577,29 @@ function MappingStep({
           })}
         </ul>
       </fieldset>
+      {keyColumns.length > 0 && (
+        <Field>
+          <FieldLabel htmlFor={`${ids}-update`}>{t("import.updateBy")}</FieldLabel>
+          <Select
+            items={updateItems}
+            value={updateBy === undefined ? NO_UPDATE : String(updateBy)}
+            onValueChange={(next) => next && onUpdateByChange(next === NO_UPDATE ? NO_UPDATE : Number(next))}
+          >
+            <SelectTrigger id={`${ids}-update`} aria-describedby={`${ids}-update-hint`} className="h-9 w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NO_UPDATE}>{t("import.updateNone")}</SelectItem>
+              {keyColumns.map(({ index, name }) => (
+                <SelectItem key={index} value={String(index)}>
+                  {name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <FieldDescription id={`${ids}-update-hint`}>{t("import.updateByHint")}</FieldDescription>
+        </Field>
+      )}
       <DialogFooter>
         <Button type="button" variant="outline" className="h-9" onClick={onBack}>
           {t("import.otherFile")}
@@ -558,6 +616,7 @@ function MappingStep({
 function ReviewStep({
   result,
   targets,
+  updateColumnName,
   requiredNames,
   canAddChoices,
   firstRowNumber,
@@ -572,6 +631,8 @@ function ReviewStep({
   result: ImportCheck;
   /** The table column each column of the file fills. */
   targets: TargetInfo[];
+  /** The unique column that finds the records to update, if any. */
+  updateColumnName: string | undefined;
   /** Required table columns no column of the file fills. */
   requiredNames: string[];
   canAddChoices: boolean;
@@ -595,6 +656,12 @@ function ReviewStep({
         {ready
           ? t("import.ready", { count: result.validRows })
           : t("import.summary", { valid: result.validRows, count: result.rows, errors: result.errorCount })}
+        {/* Inside the status, so it is announced with the summary. */}
+        {result.toUpdate > 0 && updateColumnName && (
+          <span className="mt-1 block font-normal text-muted-foreground">
+            {t("import.updates", { count: result.toUpdate, column: updateColumnName })}
+          </span>
+        )}
       </p>
 
       {requiredNames.length > 0 && (
