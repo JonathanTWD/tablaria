@@ -117,7 +117,9 @@ function ColumnForm({
   const mutation = column ? update : create;
 
   const type = useWatch({ control: form.control, name: "type" });
-  const unique = useWatch({ control: form.control, name: "unique" }) && canBeUnique(type);
+  const stock = useWatch({ control: form.control, name: "stock" }) && type === "number";
+  const unique =
+    useWatch({ control: form.control, name: "unique" }) && canBeUnique(type) && !stock;
   const choiceValues = useWatch({ control: form.control, name: "choices" });
   const { errors } = form.formState;
 
@@ -402,7 +404,28 @@ function ColumnForm({
           />
         </Field>
 
-        {canBeUnique(type) && (
+        {type === "number" && !unique && (
+          <Field orientation="horizontal">
+            <FieldContent>
+              <FieldLabel htmlFor={`${ids}-stock`}>{t("columnForm.stock")}</FieldLabel>
+              <FieldDescription id={`${ids}-stock-hint`}>{t("columnForm.stockHint")}</FieldDescription>
+            </FieldContent>
+            <Controller
+              control={form.control}
+              name="stock"
+              render={({ field }) => (
+                <Switch
+                  id={`${ids}-stock`}
+                  aria-describedby={`${ids}-stock-hint`}
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              )}
+            />
+          </Field>
+        )}
+
+        {canBeUnique(type) && !stock && (
           <Field orientation="horizontal">
             <FieldContent>
               <FieldLabel htmlFor={`${ids}-unique`}>{t("columnForm.unique")}</FieldLabel>

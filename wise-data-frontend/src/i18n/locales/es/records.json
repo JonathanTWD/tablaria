@@ -21,6 +21,7 @@
     "actions": "Acciones",
     "rowActions": "Acciones del registro {{label}}",
     "edit": "Editar en formulario",
+    "stock": "Movimientos de stock",
     "delete": "Borrar registro",
     "untitled": "registro sin nombre"
   },
@@ -193,5 +194,45 @@
     "noResults": "Ningún registro coincide.",
     "noAccess": "No tienes acceso a la tabla enlazada. Pide a quien la administra que te la comparta.",
     "clear": "Quitar el enlace"
+  },
+  "stock": {
+    "title": "Stock de «{{label}}»",
+    "description": "Anota lo que entra, lo que sale o un recuento, y consulta quién cambió el stock y cuándo.",
+    "descriptionReadOnly": "Quién cambió el stock de este registro y cuándo.",
+    "column": "Columna",
+    "current": "{{column}} ahora",
+    "kind": "Movimiento",
+    "kinds": {
+      "in": "Entrada",
+      "out": "Salida",
+      "count": "Recuento",
+      "edit": "Edición",
+      "import": "Importación"
+    },
+    "quantity": {
+      "in": "Unidades que entran",
+      "out": "Unidades que salen",
+      "count": "Unidades contadas"
+    },
+    "countHint": "El recuento sustituye el stock por la cifra contada.",
+    "after": "El stock pasará a {{value}}.",
+    "note": "Nota (opcional)",
+    "noteHint": "Por ejemplo, el pedido, el cliente o el motivo.",
+    "submit": {
+      "in": "Anotar entrada",
+      "out": "Anotar salida",
+      "count": "Guardar recuento"
+    },
+    "saved": "Movimiento anotado. Stock: {{value}}",
+    "errors": {
+      "quantity": "Escribe una cantidad mayor que 0, por ejemplo 5 o 2,5.",
+      "count": "Escribe la cantidad contada, por ejemplo 0, 12 o 2,5.",
+      "notEnough": "No hay tanto stock: quedan {{value}}."
+    },
+    "history": "Historial",
+    "historyEmpty": "Todavía no hay movimientos.",
+    "historyError": "No se pudo cargar el historial.",
+    "historyLimit": "Se muestran los {{count}} más recientes de {{total}}.",
+    "balance": "Queda {{value}}"
   }
 }

@@ -47,7 +47,7 @@ Cada tarea indica qué modelo conviene: **Opus** para lo que toca seguridad, per
 - Cuenta: cambiar email verificando el nuevo. (Hecho: cambiar contraseña, cerrar sesión en todos los dispositivos, borrar la cuenta y exportar tus datos.)
 - Columnas de valor único (SKU, nº de serie) e importar actualizando por esa columna en vez de duplicar (hecho, ADR-023).
 - Deshacer la última importación.
-- Movimientos de stock: entradas y salidas con histórico y quién las hizo (API hecha, ADR-024; falta la interfaz).
+- Movimientos de stock: entradas y salidas con histórico y quién las hizo (hecho, ADR-024).
 - Historial de actividad de cada tabla.
 - Enlaces públicos de solo lectura.
 - Imágenes y adjuntos (almacenamiento y subida segura).

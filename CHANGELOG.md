@@ -2,10 +2,10 @@
 
 ## Sin publicar
 
-- **Movimientos de stock** (API; la interfaz llega a continuación):
-  - **Columna de stock:** una columna de número puede llevar la cuenta de su stock. Las plantillas de inventario y la demo ya la traen, y su referencia o SKU ahora es de valor único.
-  - **Entradas, salidas y recuentos** con nota opcional. Una salida no puede dejar el stock por debajo de cero.
-  - **Historial por registro:** quién hizo cada cambio, cuánto y cuándo. También quedan los cambios hechos editando la celda o importando, así que el historial siempre cuadra con el stock.
+- **Movimientos de stock:**
+  - **Columna de stock:** una columna de número puede llevar la cuenta de su stock (interruptor «Columna de stock» al crearla o editarla). Las plantillas de inventario y la demo ya la traen, y su referencia o SKU ahora es de valor único.
+  - **Entradas, salidas y recuentos** desde «Movimientos de stock» en el menú de cada registro, con nota opcional y una vista previa del stock que quedará. Una salida no puede dejar el stock por debajo de cero.
+  - **Historial por registro**, también para quien solo puede ver la tabla: quién hizo cada cambio, cuánto y cuándo. También quedan los cambios hechos editando la celda o importando, así que el historial siempre cuadra con el stock.
 - **Columnas de valor único:**
   - **Una columna de texto o número puede ser única** (interruptor «Valor único» al crear o editar la columna), como el SKU o el número de serie: no deja guardar un valor que ya tiene otro registro, sin distinguir mayúsculas ni espacios.
   - **Al activarla** en una columna que ya repite valores, dice cuáles para corregirlos antes.

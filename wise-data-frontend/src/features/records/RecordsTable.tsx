@@ -20,6 +20,7 @@ import {
   ArrowUpDown,
   Ellipsis,
   FileUp,
+  ArrowDownUp,
   Pencil,
   Plus,
   Rows3,
@@ -57,6 +58,7 @@ import { FiltersSheet } from "./FiltersSheet";
 import { RecordDialog } from "./RecordDialog";
 import { RecordsPagination } from "./RecordsPagination";
 import { recordsQuery, useUpdateRecord } from "./queries";
+import { StockDialog } from "@/features/stock-movements/StockDialog";
 import { applicableView, useRecordsView } from "./records-view";
 
 // Sorting runs on the server; TanStack Table only tracks which header is active.
@@ -66,7 +68,7 @@ const columnHelper = createColumnHelper<typeof recordTableFeatures, TableRecord>
 const SEARCH_DEBOUNCE_MS = 300;
 
 interface DialogState {
-  kind: "create" | "edit" | "delete" | null;
+  kind: "create" | "edit" | "delete" | "stock" | null;
   record?: TableRecord;
 }
 
@@ -113,6 +115,9 @@ export function RecordsTable({ table }: { table: TableDetail }) {
     viewer.name ?? tTables("presence.guest");
   // The API enforces these too; the interface just doesn't offer what would be refused.
   const canEdit = hasRole(table.role, "EDITOR");
+  const stockColumns = columns.filter((column) => column.stock);
+  // Anyone who can see the table can read a record's stock history.
+  const hasRowActions = canEdit || stockColumns.length > 0;
   const canManage = hasRole(table.role, "ADMIN");
   const format = useCellFormatter();
   const [dialog, setDialog] = useState<DialogState>({ kind: null });
@@ -310,7 +315,7 @@ export function RecordsTable({ table }: { table: TableDetail }) {
                     </th>
                   );
                 })}
-                {canEdit && (
+                {hasRowActions && (
                   <th scope="col" className="w-12 px-1.5">
                     <span className="sr-only">{t("table.actions")}</span>
                   </th>
@@ -397,7 +402,7 @@ export function RecordsTable({ table }: { table: TableDetail }) {
                           </td>
                           );
                         })}
-                        {canEdit && (
+                        {hasRowActions && (
                           <td className="px-1.5 py-1 text-right">
                             <DropdownMenu>
                               <DropdownMenuTrigger
@@ -412,18 +417,28 @@ export function RecordsTable({ table }: { table: TableDetail }) {
                                 <Ellipsis aria-hidden="true" />
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-52">
-                                <DropdownMenuItem onClick={() => setDialog({ kind: "edit", record })}>
-                                  <Pencil aria-hidden="true" />
-                                  {t("table.edit")}
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  variant="destructive"
-                                  onClick={() => setDialog({ kind: "delete", record })}
-                                >
-                                  <Trash2 aria-hidden="true" />
-                                  {t("table.delete")}
-                                </DropdownMenuItem>
+                                {stockColumns.length > 0 && (
+                                  <DropdownMenuItem onClick={() => setDialog({ kind: "stock", record })}>
+                                    <ArrowDownUp aria-hidden="true" />
+                                    {t("table.stock")}
+                                  </DropdownMenuItem>
+                                )}
+                                {canEdit && (
+                                  <>
+                                    <DropdownMenuItem onClick={() => setDialog({ kind: "edit", record })}>
+                                      <Pencil aria-hidden="true" />
+                                      {t("table.edit")}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      variant="destructive"
+                                      onClick={() => setDialog({ kind: "delete", record })}
+                                    >
+                                      <Trash2 aria-hidden="true" />
+                                      {t("table.delete")}
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </td>
@@ -476,6 +491,17 @@ export function RecordsTable({ table }: { table: TableDetail }) {
         open={dialog.kind === "create" || dialog.kind === "edit"}
         onOpenChange={closeDialog}
       />
+      {dialog.kind === "stock" && dialog.record && stockColumns.length > 0 && (
+        <StockDialog
+          tableId={table.id}
+          // The page's copy, so the stock shown follows every refetch.
+          record={records.data?.data.find(({ id }) => id === dialog.record?.id) ?? dialog.record}
+          label={rowLabel(dialog.record)}
+          columns={stockColumns}
+          canEdit={canEdit}
+          onOpenChange={closeDialog}
+        />
+      )}
       {dialog.kind === "delete" && dialog.record && (
         <DeleteRecordDialog
           tableId={table.id}
