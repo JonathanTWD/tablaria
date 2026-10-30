@@ -50,7 +50,7 @@ Cada tarea indica qué modelo conviene: **Opus** para lo que toca seguridad, per
 - Movimientos de stock: entradas y salidas con histórico y quién las hizo (hecho, ADR-024).
 - Historial de actividad de cada tabla (hecho, ADR-025). Pendiente: reordenar columnas, renombrar la tabla y podar los eventos antiguos.
 - Enlaces públicos de solo lectura (hecho, ADR-026). Pendiente: caducidad opcional y elegir qué columnas se ven.
-- Imágenes y adjuntos (almacenamiento y subida segura).
+- Imágenes y adjuntos: aparcado por ahora; diseño propuesto en «Imágenes y adjuntos (aparcado)», más abajo.
 - API pública con tokens y webhooks.
 - Relaciones entre tablas (hechas las básicas, ADR-022): selección múltiple, consultas y resúmenes (lookup y rollup), filtros, búsqueda y orden por etiqueta. Columnas calculadas.
 - Preguntas sobre los datos con IA (necesita una API key de pago).
@@ -91,3 +91,26 @@ Cada tarea indica qué modelo conviene: **Opus** para lo que toca seguridad, per
 - Productividad: vistas guardadas, edición en lote, navegación con teclado, deshacer, papelera recuperable.
 - Cuenta: cambiar email y contraseña, borrar la cuenta, cerrar sesión en todos los dispositivos.
 - Notificaciones, API pública con webhooks, inglés y PWA.
+
+## Imágenes y adjuntos (aparcado)
+
+Se dejó fuera de la v1.5.0 para no complicar el proyecto. Si se retoma, este es el diseño propuesto, pensado para el plan gratuito:
+
+- **Dónde se guardan los archivos:** en un almacenamiento compatible con S3, como Cloudflare R2 (10 GB gratis, sin coste de descarga). Nunca en PostgreSQL, porque el plan gratuito de Neon tiene 0,5 GB. El bucket es privado, sin acceso público.
+- **Nuevo tipo de columna `attachment`:** la celda guarda una lista de ids de una tabla `attachments` con:
+  - la tabla, el registro y la columna;
+  - la clave en el bucket y el nombre original;
+  - el tipo MIME detectado, el tamaño, quién lo subió y la fecha.
+- **Subida en tres pasos:**
+  1. La API comprueba que el usuario es EDITOR, el tamaño (por ejemplo, 5 MB) y el tipo (lista blanca: JPG, PNG, WebP y PDF), y devuelve una URL firmada de subida que caduca en minutos.
+  2. El navegador sube el archivo directamente al bucket.
+  3. La API confirma la subida, lee los primeros bytes para comprobar el tipo real (no basta con la extensión) y lo enlaza a la celda.
+- **Descarga:** URLs firmadas de pocos minutos, generadas tras comprobar que el usuario puede ver la tabla. Los PDF con `Content-Disposition: attachment`. Nada se sirve desde nuestro dominio, así que un archivo nunca puede ejecutar código en la app.
+- **Limpieza:** al borrar un registro, una columna o una tabla, se borran sus archivos del bucket. Un trabajo programado borra los que se subieron pero nunca se confirmaron.
+- **Límites:**
+  - un total por espacio (por ejemplo, 100 MB);
+  - nada de subidas en la demo, ni archivos en los enlaces públicos.
+- **CSP:** añadir el dominio del bucket a `img-src` y `connect-src`.
+- **Pruebas:** e2e con un almacenamiento falso (MinIO en Docker, o un doble en memoria) y la subida con un tipo falsificado.
+- **Cuenta externa:** hay que crear el bucket y las claves en Cloudflare, y ponerlas en Render como variables de entorno (`STORAGE_*`), con su `.env.example`.
+
