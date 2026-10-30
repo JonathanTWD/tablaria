@@ -388,6 +388,35 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 
 **Consecuencias**: una comprobación más por cada columna única al escribir, acotada a la tabla. Cambiar el tipo de una columna a uno que no puede ser único le quita la opción.
 
+## ADR-024: Movimientos de stock
+
+**Contexto**: en un inventario el stock no se escribe, se mueve: entra un pedido, sale una venta, un recuento corrige la cifra. Hasta ahora la celda solo guardaba el número final, sin saber cuándo cambió ni quién lo cambió.
+
+**Decisión**:
+- **Columna de stock:** una columna de número puede marcarse `stock`. No puede ser a la vez de valor único (ADR-023), y si deja de ser de número pierde la marca. Las plantillas de inventario y la demo ya la traen.
+- **Tabla `stock_movements`,** una fila por cambio, con:
+  - el registro y la columna;
+  - quién lo hizo y el tipo;
+  - las unidades que suma o resta (`delta`) y el stock que deja (`balance`);
+  - una nota opcional y la fecha.
+
+  Es una tabla física y no JSONB, porque es un histórico que crece sin límite y se consulta por registro.
+- **Tipos:**
+  - **a mano:** entrada (`in`), salida (`out`) y recuento (`count`, que fija la cifra contada);
+  - **registrados solos:** editar la celda (`edit`, también al crear el registro) e importar (`import`).
+
+  Así el historial de un registro siempre cuadra con su stock, cambie como cambie.
+- **Endpoints:**
+  - `POST /tables/:tableId/records/:recordId/movements`: hace falta ser EDITOR. Aplica el movimiento en la misma transacción que bloquea la tabla y rechaza con 422 una salida que dejaría el stock por debajo de cero;
+  - `GET` del mismo recurso: basta con poder ver la tabla. Devuelve los 100 movimientos más recientes y el total.
+- **Autor:** como en la presencia en tiempo real (ADR-020), se muestra la parte del email antes de la @, nunca el email entero, y nada en la demo. Si la cuenta se borra, el movimiento se queda sin autor (`ON DELETE SET NULL`). Borrar el registro, la columna o la tabla borra sus movimientos.
+- **Redondeo:** las cantidades se redondean a 6 decimales, para que 0,1 + 0,2 no deje restos de coma flotante.
+- **Fuera de esta versión:** un historial de toda la tabla. Llegará con el historial de actividad, que reutilizará esta misma idea de eventos con autor y fecha.
+
+**Consecuencias**:
+- Rellenar con el valor por defecto los registros que ya existen al crear una columna, o activar la marca en una columna con datos, no crea movimientos. El primer movimiento parte del valor que hubiera, así que el saldo siempre es correcto.
+- Cada escritura de una columna de stock añade una fila más en la misma transacción.
+
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
 Todas están especificadas en [MVP_PROMPT.md](MVP_PROMPT.md):

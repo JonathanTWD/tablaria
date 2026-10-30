@@ -47,7 +47,7 @@ Cada tarea indica qué modelo conviene: **Opus** para lo que toca seguridad, per
 - Cuenta: cambiar email verificando el nuevo. (Hecho: cambiar contraseña, cerrar sesión en todos los dispositivos, borrar la cuenta y exportar tus datos.)
 - Columnas de valor único (SKU, nº de serie) e importar actualizando por esa columna en vez de duplicar (hecho, ADR-023).
 - Deshacer la última importación.
-- Movimientos de stock: entradas y salidas con histórico y quién las hizo.
+- Movimientos de stock: entradas y salidas con histórico y quién las hizo (API hecha, ADR-024; falta la interfaz).
 - Historial de actividad de cada tabla.
 - Enlaces públicos de solo lectura.
 - Imágenes y adjuntos (almacenamiento y subida segura).
@@ -87,7 +87,7 @@ Cada tarea indica qué modelo conviene: **Opus** para lo que toca seguridad, per
 
 - Integridad: tablas bloqueadas o archivadas de solo lectura.
 - Tipos de columna: selección múltiple, imágenes y adjuntos, columnas calculadas, relaciones entre tablas.
-- Inventario: movimientos de stock (entradas y salidas con histórico), códigos de barras y QR.
+- Inventario: códigos de barras y QR.
 - Productividad: vistas guardadas, edición en lote, navegación con teclado, deshacer, papelera recuperable.
 - Cuenta: cambiar email y contraseña, borrar la cuenta, cerrar sesión en todos los dispositivos.
 - Historial de actividad, notificaciones, enlaces públicos de solo lectura, API pública con webhooks, inglés y PWA.

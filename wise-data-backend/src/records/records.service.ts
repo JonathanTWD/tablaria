@@ -29,7 +29,8 @@ import {
 } from '../relations/relations';
 import { accessibleTables, touchTable } from '../tables/table-access';
 import { buildRecordQuery } from './record-query';
-import { withoutEmptyCells } from './record-data';
+import { logStockChanges } from '../stock-movements/stock-log';
+import { toTableRecord, withoutEmptyCells } from './record-data';
 import { requireUniqueValues } from './unique-values';
 import { exportFileName, toCsv } from './record-export';
 import { statsColumns, summarizeGroups } from './record-stats';
@@ -200,6 +201,13 @@ export class RecordsService {
       const record = await tx.record.create({
         data: { tableId, data: withoutEmptyCells(data) },
       });
+      await logStockChanges(tx, {
+        tableId,
+        userId,
+        kind: 'EDIT',
+        columns,
+        writes: [{ id: record.id, before: {}, after: data }],
+      });
       return toTableRecord(record);
     });
     this.realtime.publish(tableId, 'records');
@@ -229,14 +237,17 @@ export class RecordsService {
       );
       await requireLinkedRecords(tx, userId, columns, [changes]);
       await requireUniqueValues(tx, tableId, columns, changes, recordId);
+      const before = toTableRecord(stored).data;
       const record = await tx.record.update({
         where: { id: recordId },
-        data: {
-          data: withoutEmptyCells({
-            ...toTableRecord(stored).data,
-            ...changes,
-          }),
-        },
+        data: { data: withoutEmptyCells({ ...before, ...changes }) },
+      });
+      await logStockChanges(tx, {
+        tableId,
+        userId,
+        kind: 'EDIT',
+        columns,
+        writes: [{ id: recordId, before, after: { ...before, ...changes } }],
       });
       return toTableRecord(record);
     });
@@ -273,14 +284,4 @@ async function loadColumns(
 ): Promise<RecordColumn[]> {
   const columns = await tx.column.findMany({ where: { tableId } });
   return columns.map(toTableColumn);
-}
-
-function toTableRecord(record: RecordRow): TableRecord {
-  return {
-    id: record.id,
-    // Validated against the table's columns whenever it is written.
-    data: record.data as RecordData,
-    createdAt: record.createdAt.toISOString(),
-    updatedAt: record.updatedAt.toISOString(),
-  };
 }

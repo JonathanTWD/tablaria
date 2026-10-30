@@ -2,6 +2,7 @@ import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import {
   type ColumnDefinition,
   columnDefinitionSchema,
+  type RecordData,
   recordDataSchema,
   TABLE_TEMPLATES,
 } from '@wisedata/shared';
@@ -12,6 +13,7 @@ import { generateSecureToken } from '../auth/secure-token';
 import { toColumnData } from '../columns/column-mapper';
 import { PrismaService } from '../database/prisma.service';
 import { inInsertionOrder, withoutEmptyCells } from '../records/record-data';
+import { logStockChanges } from '../stock-movements/stock-log';
 import type { Prisma, User } from '../generated/prisma/client';
 import { personalOrganizationId } from '../tables/table-access';
 import { DEMO_ORGANIZATION, DEMO_TABLES, type DemoTable } from './demo-data';
@@ -158,7 +160,8 @@ async function createDemoTable(
   // The same validation as the API, so the demo data can never drift from the rules.
   const schema = recordDataSchema(columns, { partial: false });
 
-  await tx.record.createMany({
+  const records = await tx.record.createManyAndReturn({
+    select: { id: true, data: true },
     data: inInsertionOrder(table.rows).map(({ createdAt, ...row }) => {
       const byId = Object.fromEntries(
         columns.map(({ id, name }) => [id, row[name]]),
@@ -169,5 +172,17 @@ async function createDemoTable(
         createdAt,
       };
     }),
+  });
+  await logStockChanges(tx, {
+    tableId: created.id,
+    userId,
+    kind: 'COUNT',
+    note: 'Inventario inicial',
+    columns,
+    writes: records.map(({ id, data }) => ({
+      id,
+      before: {},
+      after: data as RecordData,
+    })),
   });
 }

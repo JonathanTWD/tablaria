@@ -1,5 +1,15 @@
-import type { RecordData } from '@wisedata/shared';
-import type { Prisma } from '../generated/prisma/client';
+import type { RecordData, TableRecord } from '@wisedata/shared';
+import type { Prisma, Record as RecordRow } from '../generated/prisma/client';
+
+export function toTableRecord(record: RecordRow): TableRecord {
+  return {
+    id: record.id,
+    // Validated against the table's columns whenever it is written.
+    data: record.data as RecordData,
+    createdAt: record.createdAt.toISOString(),
+    updatedAt: record.updatedAt.toISOString(),
+  };
+}
 
 /** Empty cells are stored as absent keys, never as null. */
 export function withoutEmptyCells(data: RecordData): Prisma.InputJsonObject {

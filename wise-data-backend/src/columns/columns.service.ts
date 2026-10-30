@@ -203,6 +203,11 @@ function mergeColumnPatch(
       (typeChanged && !canBeUnique(patch.type ?? current.type)
         ? false
         : current.unique),
+    stock:
+      patch.stock ??
+      (typeChanged && (patch.type ?? current.type) !== 'number'
+        ? false
+        : current.stock),
     type: patch.type ?? current.type,
     options: keep('options', current.options),
     defaultValue: keep('defaultValue', followDefaultChoice(current, patch)),

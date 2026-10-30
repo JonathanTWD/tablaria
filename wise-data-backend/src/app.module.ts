@@ -16,6 +16,7 @@ import { RecordsModule } from './records/records.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { SharingModule } from './sharing/sharing.module';
 import { StockAlertsModule } from './stock-alerts/stock-alerts.module';
+import { StockMovementsModule } from './stock-movements/stock-movements.module';
 import { TablesModule } from './tables/tables.module';
 
 @Module({
@@ -31,6 +32,7 @@ import { TablesModule } from './tables/tables.module';
     RecordsModule,
     ImportsModule,
     StockAlertsModule,
+    StockMovementsModule,
     SharingModule,
     OrganizationsModule,
     RealtimeModule,
