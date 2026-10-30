@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { ActivityModule } from './activity/activity.module';
 import { AuthModule } from './auth/auth.module';
 import { ColumnsModule } from './columns/columns.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
@@ -33,6 +34,7 @@ import { TablesModule } from './tables/tables.module';
     ImportsModule,
     StockAlertsModule,
     StockMovementsModule,
+    ActivityModule,
     SharingModule,
     OrganizationsModule,
     RealtimeModule,

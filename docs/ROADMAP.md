@@ -48,7 +48,7 @@ Cada tarea indica qué modelo conviene: **Opus** para lo que toca seguridad, per
 - Columnas de valor único (SKU, nº de serie) e importar actualizando por esa columna en vez de duplicar (hecho, ADR-023).
 - Deshacer la última importación.
 - Movimientos de stock: entradas y salidas con histórico y quién las hizo (hecho, ADR-024).
-- Historial de actividad de cada tabla.
+- Historial de actividad de cada tabla (hecho, ADR-025). Pendiente: reordenar columnas, renombrar la tabla y podar los eventos antiguos.
 - Enlaces públicos de solo lectura.
 - Imágenes y adjuntos (almacenamiento y subida segura).
 - API pública con tokens y webhooks.
@@ -90,4 +90,4 @@ Cada tarea indica qué modelo conviene: **Opus** para lo que toca seguridad, per
 - Inventario: códigos de barras y QR.
 - Productividad: vistas guardadas, edición en lote, navegación con teclado, deshacer, papelera recuperable.
 - Cuenta: cambiar email y contraseña, borrar la cuenta, cerrar sesión en todos los dispositivos.
-- Historial de actividad, notificaciones, enlaces públicos de solo lectura, API pública con webhooks, inglés y PWA.
+- Notificaciones, enlaces públicos de solo lectura, API pública con webhooks, inglés y PWA.

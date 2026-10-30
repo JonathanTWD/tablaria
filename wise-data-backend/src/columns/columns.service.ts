@@ -24,6 +24,7 @@ import { requireNoRepeatedValues } from '../records/unique-values';
 import { requireLinkableTable } from '../relations/relations';
 import { accessibleTables, touchTable } from '../tables/table-access';
 import { toColumnData, toTableColumn } from './column-mapper';
+import { logActivity } from '../activity/activity-log';
 import { convertCellValue } from './convert-value';
 
 @Injectable()
@@ -78,6 +79,12 @@ export class ColumnsService {
             SET data = jsonb_set(data, ARRAY[${column.id}::text], ${JSON.stringify(definition.defaultValue)}::jsonb)
             WHERE "tableId" = ${tableId}::uuid`;
         }
+        await logActivity(tx, {
+          tableId,
+          userId,
+          action: 'column.created',
+          label: column.name,
+        });
         return toTableColumn(column);
       }),
     );
@@ -120,6 +127,14 @@ export class ColumnsService {
         const column = await tx.column.update({
           where: { id: columnId },
           data: toColumnData(next),
+        });
+        await logActivity(tx, {
+          tableId,
+          userId,
+          action: 'column.updated',
+          label: next.name,
+          details:
+            next.name === current.name ? {} : { renamedFrom: current.name },
         });
         return { column: toTableColumn(column), clearedValues };
       }),
@@ -170,12 +185,19 @@ export class ColumnsService {
     await this.prisma.$transaction(async (tx) => {
       await touchTable(tx, userId, tableId, 'ADMIN');
 
-      const { count } = await tx.column.deleteMany({
+      const stored = await tx.column.findFirst({
         where: { id: columnId, tableId },
       });
-      if (count === 0) {
+      if (!stored) {
         throw new NotFoundException('Column not found');
       }
+      await tx.column.delete({ where: { id: columnId } });
+      await logActivity(tx, {
+        tableId,
+        userId,
+        action: 'column.deleted',
+        label: stored.name,
+      });
       await tx.$executeRaw`
         UPDATE records
         SET data = data - ${columnId}::text

@@ -15,6 +15,8 @@ import {
   type TableRecord,
 } from '@wisedata/shared';
 import { displayName } from '../common/display-name';
+import { logActivity, recordLabel } from '../activity/activity-log';
+import { toTableColumn } from '../columns/column-mapper';
 import { PrismaService } from '../database/prisma.service';
 import type {
   Prisma,
@@ -127,6 +129,22 @@ export class StockMovementsService {
           note: entry.note,
         },
         include: withAuthor,
+      });
+      const first = await tx.column.findFirst({
+        where: { tableId },
+        orderBy: { position: 'asc' },
+      });
+      await logActivity(tx, {
+        tableId,
+        userId,
+        action: 'stock.moved',
+        recordId,
+        label: recordLabel(first ? toTableColumn(first) : undefined, data),
+        details: {
+          kind: entry.kind,
+          delta: movement.delta,
+          column: column.name,
+        },
       });
       return {
         movement: toStockMovement(movement),

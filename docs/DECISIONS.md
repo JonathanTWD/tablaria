@@ -417,6 +417,35 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 - Rellenar con el valor por defecto los registros que ya existen al crear una columna, o activar la marca en una columna con datos, no crea movimientos. El primer movimiento parte del valor que hubiera, así que el saldo siempre es correcto.
 - Cada escritura de una columna de stock añade una fila más en la misma transacción.
 
+## ADR-025: Historial de actividad
+
+**Contexto**: en una tabla compartida hace falta saber quién cambió qué y cuándo, sobre todo cuando algo desaparece o cambia sin avisar.
+
+**Decisión**:
+- **Tabla `activity_events`,** con una fila por evento: tabla, autor, acción, registro (sin clave foránea, porque el evento sobrevive al registro), etiqueta, detalles en JSON y fecha.
+- **Acciones:**
+  - registro creado, editado o borrado;
+  - importación;
+  - columna creada, editada (con el nombre anterior si se renombra) o borrada;
+  - movimiento de stock anotado a mano (ADR-024).
+
+  Se registran en la misma transacción que el cambio, después de `touchTable`.
+- **Etiqueta guardada en el momento:** se guarda el nombre del registro (su primera columna) o de la columna tal como era entonces, para que el historial siga siendo legible aunque luego se borren o renombren.
+- **Sin valores en las ediciones:** de una edición solo se guardan los nombres de las columnas que cambiaron, no los valores. Así el historial no duplica los datos de la tabla.
+- **Una sola entrada por importación,** con cuántos registros creó y cuántos actualizó.
+- **Ediciones agrupadas:** las ediciones seguidas de la misma persona en el mismo registro, a menos de 5 minutos, se juntan en un evento. Si no, cada celda editada en línea llenaría el historial.
+- **Lectura:** `GET /tables/:tableId/activity?page=` para quien pueda ver la tabla, de 30 en 30 y lo más reciente primero.
+  - El autor se muestra como en el resto de la app (parte del email antes de la @, nada en la demo), con `mine` para decir «Tú» sin tener que conjugar verbos.
+  - Si la cuenta se borra, el evento se queda sin autor. Borrar la tabla borra su historial.
+- **Fuera de esta versión:**
+  - reordenar columnas;
+  - renombrar la tabla;
+  - los cambios de acceso, que ya quedan en el registro de permisos (ADR-019);
+  - los efectos en otras tablas, como vaciar enlaces a un registro borrado;
+  - un límite de antigüedad. Si crece demasiado, se podará por fecha con un trabajo programado.
+
+**Consecuencias**: cada escritura añade una fila en la misma transacción. El índice `(tableId, createdAt)` mantiene rápida la lectura paginada.
+
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
 Todas están especificadas en [MVP_PROMPT.md](MVP_PROMPT.md):

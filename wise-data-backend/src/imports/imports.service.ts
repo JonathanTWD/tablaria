@@ -16,6 +16,7 @@ import {
 } from '@wisedata/shared';
 import type { z } from 'zod';
 import { toColumnData, toTableColumn } from '../columns/column-mapper';
+import { logActivity } from '../activity/activity-log';
 import { PrismaService } from '../database/prisma.service';
 import type { Prisma, Role } from '../generated/prisma/client';
 import { requireOrganizationRole } from '../organizations/organization-access';
@@ -118,6 +119,7 @@ export class ImportsService {
           ...existing,
           ...analysis.createdColumns,
         ]);
+        await logImport(tx, userId, tableId, analysis);
         return summary(tableId, existing, analysis);
       },
       { timeout: IMPORT_TIMEOUT_MS },
@@ -163,6 +165,7 @@ export class ImportsService {
           analysis,
           analysis.createdColumns,
         );
+        await logImport(tx, userId, table.id, analysis);
         return summary(table.id, [], analysis);
       },
       { timeout: IMPORT_TIMEOUT_MS },
@@ -292,6 +295,24 @@ async function storeRecords(
   } else {
     await tx.record.createMany({ data: rows });
   }
+}
+
+/** One event per import: listing each row would bury everything else. */
+function logImport(
+  tx: Prisma.TransactionClient,
+  userId: string,
+  tableId: string,
+  analysis: ImportAnalysis,
+): Promise<void> {
+  return logActivity(tx, {
+    tableId,
+    userId,
+    action: 'records.imported',
+    details: {
+      created: analysis.records.length,
+      updated: analysis.updates.length,
+    },
+  });
 }
 
 function choiceCount(column: RecordColumn | undefined): number {

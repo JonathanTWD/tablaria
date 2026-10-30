@@ -18,6 +18,11 @@ import {
   type TableRecord,
 } from '@wisedata/shared';
 import { toTableColumn } from '../columns/column-mapper';
+import {
+  changedColumns,
+  logActivity,
+  recordLabel,
+} from '../activity/activity-log';
 import { parseOrThrow } from '../common/pipes/zod-validation.pipe';
 import { PrismaService } from '../database/prisma.service';
 import { RealtimeService } from '../realtime/realtime.service';
@@ -208,6 +213,13 @@ export class RecordsService {
         columns,
         writes: [{ id: record.id, before: {}, after: data }],
       });
+      await logActivity(tx, {
+        tableId,
+        userId,
+        action: 'record.created',
+        recordId: record.id,
+        label: recordLabel(columns[0], data),
+      });
       return toTableRecord(record);
     });
     this.realtime.publish(tableId, 'records');
@@ -249,6 +261,18 @@ export class RecordsService {
         columns,
         writes: [{ id: recordId, before, after: { ...before, ...changes } }],
       });
+      const after = { ...before, ...changes };
+      const changed = changedColumns(columns, before, after);
+      if (changed.length > 0) {
+        await logActivity(tx, {
+          tableId,
+          userId,
+          action: 'record.updated',
+          recordId,
+          label: recordLabel(columns[0], after),
+          details: { columns: changed },
+        });
+      }
       return toTableRecord(record);
     });
     this.realtime.publish(tableId, 'records');
@@ -262,12 +286,21 @@ export class RecordsService {
   ): Promise<void> {
     const unlinked = await this.prisma.$transaction(async (tx) => {
       await touchTable(tx, userId, tableId, 'EDITOR');
-      const { count } = await tx.record.deleteMany({
+      const stored = await tx.record.findFirst({
         where: { id: recordId, tableId },
       });
-      if (count === 0) {
+      if (!stored) {
         throw new NotFoundException('Record not found');
       }
+      await tx.record.delete({ where: { id: recordId } });
+      const [first] = await loadColumns(tx, tableId);
+      await logActivity(tx, {
+        tableId,
+        userId,
+        action: 'record.deleted',
+        recordId,
+        label: recordLabel(first, stored.data as RecordData),
+      });
       // Cells of other tables that linked to it are emptied, not left dangling.
       return unlinkRecord(tx, tableId, recordId);
     });
@@ -282,6 +315,10 @@ async function loadColumns(
   tx: Prisma.TransactionClient,
   tableId: string,
 ): Promise<RecordColumn[]> {
-  const columns = await tx.column.findMany({ where: { tableId } });
+  // By position: the first one names the record in the history.
+  const columns = await tx.column.findMany({
+    where: { tableId },
+    orderBy: { position: 'asc' },
+  });
   return columns.map(toTableColumn);
 }

@@ -30,6 +30,18 @@ enum StockMovementKind {
   IMPORT
 }
 
+/// What happened in a table (ADR-025).
+enum ActivityAction {
+  RECORD_CREATED
+  RECORD_UPDATED
+  RECORD_DELETED
+  RECORDS_IMPORTED
+  COLUMN_CREATED
+  COLUMN_UPDATED
+  COLUMN_DELETED
+  STOCK_MOVED
+}
+
 enum ColumnType {
   text
   number
@@ -58,6 +70,7 @@ model User {
   createdTables        InventoryTable[]
   sentInvitations      Invitation[]
   stockMovements       StockMovement[]
+  activityEvents       ActivityEvent[]
 
   @@index([demoExpiresAt])
   @@map("users")
@@ -157,6 +170,7 @@ model InventoryTable {
   records        Record[]
   shares         TableShare[]
   stockMovements StockMovement[]
+  activityEvents ActivityEvent[]
   invitations    Invitation[]
 
   @@index([organizationId, updatedAt])
@@ -256,4 +270,26 @@ model StockMovement {
   @@index([columnId])
   @@index([userId])
   @@map("stock_movements")
+}
+
+/// Who did what in a table, newest first (ADR-025).
+model ActivityEvent {
+  id        String         @id @default(uuid()) @db.Uuid
+  tableId   String         @db.Uuid
+  /// Null once the account is deleted.
+  userId    String?        @db.Uuid
+  action    ActivityAction
+  /// No foreign key: the event outlives the record.
+  recordId  String?        @db.Uuid
+  /// The record's or column's name when it happened.
+  label     String?
+  details   Json           @default("{}")
+  createdAt DateTime       @default(now())
+
+  table InventoryTable @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  user  User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([tableId, createdAt])
+  @@index([userId])
+  @@map("activity_events")
 }
