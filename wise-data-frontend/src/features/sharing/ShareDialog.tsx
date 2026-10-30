@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSession } from "@/features/auth/session";
+import { PublicLinkSection } from "@/features/public-links/PublicLinkSection";
 import { ApiError } from "@/lib/api-client";
 import { apiErrorMessage } from "@/lib/error-message";
 import { formatRelativeTime } from "@/lib/format";
@@ -66,6 +67,7 @@ export function ShareDialog({ table, open, onOpenChange }: ShareDialogProps) {
         </DialogHeader>
         <InviteForm tableId={table.id} />
         <SharingLists tableId={table.id} />
+        <PublicLinkSection tableId={table.id} />
       </DialogContent>
     </Dialog>
   );

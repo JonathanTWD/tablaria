@@ -71,6 +71,7 @@ model User {
   sentInvitations      Invitation[]
   stockMovements       StockMovement[]
   activityEvents       ActivityEvent[]
+  publicLinks          PublicLink[]
 
   @@index([demoExpiresAt])
   @@map("users")
@@ -171,6 +172,7 @@ model InventoryTable {
   shares         TableShare[]
   stockMovements StockMovement[]
   activityEvents ActivityEvent[]
+  publicLink     PublicLink?
   invitations    Invitation[]
 
   @@index([organizationId, updatedAt])
@@ -292,4 +294,20 @@ model ActivityEvent {
   @@index([tableId, createdAt])
   @@index([userId])
   @@map("activity_events")
+}
+
+/// A table's read-only link for anyone who has it (ADR-026). At most one per table.
+model PublicLink {
+  id          String   @id @default(uuid()) @db.Uuid
+  tableId     String   @unique @db.Uuid
+  /// SHA-256 of the token: the link itself is shown once, when it's created.
+  tokenHash   String   @unique
+  createdById String?  @db.Uuid
+  createdAt   DateTime @default(now())
+
+  table     InventoryTable @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  createdBy User?          @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([createdById])
+  @@map("public_links")
 }
