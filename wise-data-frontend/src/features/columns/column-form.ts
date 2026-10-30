@@ -105,13 +105,15 @@ function parseDefault(values: ColumnFormValues): CellValue {
 
 /** Unvalidated column definition built from the form values. */
 function toDraft(values: ColumnFormValues) {
-  // Kept while other types are tried, but only sent for types that can be unique.
-  const unique = values.unique && canBeUnique(values.type);
+  // Kept while other types are tried, but only sent for types that allow them.
+  // A stock column can't be unique: the form offers one or the other.
+  const stock = values.stock && values.type === "number";
+  const unique = values.unique && canBeUnique(values.type) && !stock;
   const base = {
     name: values.name,
     required: values.required,
     unique,
-    stock: values.stock && values.type === "number",
+    stock,
     // Every record left empty would share the default, so unique columns have none.
     defaultValue: unique ? null : parseDefault(values),
   };

@@ -34,7 +34,7 @@ export function recordStatsQuery(tableId: string, query: RecordStatsQuery) {
 }
 
 /** Record counts and "last edited" live on the table, so they change too. */
-function refreshAfterWrite(queryClient: QueryClient, tableId: string) {
+export function refreshAfterWrite(queryClient: QueryClient, tableId: string) {
   return Promise.all([
     queryClient.invalidateQueries({ queryKey: tableKeys.records(tableId) }),
     queryClient.invalidateQueries({ queryKey: tableKeys.stats(tableId) }),

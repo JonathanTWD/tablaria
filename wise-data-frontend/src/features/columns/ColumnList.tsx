@@ -134,6 +134,7 @@ function ColumnRow({
       : t(`types.${column.type}`),
     column.required && t("columns.required"),
     column.unique && t("columns.unique"),
+    column.stock && t("columns.stock"),
     defaultValue && t("columns.default", { value: defaultValue }),
     column.type === "number" &&
       column.options &&
