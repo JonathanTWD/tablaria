@@ -128,4 +128,5 @@ GitHub Actions ejecuta en cada pull request el lint, el typecheck, el build y lo
 
 - [docs/ROADMAP.md](docs/ROADMAP.md): fases del MVP y funcionalidad futura.
 - [docs/DECISIONS.md](docs/DECISIONS.md): decisiones de arquitectura (ADR).
+- [docs/TRASPASO.md](docs/TRASPASO.md): guía de traspaso: trabajo en local, releases, producción y tareas pendientes.
 - [AGENTS.md](AGENTS.md): reglas y convenciones del proyecto.
