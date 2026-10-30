@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0d0e24" />
+    <title>Tablaria · Tu inventario, en tablas hechas a tu medida</title>
+    <meta
+      name="description"
+      content="Crea tablas de inventario con las columnas que necesita tu negocio: búsqueda, filtros y edición directa en la celda. Pruébalo al instante con datos de ejemplo."
+    />
+    <link rel="canonical" href="%SITE_URL%/" />
+
+    <!-- Link previews (LinkedIn, WhatsApp, X…). Crawlers don't run JavaScript, so they live here.
+         Their absolute URLs start with the public address, written at build time (vite.config.ts). -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Tablaria" />
+    <meta property="og:locale" content="es_ES" />
+    <meta property="og:url" content="%SITE_URL%/" />
+    <meta property="og:title" content="Tablaria · Tu inventario, en tablas hechas a tu medida" />
+    <meta
+      property="og:description"
+      content="Crea tablas con las columnas que necesita tu negocio: búsqueda, filtros y edición directa en la celda. Prueba la demo sin registrarte."
+    />
+    <meta property="og:image" content="%SITE_URL%/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="Tablaria: tabla de inventario de una ferretería con precios y estado de cada producto."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Tablaria · Tu inventario, en tablas hechas a tu medida" />
+    <meta
+      name="twitter:description"
+      content="Crea tablas con las columnas que necesita tu negocio. Prueba la demo sin registrarte."
+    />
+    <meta name="twitter:image" content="%SITE_URL%/og-image.png" />
+    <!-- Blocking on purpose: it must run before the first paint. -->
+    <script src="/theme-init.js"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

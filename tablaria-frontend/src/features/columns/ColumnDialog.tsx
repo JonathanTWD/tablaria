@@ -1,0 +1,599 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useQuery } from "@tanstack/react-query";
+import {
+  canBeUnique,
+  COLUMN_TYPES,
+  MAX_SELECT_CHOICES,
+  SELECT_COLORS,
+  type ColumnType,
+  type SelectColor,
+  type TableColumn,
+} from "@tablaria/shared";
+import { Plus, TriangleAlert, X } from "lucide-react";
+import { useId } from "react";
+import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
+import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
+import { FormAlert } from "@/components/form/FormAlert";
+import { FormField } from "@/components/form/FormField";
+import { SubmitButton } from "@/components/form/SubmitButton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import {
+  tableQuery,
+  tablesQuery,
+  useCreateColumn,
+  useUpdateColumn,
+} from "@/features/tables/queries";
+import { ApiError } from "@/lib/api-client";
+import { apiErrorMessage, repeatedValues } from "@/lib/error-message";
+import { cn } from "@/lib/utils";
+import {
+  columnFormDefaults,
+  columnFormSchema,
+  newChoice,
+  toColumnDefinition,
+  type ColumnFormValues,
+} from "./column-form";
+import { COLUMN_TYPE_ICONS, COMMON_CURRENCIES, SELECT_SWATCH_CLASSES } from "./column-ui";
+
+interface ColumnDialogProps {
+  tableId: string;
+  /** The column to edit; omitted to create a new one. */
+  column?: TableColumn;
+  /** Records whose values a type change would convert. */
+  recordCount: number;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export function ColumnDialog({ open, onOpenChange, column, ...props }: ColumnDialogProps) {
+  const { t } = useTranslation(["tables", "common"]);
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        closeLabel={t("common:close")}
+        className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-lg"
+      >
+        <DialogHeader>
+          <DialogTitle>
+            {column ? t("columnForm.editTitle") : t("columnForm.createTitle")}
+          </DialogTitle>
+          {/* The form explains itself; an empty description keeps Base UI from warning. */}
+          <DialogDescription className="sr-only">
+            {column ? column.name : t("columns.description")}
+          </DialogDescription>
+        </DialogHeader>
+        {/* The popup unmounts when closed, so every opening starts from fresh values. */}
+        <ColumnForm column={column} onDone={() => onOpenChange(false)} {...props} />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ColumnForm({
+  tableId,
+  column,
+  recordCount,
+  onDone,
+}: Omit<ColumnDialogProps, "open" | "onOpenChange"> & { onDone: () => void }) {
+  const { t, i18n } = useTranslation("tables");
+  const ids = useId();
+  const form = useForm<ColumnFormValues>({
+    resolver: zodResolver(columnFormSchema),
+    mode: "onTouched",
+    defaultValues: columnFormDefaults(column),
+  });
+  // `keyName` keeps React keys apart from each choice's own `id`.
+  const choices = useFieldArray({ control: form.control, name: "choices", keyName: "key" });
+  const create = useCreateColumn(tableId);
+  const update = useUpdateColumn(tableId);
+  const mutation = column ? update : create;
+
+  const type = useWatch({ control: form.control, name: "type" });
+  const stock = useWatch({ control: form.control, name: "stock" }) && type === "number";
+  const unique =
+    useWatch({ control: form.control, name: "unique" }) && canBeUnique(type) && !stock;
+  const choiceValues = useWatch({ control: form.control, name: "choices" });
+  const { errors } = form.formState;
+
+  const onError = (error: Error) => {
+    // A 409 with values is a unique column whose records repeat them.
+    if (error instanceof ApiError && error.status === 409 && repeatedValues(error).length === 0) {
+      form.setError("name", { type: "conflict" }, { shouldFocus: true });
+    }
+  };
+
+  const onSubmit = form.handleSubmit((values) => {
+    const body = toColumnDefinition(values);
+    if (column) {
+      update.mutate(
+        { columnId: column.id, body },
+        {
+          onSuccess: ({ clearedValues }) => {
+            toast.success(
+              clearedValues > 0
+                ? t("columnForm.cleared", { count: clearedValues })
+                : t("columnForm.saved"),
+            );
+            onDone();
+          },
+          onError,
+        },
+      );
+    } else {
+      create.mutate(body, {
+        onSuccess: (created) => {
+          toast.success(t("columnForm.created", { name: created.name }));
+          onDone();
+        },
+        onError,
+      });
+    }
+  });
+
+  const repeated = repeatedValues(mutation.error).map(({ message }) => message);
+  const formError =
+    repeated.length > 0
+      ? t("columnForm.errors.repeated", { values: repeated.join(", "), count: repeated.length })
+      : mutation.error instanceof ApiError && mutation.error.status === 409
+        ? null
+        : mutation.error instanceof ApiError && mutation.error.status === 422
+          ? // For a relation, the linked table is the likelier cause than the column limit.
+            t(type === "relation" ? "columnForm.linkedTableError" : "columnForm.limit")
+          : mutation.error && apiErrorMessage(mutation.error);
+
+  const typeItems = Object.fromEntries(
+    COLUMN_TYPES.map((value) => [value, t(`types.${value}`)]),
+  ) as Record<ColumnType, string>;
+  const currencyNames = new Intl.DisplayNames(i18n.language, { type: "currency" });
+  const currencyItems = Object.fromEntries(
+    COMMON_CURRENCIES.map((code) => [code, `${code} · ${currencyNames.of(code)}`]),
+  );
+  const colorItems = Object.fromEntries(
+    SELECT_COLORS.map((color) => [color, t(`colors.${color}`)]),
+  ) as Record<SelectColor, string>;
+  const choicesError = errors.choices?.root ?? errors.choices;
+
+  return (
+    <form noValidate onSubmit={onSubmit}>
+      <FieldGroup className="gap-5">
+        {formError && <FormAlert>{formError}</FormAlert>}
+
+        <FormField
+          id={`${ids}-name`}
+          label={t("columnForm.name")}
+          error={
+            errors.name &&
+            (errors.name.type === "conflict"
+              ? t("columnForm.errors.nameTaken")
+              : t("columnForm.errors.name"))
+          }
+        >
+          <Input autoComplete="off" className="h-9" {...form.register("name")} />
+        </FormField>
+
+        <Field>
+          <FieldLabel htmlFor={`${ids}-type`}>{t("columnForm.type")}</FieldLabel>
+          <Controller
+            control={form.control}
+            name="type"
+            render={({ field }) => (
+              <Select
+                items={typeItems}
+                value={field.value}
+                onValueChange={(value) => {
+                  if (value) {
+                    field.onChange(value);
+                    // A default typed for the previous type means something else now.
+                    form.setValue("defaultValue", "");
+                  }
+                }}
+              >
+                <SelectTrigger id={`${ids}-type`} className="h-9 w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {COLUMN_TYPES.map((value) => {
+                    const Icon = COLUMN_TYPE_ICONS[value];
+                    return (
+                      <SelectItem key={value} value={value} className="py-1.5">
+                        <Icon aria-hidden="true" className="text-muted-foreground" />
+                        <span className="flex flex-col">
+                          {typeItems[value]}
+                          <span className="text-xs text-muted-foreground">
+                            {t(`typeHints.${value}`)}
+                          </span>
+                        </span>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            )}
+          />
+        </Field>
+
+        {column && type !== column.type && recordCount > 0 && (
+          <Alert className="border-amber-500/40 bg-amber-50 text-amber-900 dark:bg-amber-500/10 dark:text-amber-100">
+            <TriangleAlert aria-hidden="true" />
+            <AlertDescription className="text-inherit">
+              {t("columnForm.typeChangeWarning")}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {type === "currency" && (
+          <Field>
+            <FieldLabel htmlFor={`${ids}-currency`}>{t("columnForm.currency")}</FieldLabel>
+            <Controller
+              control={form.control}
+              name="currency"
+              render={({ field }) => (
+                <Select
+                  items={{ [field.value]: field.value, ...currencyItems }}
+                  value={field.value}
+                  onValueChange={(value) => value && field.onChange(value)}
+                >
+                  <SelectTrigger id={`${ids}-currency`} className="h-9 w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries({ [field.value]: field.value, ...currencyItems }).map(
+                      ([code, label]) => (
+                        <SelectItem key={code} value={code}>
+                          {label}
+                        </SelectItem>
+                      ),
+                    )}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          </Field>
+        )}
+
+        {type === "relation" && <LinkedTableField tableId={tableId} form={form} id={`${ids}-linked`} />}
+
+        {type === "number" && (
+          <FormField
+            id={`${ids}-alert`}
+            label={t("columnForm.alertBelow")}
+            description={t("columnForm.alertBelowHint")}
+            error={errors.alertBelow && t("columnForm.errors.alertBelow")}
+          >
+            <Input
+              inputMode="decimal"
+              autoComplete="off"
+              className="h-9"
+              {...form.register("alertBelow")}
+            />
+          </FormField>
+        )}
+
+        {type === "select" && (
+          <fieldset className="flex flex-col gap-2">
+            <legend className="mb-2 text-sm font-medium">{t("columnForm.choices")}</legend>
+            <ul className="flex flex-col gap-2">
+              {choices.fields.map((choice, index) => {
+                const labelError = errors.choices?.[index]?.label;
+                const number = index + 1;
+                return (
+                  <li key={choice.key} className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                      <Controller
+                        control={form.control}
+                        name={`choices.${index}.color`}
+                        render={({ field }) => (
+                          <Select
+                            items={colorItems}
+                            value={field.value}
+                            onValueChange={(value) => value && field.onChange(value)}
+                          >
+                            <SelectTrigger
+                              aria-label={t("columnForm.choiceColor", { index: number })}
+                              className="h-9 shrink-0"
+                            >
+                              <span
+                                aria-hidden="true"
+                                className={cn("size-3.5 rounded-full", SELECT_SWATCH_CLASSES[field.value])}
+                              />
+                            </SelectTrigger>
+                            <SelectContent alignItemWithTrigger={false} align="start">
+                              {SELECT_COLORS.map((color) => (
+                                <SelectItem key={color} value={color}>
+                                  <span
+                                    aria-hidden="true"
+                                    className={cn("size-3 rounded-full", SELECT_SWATCH_CLASSES[color])}
+                                  />
+                                  {colorItems[color]}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                      <Input
+                        aria-label={t("columnForm.choiceLabel", { index: number })}
+                        aria-invalid={Boolean(labelError)}
+                        aria-describedby={labelError ? `${ids}-choice-${index}-error` : undefined}
+                        autoComplete="off"
+                        className="h-9"
+                        {...form.register(`choices.${index}.label`)}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-lg"
+                        aria-label={t("columnForm.removeChoice", { index: number })}
+                        disabled={choices.fields.length === 1}
+                        onClick={() => choices.remove(index)}
+                      >
+                        <X aria-hidden="true" />
+                      </Button>
+                    </div>
+                    {labelError && (
+                      <FieldError id={`${ids}-choice-${index}-error`} className="pl-12">
+                        {t("columnForm.errors.choiceLabel")}
+                      </FieldError>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+            {choicesError?.message && (
+              <FieldError>{t("columnForm.errors.choices")}</FieldError>
+            )}
+            <Button
+              type="button"
+              variant="outline"
+              className="h-9 w-fit"
+              disabled={choices.fields.length >= MAX_SELECT_CHOICES}
+              onClick={() => choices.append(newChoice(choices.fields.length))}
+            >
+              <Plus aria-hidden="true" />
+              {t("columnForm.addChoice")}
+            </Button>
+          </fieldset>
+        )}
+
+        <Field orientation="horizontal">
+          <FieldContent>
+            <FieldLabel htmlFor={`${ids}-required`}>{t("columnForm.required")}</FieldLabel>
+            <FieldDescription id={`${ids}-required-hint`}>
+              {t("columnForm.requiredHint")}
+            </FieldDescription>
+          </FieldContent>
+          <Controller
+            control={form.control}
+            name="required"
+            render={({ field }) => (
+              <Switch
+                id={`${ids}-required`}
+                aria-describedby={`${ids}-required-hint`}
+                checked={field.value}
+                onCheckedChange={field.onChange}
+              />
+            )}
+          />
+        </Field>
+
+        {type === "number" && !unique && (
+          <Field orientation="horizontal">
+            <FieldContent>
+              <FieldLabel htmlFor={`${ids}-stock`}>{t("columnForm.stock")}</FieldLabel>
+              <FieldDescription id={`${ids}-stock-hint`}>{t("columnForm.stockHint")}</FieldDescription>
+            </FieldContent>
+            <Controller
+              control={form.control}
+              name="stock"
+              render={({ field }) => (
+                <Switch
+                  id={`${ids}-stock`}
+                  aria-describedby={`${ids}-stock-hint`}
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              )}
+            />
+          </Field>
+        )}
+
+        {canBeUnique(type) && !stock && (
+          <Field orientation="horizontal">
+            <FieldContent>
+              <FieldLabel htmlFor={`${ids}-unique`}>{t("columnForm.unique")}</FieldLabel>
+              <FieldDescription id={`${ids}-unique-hint`}>
+                {t("columnForm.uniqueHint")}
+              </FieldDescription>
+            </FieldContent>
+            <Controller
+              control={form.control}
+              name="unique"
+              render={({ field }) => (
+                <Switch
+                  id={`${ids}-unique`}
+                  aria-describedby={`${ids}-unique-hint`}
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              )}
+            />
+          </Field>
+        )}
+
+        {/* A default record would link every new record to the same one, and
+            a unique column can't give the same value to every record. */}
+        {type !== "relation" && !unique && (
+          <DefaultValueField
+            id={`${ids}-default`}
+            type={type}
+            choices={choiceValues}
+            form={form}
+            error={errors.defaultValue ? t("columnForm.errors.defaultValue") : undefined}
+          />
+        )}
+      </FieldGroup>
+
+      <DialogFooter className="mt-6">
+        <DialogClose render={<Button type="button" variant="outline" className="h-9" />}>
+          {t("cancel")}
+        </DialogClose>
+        <SubmitButton pending={mutation.isPending} className="h-9 w-full text-sm sm:w-auto">
+          {column ? t("columnForm.editSubmit") : t("columnForm.createSubmit")}
+        </SubmitButton>
+      </DialogFooter>
+    </form>
+  );
+}
+
+/** The table a relation links to: any table of the same space, this one included. */
+function LinkedTableField({
+  tableId,
+  form,
+  id,
+}: {
+  tableId: string;
+  form: ReturnType<typeof useForm<ColumnFormValues>>;
+  id: string;
+}) {
+  const { t } = useTranslation("tables");
+  const table = useQuery(tableQuery(tableId));
+  const organizationId = table.data?.organizationId;
+  const tables = useQuery({ ...tablesQuery(organizationId ?? ""), enabled: Boolean(organizationId) });
+  const error = form.formState.errors.tableId;
+  const items = Object.fromEntries((tables.data ?? []).map((item) => [item.id, item.name]));
+
+  return (
+    <Field data-invalid={Boolean(error)}>
+      <FieldLabel htmlFor={id}>{t("columnForm.linkedTable")}</FieldLabel>
+      <Controller
+        control={form.control}
+        name="tableId"
+        render={({ field }) => (
+          <Select items={items} value={field.value} onValueChange={(value) => value && field.onChange(value)}>
+            <SelectTrigger
+              id={id}
+              aria-invalid={Boolean(error)}
+              aria-describedby={`${id}-hint`}
+              className="h-9 w-full"
+            >
+              <SelectValue placeholder={t("columnForm.linkedTablePlaceholder")} />
+            </SelectTrigger>
+            <SelectContent>
+              {(tables.data ?? []).map((item) => (
+                <SelectItem key={item.id} value={item.id}>
+                  {item.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+      />
+      {error ? (
+        <FieldError id={`${id}-hint`}>{t("columnForm.errors.linkedTable")}</FieldError>
+      ) : (
+        <FieldDescription id={`${id}-hint`}>{t("columnForm.linkedTableHint")}</FieldDescription>
+      )}
+    </Field>
+  );
+}
+
+function DefaultValueField({
+  id,
+  type,
+  choices,
+  form,
+  error,
+}: {
+  id: string;
+  type: ColumnType;
+  choices: ColumnFormValues["choices"];
+  form: ReturnType<typeof useForm<ColumnFormValues>>;
+  error?: string;
+}) {
+  const { t } = useTranslation("tables");
+  const label = t("columnForm.defaultValue");
+  const hint = t("columnForm.defaultValueHint");
+
+  if (type === "boolean" || type === "select") {
+    const options: Record<string, string> =
+      type === "boolean"
+        ? { true: t("columns.yes"), false: t("columns.no") }
+        : Object.fromEntries(
+            choices.filter((choice) => choice.label.trim()).map((choice) => [choice.id, choice.label]),
+          );
+    const items = { "": t("columnForm.noDefault"), ...options };
+    return (
+      <Field data-invalid={Boolean(error)}>
+        <FieldLabel htmlFor={id}>{label}</FieldLabel>
+        <Controller
+          control={form.control}
+          name="defaultValue"
+          render={({ field }) => (
+            <Select
+              items={items}
+              value={field.value in items ? field.value : ""}
+              onValueChange={(value) => field.onChange(value ?? "")}
+            >
+              <SelectTrigger
+                id={id}
+                aria-describedby={`${id}-hint`}
+                aria-invalid={Boolean(error)}
+                className="h-9 w-full"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(items).map(([value, text]) => (
+                  <SelectItem key={value} value={value}>
+                    {text}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        />
+        {error ? <FieldError>{error}</FieldError> : <FieldDescription id={`${id}-hint`}>{hint}</FieldDescription>}
+      </Field>
+    );
+  }
+
+  return (
+    <FormField id={id} label={label} description={hint} error={error}>
+      <Input
+        type={type === "date" ? "date" : "text"}
+        inputMode={type === "number" || type === "currency" ? "decimal" : undefined}
+        autoComplete="off"
+        className="h-9"
+        {...form.register("defaultValue")}
+      />
+    </FormField>
+  );
+}

@@ -28,14 +28,14 @@ export default defineConfig({
     {
       // CI runs the compiled API; locally `nest start` compiles it first.
       command: isCI
-        ? "pnpm --filter wise-data-backend start:prod"
-        : "pnpm --filter wise-data-backend start",
+        ? "pnpm --filter tablaria-backend start:prod"
+        : "pnpm --filter tablaria-backend start",
       url: "http://127.0.0.1:3000/api/health",
       reuseExistingServer: !isCI,
       timeout: 120_000,
     },
     {
-      command: "pnpm --filter wise-data-frontend dev --port 5173 --strictPort",
+      command: "pnpm --filter tablaria-frontend dev --port 5173 --strictPort",
       url: BASE_URL,
       reuseExistingServer: !isCI,
       timeout: 120_000,

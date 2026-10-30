@@ -1,0 +1,288 @@
+import type { CellValue, TableTemplateId } from '@tablaria/shared';
+import type { Role } from '../generated/prisma/client';
+
+export interface DemoTable {
+  name: string;
+  description: string;
+  templateId: TableTemplateId;
+  /** In the example organization instead of the personal space. */
+  inOrganization?: boolean;
+  /** Cell values keyed by the template's column names. */
+  rows: Record<string, CellValue>[];
+}
+
+// Written in Spanish: like the templates, this becomes the visitor's own data.
+export const DEMO_TABLES: DemoTable[] = [
+  {
+    name: 'Ferretería López',
+    description:
+      'Catálogo de la tienda: precios, estado y productos destacados.',
+    templateId: 'product-catalog',
+    rows: [
+      {
+        Producto: 'Taladro percutor 750 W',
+        Referencia: 'TL-750',
+        Categoría: 'Herramientas eléctricas',
+        Precio: 89.9,
+        Stock: 14,
+        Estado: 'Disponible',
+        Destacado: true,
+      },
+      {
+        Producto: 'Atornillador a batería 12 V',
+        Referencia: 'AT-012',
+        Categoría: 'Herramientas eléctricas',
+        Precio: 64.5,
+        Stock: 9,
+        Estado: 'Disponible',
+        Destacado: true,
+      },
+      {
+        Producto: 'Sierra de calar',
+        Referencia: 'SC-650',
+        Categoría: 'Herramientas eléctricas',
+        Precio: 74,
+        Stock: 0,
+        Estado: 'Agotado',
+        Destacado: false,
+      },
+      {
+        Producto: 'Martillo de carpintero',
+        Referencia: 'MT-010',
+        Categoría: 'Herramientas manuales',
+        Precio: 12.5,
+        Stock: 32,
+        Estado: 'Disponible',
+        Destacado: false,
+      },
+      {
+        Producto: 'Juego de destornilladores (8 pzas)',
+        Referencia: 'DS-008',
+        Categoría: 'Herramientas manuales',
+        Precio: 18.95,
+        Stock: 21,
+        Estado: 'Disponible',
+        Destacado: false,
+      },
+      {
+        Producto: 'Llave inglesa 250 mm',
+        Referencia: 'LL-250',
+        Categoría: 'Herramientas manuales',
+        Precio: 15.4,
+        Stock: 7,
+        Estado: 'Disponible',
+        Destacado: false,
+      },
+      {
+        Producto: 'Cinta métrica 5 m',
+        Referencia: 'CM-005',
+        Categoría: 'Medición',
+        Precio: 8.75,
+        Stock: 3,
+        Estado: 'Disponible',
+        Destacado: false,
+      },
+      {
+        Producto: 'Nivel de burbuja 60 cm',
+        Referencia: 'NV-060',
+        Categoría: 'Medición',
+        Precio: 14.2,
+        Stock: 0,
+        Estado: 'Agotado',
+        Destacado: false,
+      },
+      {
+        Producto: 'Caja de tornillos 4×40 (200 u.)',
+        Referencia: 'TR-440',
+        Categoría: 'Fijaciones',
+        Precio: 6.2,
+        Stock: 120,
+        Estado: 'Disponible',
+        Destacado: false,
+      },
+      {
+        Producto: 'Tacos de nailon 8 mm (100 u.)',
+        Referencia: 'TC-008',
+        Categoría: 'Fijaciones',
+        Precio: 4.9,
+        Stock: 2,
+        Estado: 'Disponible',
+        Destacado: false,
+      },
+      {
+        Producto: 'Silicona neutra transparente',
+        Referencia: 'SL-280',
+        Categoría: 'Adhesivos',
+        Precio: 5.6,
+        Stock: 18,
+        Estado: 'Disponible',
+        Destacado: false,
+      },
+      {
+        Producto: 'Escalera de aluminio 5 peldaños',
+        Referencia: 'ES-005',
+        Categoría: 'Escaleras',
+        Precio: 79,
+        Stock: 6,
+        Estado: 'Descatalogado',
+        Destacado: false,
+      },
+    ],
+  },
+  {
+    name: 'Almacén central',
+    description: 'Existencias por ubicación y fecha de la última revisión.',
+    templateId: 'basic-inventory',
+    inOrganization: true,
+    rows: [
+      {
+        Producto: 'Cajas de cartón 40×30',
+        SKU: 'EMB-4030',
+        Cantidad: 320,
+        Ubicación: 'Pasillo A · Estante 1',
+        'Última revisión': '2026-10-02',
+      },
+      {
+        Producto: 'Cinta adhesiva marrón',
+        SKU: 'EMB-CINTA',
+        Cantidad: 48,
+        Ubicación: 'Pasillo A · Estante 2',
+        'Última revisión': '2026-10-02',
+      },
+      {
+        Producto: 'Film estirable',
+        SKU: 'EMB-FILM',
+        Cantidad: 12,
+        Ubicación: 'Pasillo A · Estante 3',
+        'Última revisión': '2026-09-18',
+      },
+      {
+        Producto: 'Palés europeos',
+        SKU: 'LOG-PALE',
+        Cantidad: 26,
+        Ubicación: 'Muelle de carga',
+        'Última revisión': '2026-10-10',
+      },
+      {
+        Producto: 'Guantes de trabajo (talla L)',
+        SKU: 'EPI-GUA-L',
+        Cantidad: 4,
+        Ubicación: 'Pasillo C · Estante 1',
+        'Última revisión': '2026-09-30',
+      },
+      {
+        Producto: 'Chalecos reflectantes',
+        SKU: 'EPI-CHAL',
+        Cantidad: 15,
+        Ubicación: 'Pasillo C · Estante 1',
+        'Última revisión': '2026-09-30',
+      },
+      {
+        Producto: 'Etiquetas térmicas 100×150',
+        SKU: 'ETQ-100',
+        Cantidad: 0,
+        Ubicación: 'Pasillo B · Estante 4',
+        'Última revisión': '2026-10-12',
+      },
+      {
+        Producto: 'Transpalé manual',
+        SKU: 'LOG-TRANS',
+        Cantidad: 2,
+        Ubicación: 'Muelle de carga',
+        'Última revisión': '2026-08-21',
+      },
+      {
+        Producto: 'Bridas de plástico',
+        SKU: 'FIJ-BRIDA',
+        Cantidad: 950,
+        Ubicación: 'Pasillo B · Estante 2',
+      },
+    ],
+  },
+  {
+    name: 'Equipos de la oficina',
+    description:
+      'Portátiles, pantallas y otros equipos: quién los tiene y en qué estado están.',
+    templateId: 'assets',
+    rows: [
+      {
+        Equipo: 'Portátil 14" Dell Latitude',
+        'Nº de serie': 'DL14-7H2K9',
+        Estado: 'En uso',
+        'Asignado a': 'Laura Martín',
+        'Fecha de compra': '2025-03-14',
+        Valor: 1149,
+      },
+      {
+        Equipo: 'Portátil 14" Dell Latitude',
+        'Nº de serie': 'DL14-8J4P1',
+        Estado: 'En uso',
+        'Asignado a': 'Carlos Ruiz',
+        'Fecha de compra': '2025-03-14',
+        Valor: 1149,
+      },
+      {
+        Equipo: 'MacBook Air 13"',
+        'Nº de serie': 'MBA13-Q9X3',
+        Estado: 'En reparación',
+        'Asignado a': 'Ana Gómez',
+        'Fecha de compra': '2024-11-05',
+        Valor: 1299,
+      },
+      {
+        Equipo: 'Monitor 27" LG',
+        'Nº de serie': 'LG27-55821',
+        Estado: 'En uso',
+        'Asignado a': 'Laura Martín',
+        'Fecha de compra': '2025-01-20',
+        Valor: 289,
+      },
+      {
+        Equipo: 'Monitor 27" LG',
+        'Nº de serie': 'LG27-55822',
+        Estado: 'Almacenado',
+        'Fecha de compra': '2025-01-20',
+        Valor: 289,
+      },
+      {
+        Equipo: 'Impresora láser HP',
+        'Nº de serie': 'HPL-20391',
+        Estado: 'En uso',
+        'Asignado a': 'Recepción',
+        'Fecha de compra': '2023-06-02',
+        Valor: 349,
+      },
+      {
+        Equipo: 'Teléfono IP Yealink',
+        'Nº de serie': 'YL-T46-0112',
+        Estado: 'De baja',
+        'Fecha de compra': '2021-09-15',
+        Valor: 120,
+      },
+      {
+        Equipo: 'Proyector Epson',
+        'Nº de serie': 'EP-X41-778',
+        Estado: 'Almacenado',
+        'Asignado a': 'Sala de reuniones',
+        'Fecha de compra': '2022-02-28',
+        Valor: 539,
+      },
+    ],
+  },
+];
+
+/**
+ * An organization the visitor owns, so the demo shows teamwork too. Its other
+ * members are fictitious accounts that nobody can sign in to.
+ */
+export const DEMO_ORGANIZATION: {
+  name: string;
+  members: { name: string; role: Exclude<Role, 'OWNER'> }[];
+} = {
+  name: 'Equipo de la tienda',
+  members: [
+    { name: 'marta.garcia', role: 'ADMIN' },
+    { name: 'javier.ruiz', role: 'EDITOR' },
+    { name: 'lucia.sanz', role: 'VIEWER' },
+  ],
+};

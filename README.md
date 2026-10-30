@@ -1,8 +1,8 @@
-# WiseData
+# Tablaria
 
 Gestión de inventario flexible: cada usuario crea sus propias tablas, define columnas con tipo y trabaja con sus registros como en una hoja de cálculo, pero con validación, búsqueda, filtros y orden en el servidor. Las tablas se comparten por email o dentro de organizaciones, y los cambios se ven en directo.
 
-**Demo en directo: [wise-data.es](https://wise-data.es).** Pulsa «Probar la demo» y entrarás sin registrarte en una cuenta temporal con tablas de ejemplo, que se borra a las 24 h.
+**Demo en directo: [tablaria.es](https://tablaria.es).** Pulsa «Probar la demo» y entrarás sin registrarte en una cuenta temporal con tablas de ejemplo, que se borra a las 24 h.
 
 ## Funcionalidades
 
@@ -23,8 +23,8 @@ Gestión de inventario flexible: cada usuario crea sus propias tablas, define co
 
 | Paquete | Tecnologías |
 |---|---|
-| `wise-data-frontend/` | React 19, TypeScript, Vite, React Router, TanStack Query y Table, react-hook-form, Tailwind CSS 4, shadcn/ui (Base UI), react-i18next |
-| `wise-data-backend/` | NestJS 11, TypeScript, Prisma 7, PostgreSQL 16, zod |
+| `tablaria-frontend/` | React 19, TypeScript, Vite, React Router, TanStack Query y Table, react-hook-form, Tailwind CSS 4, shadcn/ui (Base UI), react-i18next |
+| `tablaria-backend/` | NestJS 11, TypeScript, Prisma 7, PostgreSQL 16, zod |
 | `packages/shared/` | Esquemas zod, tipos y constantes compartidos por frontend y backend |
 | `e2e/` | Playwright |
 
@@ -40,7 +40,7 @@ cp .env.prod.example .env.prod
 docker compose -f docker-compose.prod.yml --env-file .env.prod --profile mailpit up -d --build
 ```
 
-- **WiseData**: http://localhost:8080
+- **Tablaria**: http://localhost:8080
 - **Correos** (verificación de cuenta, recuperación de contraseña): http://localhost:8025, gracias a Mailpit (`--profile mailpit`). Para enviar correos de verdad, configura `MAIL_TRANSPORT=resend` y `RESEND_API_KEY`.
 
 La web y la API comparten origen: nginx sirve la aplicación y redirige `/api` a la API, así las cookies de sesión funcionan sin configurar CORS.
@@ -53,11 +53,11 @@ Requisitos: Node.js ≥ 22.22, pnpm 10 (`corepack enable`) y Docker.
 
 ```bash
 cp .env.example .env
-cp wise-data-backend/.env.example wise-data-backend/.env
-# Rellena JWT_ACCESS_SECRET en wise-data-backend/.env
+cp tablaria-backend/.env.example tablaria-backend/.env
+# Rellena JWT_ACCESS_SECRET en tablaria-backend/.env
 docker compose up -d                          # PostgreSQL y Mailpit
 pnpm install
-pnpm --filter wise-data-backend db:migrate
+pnpm --filter tablaria-backend db:migrate
 pnpm dev
 ```
 
@@ -86,9 +86,9 @@ El frontend llama siempre a rutas relativas `/api/...`. En desarrollo Vite las r
 
 | Comando | Descripción |
 |---|---|
-| `pnpm --filter wise-data-backend db:migrate` | Crea y aplica migraciones en desarrollo |
-| `pnpm --filter wise-data-backend db:deploy` | Aplica migraciones pendientes (CI y producción) |
-| `pnpm --filter wise-data-backend db:studio` | Abre Prisma Studio |
+| `pnpm --filter tablaria-backend db:migrate` | Crea y aplica migraciones en desarrollo |
+| `pnpm --filter tablaria-backend db:deploy` | Aplica migraciones pendientes (CI y producción) |
+| `pnpm --filter tablaria-backend db:studio` | Abre Prisma Studio |
 
 ## Despliegue (Render + Neon + Resend)
 
@@ -96,20 +96,21 @@ Así está publicada la demo; los motivos están en [ADR-013](docs/DECISIONS.md)
 
 - **Base de datos (Neon)**: un proyecto en la misma región que Render. Las tablas las crea la API al arrancar.
 - **API (Render Web Service, runtime Docker)**:
-  - **Imagen:** Dockerfile `wise-data-backend/Dockerfile`, con contexto `.` y health check en `/api/health`.
+  - **Imagen:** Dockerfile `tablaria-backend/Dockerfile`, con contexto `.` y health check en `/api/health`.
   - **Variables obligatorias:** `NODE_ENV=production`, `DATABASE_URL`, `JWT_ACCESS_SECRET`, `APP_URL` y `CORS_ORIGINS` (la URL pública de la web).
   - **Proxy:** `TRUST_PROXY_HOPS=1`.
   - **Correo:** `MAIL_TRANSPORT=resend`, `RESEND_API_KEY` y `MAIL_FROM`.
   - **Migraciones:** el contenedor aplica las pendientes antes de arrancar.
   - **Tiempo real:** `REALTIME_URL=wss://<api>.onrender.com/api/realtime`. La rewrite del Static Site no transporta WebSockets de forma fiable, así que el navegador se conecta directamente a la API ([ADR-020](docs/DECISIONS.md)).
 - **Web (Render Static Site)**:
-  - **Build:** `corepack enable && pnpm install --frozen-lockfile && pnpm --filter @wisedata/shared build && pnpm --filter wise-data-frontend build`.
-  - **Publicación:** carpeta `wise-data-frontend/dist`, con `NODE_VERSION=22`.
+  - **Build:** `corepack enable && pnpm install --frozen-lockfile && pnpm --filter @tablaria/shared build && pnpm --filter tablaria-frontend build`.
+  - **Variable `SITE_URL`:** la URL pública de la web, sin barra final (por ejemplo `https://tablaria.es`). Se escribe al compilar en la URL canónica y en la vista previa al compartir de `index.html`.
+  - **Publicación:** carpeta `tablaria-frontend/dist`, con `NODE_VERSION=22`.
   - **Rewrites:**
     - `/api/*` → `https://<api>.onrender.com/api/*`, de tipo Rewrite y la primera de la lista;
     - `/*` → `/index.html`.
-  - **Cabeceras:** las mismas que [nginx.conf.template](wise-data-frontend/nginx.conf.template), con la CSP incluida. Añade `wss://<api>.onrender.com` a `connect-src` para el tiempo real.
-- **Dominio**:
+  - **Cabeceras:** las mismas que [nginx.conf.template](tablaria-frontend/nginx.conf.template), con la CSP incluida. Añade `wss://<api>.onrender.com` a `connect-src` para el tiempo real.
+- **Dominio** (`tablaria.es`, en Hostalia):
   - **Raíz:** un registro `A` a la IP que indica Render.
   - **`www`:** un `CNAME` al Static Site.
   - **Resend:** sus registros DNS en `mail.<dominio>`.

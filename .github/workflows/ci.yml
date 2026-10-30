@@ -34,10 +34,10 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @wisedata/shared build
+      - run: pnpm --filter @tablaria/shared build
       # Without --fix, so formatting problems fail the build instead of being fixed silently.
-      - run: pnpm --filter wise-data-backend exec eslint "{src,test}/**/*.ts"
-      - run: pnpm --filter wise-data-frontend lint
+      - run: pnpm --filter tablaria-backend exec eslint "{src,test}/**/*.ts"
+      - run: pnpm --filter tablaria-frontend lint
       - run: pnpm typecheck
       - run: pnpm build
       - run: pnpm test
@@ -49,18 +49,18 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: wisedata
-          POSTGRES_PASSWORD: wisedata
-          POSTGRES_DB: wisedata_test
+          POSTGRES_USER: tablaria
+          POSTGRES_PASSWORD: tablaria
+          POSTGRES_DB: tablaria_test
         ports: ["5432:5432"]
         options: >-
-          --health-cmd "pg_isready -U wisedata -d wisedata_test"
+          --health-cmd "pg_isready -U tablaria -d tablaria_test"
           --health-interval 5s --health-timeout 5s --health-retries 10
       mailpit:
         image: axllent/mailpit:v1.27
         ports: ["1025:1025", "8025:8025"]
     env:
-      TEST_DATABASE_URL: postgresql://wisedata:wisedata@127.0.0.1:5432/wisedata_test?schema=public
+      TEST_DATABASE_URL: postgresql://tablaria:tablaria@127.0.0.1:5432/tablaria_test?schema=public
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
@@ -69,8 +69,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @wisedata/shared build
-      - run: pnpm --filter wise-data-backend test:e2e
+      - run: pnpm --filter @tablaria/shared build
+      - run: pnpm --filter tablaria-backend test:e2e
 
   playwright:
     name: Playwright (full stack)
@@ -79,12 +79,12 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: wisedata
-          POSTGRES_PASSWORD: wisedata
-          POSTGRES_DB: wisedata
+          POSTGRES_USER: tablaria
+          POSTGRES_PASSWORD: tablaria
+          POSTGRES_DB: tablaria
         ports: ["5432:5432"]
         options: >-
-          --health-cmd "pg_isready -U wisedata -d wisedata"
+          --health-cmd "pg_isready -U tablaria -d tablaria"
           --health-interval 5s --health-timeout 5s --health-retries 10
       mailpit:
         image: axllent/mailpit:v1.27
@@ -92,7 +92,7 @@ jobs:
     env:
       # Plain HTTP in CI, so the API must not mark cookies as Secure.
       NODE_ENV: test
-      DATABASE_URL: postgresql://wisedata:wisedata@127.0.0.1:5432/wisedata?schema=public
+      DATABASE_URL: postgresql://tablaria:tablaria@127.0.0.1:5432/tablaria?schema=public
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
@@ -101,11 +101,11 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @wisedata/shared build
-      - run: pnpm --filter wise-data-backend build
-      - run: pnpm --filter wise-data-backend db:deploy
-      - run: pnpm --filter wise-data-e2e exec playwright install --with-deps chromium
-      - run: pnpm --filter wise-data-e2e test
+      - run: pnpm --filter @tablaria/shared build
+      - run: pnpm --filter tablaria-backend build
+      - run: pnpm --filter tablaria-backend db:deploy
+      - run: pnpm --filter tablaria-e2e exec playwright install --with-deps chromium
+      - run: pnpm --filter tablaria-e2e test
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:
