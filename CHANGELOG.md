@@ -1,7 +1,8 @@
 # Changelog
 
-## Sin publicar
+## v1.5.0 — Inventario conectado
 
+- **Seguridad** (auditoría OWASP Top 10:2025 de la release): sin hallazgos nuevos en el código. Se revisaron el acceso a las tablas enlazadas, la importación por clave, los movimientos, el historial, la ruta pública sin sesión y la gestión de la cuenta. Sigue pendiente, con fecha, la actualización de dependencias que espera la antigüedad mínima de pnpm (hacia el 6 de noviembre).
 - **Enlaces públicos de solo lectura** (Compartir → «Enlace público de solo lectura»):
   - **Ver sin cuenta:** quien administra una tabla puede crear un enlace para verla sin iniciar sesión y sin poder cambiar nada, con búsqueda y paginación.
   - **Seguridad:** el enlace se muestra una vez para copiarlo, porque solo se guarda su huella. Crear uno nuevo desactiva el anterior, y también se puede desactivar sin más.
