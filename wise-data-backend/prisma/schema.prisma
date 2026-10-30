@@ -21,6 +21,27 @@ enum Role {
   OWNER
 }
 
+/// How a stock movement came about (ADR-024).
+enum StockMovementKind {
+  IN
+  OUT
+  COUNT
+  EDIT
+  IMPORT
+}
+
+/// What happened in a table (ADR-025).
+enum ActivityAction {
+  RECORD_CREATED
+  RECORD_UPDATED
+  RECORD_DELETED
+  RECORDS_IMPORTED
+  COLUMN_CREATED
+  COLUMN_UPDATED
+  COLUMN_DELETED
+  STOCK_MOVED
+}
+
 enum ColumnType {
   text
   number
@@ -28,6 +49,7 @@ enum ColumnType {
   boolean
   select
   currency
+  relation
 }
 
 model User {
@@ -47,6 +69,9 @@ model User {
   tableShares          TableShare[]
   createdTables        InventoryTable[]
   sentInvitations      Invitation[]
+  stockMovements       StockMovement[]
+  activityEvents       ActivityEvent[]
+  publicLinks          PublicLink[]
 
   @@index([demoExpiresAt])
   @@map("users")
@@ -140,12 +165,15 @@ model InventoryTable {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  createdBy    User?        @relation(fields: [createdById], references: [id], onDelete: SetNull)
-  columns      Column[]
-  records      Record[]
-  shares       TableShare[]
-  invitations  Invitation[]
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy      User?           @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  columns        Column[]
+  records        Record[]
+  shares         TableShare[]
+  stockMovements StockMovement[]
+  activityEvents ActivityEvent[]
+  publicLink     PublicLink?
+  invitations    Invitation[]
 
   @@index([organizationId, updatedAt])
   @@map("inventory_tables")
@@ -158,6 +186,9 @@ model Column {
   type         ColumnType
   position     Int
   required     Boolean    @default(false)
+  // No two records of the table may hold the same value (ADR-023).
+  unique       Boolean    @default(false)
+  stock        Boolean    @default(false)
   defaultValue Json?
   // Type-specific settings: choices for `select`, ISO 4217 code for `currency`,
   // optional low-stock threshold (`alertBelow`) for `number`.
@@ -165,7 +196,8 @@ model Column {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
-  table InventoryTable @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  table          InventoryTable  @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  stockMovements StockMovement[]
 
   @@unique([tableId, name])
   @@index([tableId, position])
@@ -180,7 +212,8 @@ model Record {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  table InventoryTable @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  table          InventoryTable  @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  stockMovements StockMovement[]
 
   @@index([tableId, createdAt])
   @@index([data], type: Gin)
@@ -213,4 +246,68 @@ model Invitation {
   @@index([email, createdAt])
   @@index([invitedById, createdAt])
   @@map("invitations")
+}
+
+/// Every change of a stock column of a record, with who made it (ADR-024).
+model StockMovement {
+  id        String            @id @default(uuid()) @db.Uuid
+  tableId   String            @db.Uuid
+  recordId  String            @db.Uuid
+  columnId  String            @db.Uuid
+  /// Null once the account is deleted: the movement stays, without its author.
+  userId    String?           @db.Uuid
+  kind      StockMovementKind
+  delta     Float
+  balance   Float
+  note      String?
+  createdAt DateTime          @default(now())
+
+  table  InventoryTable @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  record Record         @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  column Column         @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  user   User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([recordId, createdAt])
+  @@index([tableId, createdAt])
+  @@index([columnId])
+  @@index([userId])
+  @@map("stock_movements")
+}
+
+/// Who did what in a table, newest first (ADR-025).
+model ActivityEvent {
+  id        String         @id @default(uuid()) @db.Uuid
+  tableId   String         @db.Uuid
+  /// Null once the account is deleted.
+  userId    String?        @db.Uuid
+  action    ActivityAction
+  /// No foreign key: the event outlives the record.
+  recordId  String?        @db.Uuid
+  /// The record's or column's name when it happened.
+  label     String?
+  details   Json           @default("{}")
+  createdAt DateTime       @default(now())
+
+  table InventoryTable @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  user  User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([tableId, createdAt])
+  @@index([userId])
+  @@map("activity_events")
+}
+
+/// A table's read-only link for anyone who has it (ADR-026). At most one per table.
+model PublicLink {
+  id          String   @id @default(uuid()) @db.Uuid
+  tableId     String   @unique @db.Uuid
+  /// SHA-256 of the token: the link itself is shown once, when it's created.
+  tokenHash   String   @unique
+  createdById String?  @db.Uuid
+  createdAt   DateTime @default(now())
+
+  table     InventoryTable @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  createdBy User?          @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([createdById])
+  @@map("public_links")
 }

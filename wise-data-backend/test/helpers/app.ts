@@ -61,7 +61,7 @@ export function cookieValue(rawCookie: string): string {
   return rawCookie.slice(rawCookie.indexOf('=') + 1, rawCookie.indexOf(';'));
 }
 
-const SIGNED_IN_PASSWORD = 'correct horse battery';
+export const SIGNED_IN_PASSWORD = 'correct horse battery';
 
 /**
  * Client logged in as a fresh, already verified user. Skips the email flow,

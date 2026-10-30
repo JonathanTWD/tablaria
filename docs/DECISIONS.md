@@ -68,6 +68,14 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 - **Rate limiting**: 5 peticiones/min por IP en los endpoints que comprueban credenciales o envían correos, y 30/min en `refresh`.
 - **Versiones**: `@nestjs/jwt` 11 y `nodemailer` 9, porque las mayores siguientes solo se distribuyen como ESM.
 
+- **Gestión de la cuenta** (añadido en la v1.5):
+  - `POST /account/password` pide la contraseña actual, revoca todos los refresh tokens y da una sesión nueva a este navegador;
+  - `POST /account/logout-everywhere` revoca todos los refresh tokens;
+  - en ambos casos, los access tokens ya emitidos siguen valiendo hasta que caducan (15 minutos), porque no se consultan en la base de datos en cada petición. Las conexiones de tiempo real del usuario se cierran al momento;
+  - `POST /account/delete` (con la contraseña en el cuerpo) borra la cuenta, «Mi espacio», las organizaciones donde el usuario es el único miembro y las invitaciones enviadas a su email: así nada guarda su dirección. Las copias de Neon la conservan hasta que caduca su periodo de retención. Responde 409 con la lista de organizaciones si es el único propietario de alguna con más miembros, para no dejarlas sin dueño. Bloquea cada organización mientras decide;
+  - `GET /account/export` devuelve los datos de la cuenta y las tablas de «Mi espacio» con los registros por nombre de columna (RGPD, portabilidad);
+  - una contraseña incorrecta responde 422, no 401: la sesión es válida y el cliente no debe intentar refrescarla. Las cuentas demo reciben 403.
+
 ## ADR-009: Base de datos aislada para los tests e2e
 
 - **Decisión**:
@@ -338,6 +346,126 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
   - 10 peticiones por minuto.
 
 **Consecuencias**: no hace falta almacenar ni subir archivos. Excel (`.xlsx`) se leerá también en el navegador cuando ExcelJS cumpla la antigüedad mínima de pnpm, sin tocar la API. El asistente lee el CSV con un parser propio (RFC 4180, con separador `;`, `,` o tabulador detectado en la primera línea) y decodifica en UTF-8 o, si no es válido, en Windows-1252, que es lo que usa Excel en español al guardar CSV.
+
+## ADR-022: Relaciones entre tablas
+
+**Contexto**: en un inventario las tablas se refieren unas a otras: cada producto tiene un proveedor, cada equipo una persona asignada. Copiar el nombre a mano en cada fila se desordena enseguida.
+
+**Decisión**:
+- **Tipo de columna `relation`.** Sus opciones dicen a qué tabla enlaza (`{ tableId }`), y cada celda guarda el id de un registro de esa tabla. Se queda en el JSONB de siempre, sin tablas físicas nuevas. Por ahora es un único registro por celda; la selección múltiple vendrá después.
+- **Solo dentro del mismo espacio.** La tabla enlazada debe ser del mismo espacio (personal u organización), así que un enlace nunca cruza organizaciones.
+- **Permisos:**
+  - un listado incluye en `linked` la etiqueta (primera columna) de cada registro enlazado, pero solo si el usuario puede abrir la tabla enlazada; si no, ve que hay un enlace, nunca qué es;
+  - para crear o cambiar un enlace hay que poder abrir la tabla enlazada (403 si no);
+  - el registro debe existir en ella (422 si no).
+- **Integridad:**
+  - borrar un registro vacía las celdas que lo enlazaban, en la misma transacción, y avisa a sus tablas;
+  - borrar una tabla borra las columnas de relación de otras tablas que apuntaban a ella;
+  - cambiar a qué tabla enlaza una columna, o cambiar su tipo, vacía sus valores.
+- **Exportar e importar:**
+  - la exportación CSV escribe la etiqueta del registro enlazado;
+  - una importación no crea columnas de relación ni rellena las existentes, porque el archivo no dice a qué registro se refiere. Se enlazan después en la tabla.
+- **Fuera de esta primera versión:** buscar por la etiqueta, ordenar por ella, columnas de consulta y de resumen (lookup y rollup) e importar por etiqueta.
+
+**Consecuencias**: el modelo de metadatos aguanta relaciones sin migraciones de esquema por tabla, solo un valor nuevo en el enum `ColumnType`.
+
+## ADR-023: Columnas de valor único
+
+**Contexto**: en un inventario hay columnas que identifican cada registro, como el SKU o el número de serie. Si se repiten, el inventario deja de cuadrar, y reimportar una hoja actualizada duplicaba todos sus registros.
+
+**Decisión**:
+- **Opción `unique` en la columna**, solo para texto y números y sin valor por defecto, que compartirían todos los registros que dejan la celda vacía. Las celdas vacías nunca chocan entre sí.
+- **Qué cuenta como repetido:** el texto se compara sin mayúsculas ni espacios alrededor («SKU-1» y « sku-1 » son el mismo valor) y los números por su valor. En SQL, los dos lados de cada comparación pasan por `lower()` de PostgreSQL, para no depender de que coincida con el de JavaScript.
+- **Dónde se comprueba:** en el backend, dentro de la transacción que bloquea la fila de la tabla (`touchTable`), así que dos escrituras a la vez no pueden colar el mismo valor. Sin índice en la base de datos: los valores viven en JSONB por id de columna (ADR-012) y un índice único por columna exigiría índices dinámicos. Si hiciera falta por volumen, se añadiría un índice de expresión parcial por columna.
+- **Errores:**
+  - crear o editar un registro con un valor que ya tiene otro devuelve 409 y nombra la columna y el valor;
+  - marcar como única una columna que ya repite valores devuelve 409 con hasta cinco de ellos, para que se puedan corregir antes.
+- **Importar actualizando:** la importación acepta `updateBy`, la posición de una columna del archivo emparejada con una columna única.
+  - Una fila cuyo valor ya tiene un registro actualiza ese registro con las celdas que trae el archivo, en vez de crear otro; si no, crea uno nuevo.
+  - La clave solo sirve para encontrar el registro: conserva cómo estaba escrita.
+  - Las filas que actualizan no necesitan las columnas obligatorias que el archivo no trae, porque el registro ya las tiene.
+  - Sin `updateBy`, un valor repetido en el archivo o que ya tiene otro registro es un error de la fila (`duplicate`), como cualquier otro.
+
+**Consecuencias**: una comprobación más por cada columna única al escribir, acotada a la tabla. Cambiar el tipo de una columna a uno que no puede ser único le quita la opción.
+
+## ADR-024: Movimientos de stock
+
+**Contexto**: en un inventario el stock no se escribe, se mueve: entra un pedido, sale una venta, un recuento corrige la cifra. Hasta ahora la celda solo guardaba el número final, sin saber cuándo cambió ni quién lo cambió.
+
+**Decisión**:
+- **Columna de stock:** una columna de número puede marcarse `stock`. No puede ser a la vez de valor único (ADR-023), y si deja de ser de número pierde la marca. Las plantillas de inventario y la demo ya la traen.
+- **Tabla `stock_movements`,** una fila por cambio, con:
+  - el registro y la columna;
+  - quién lo hizo y el tipo;
+  - las unidades que suma o resta (`delta`) y el stock que deja (`balance`);
+  - una nota opcional y la fecha.
+
+  Es una tabla física y no JSONB, porque es un histórico que crece sin límite y se consulta por registro.
+- **Tipos:**
+  - **a mano:** entrada (`in`), salida (`out`) y recuento (`count`, que fija la cifra contada);
+  - **registrados solos:** editar la celda (`edit`, también al crear el registro) e importar (`import`).
+
+  Así el historial de un registro siempre cuadra con su stock, cambie como cambie.
+- **Endpoints:**
+  - `POST /tables/:tableId/records/:recordId/movements`: hace falta ser EDITOR. Aplica el movimiento en la misma transacción que bloquea la tabla y rechaza con 422 una salida que dejaría el stock por debajo de cero;
+  - `GET` del mismo recurso: basta con poder ver la tabla. Devuelve los 100 movimientos más recientes y el total.
+- **Autor:** como en la presencia en tiempo real (ADR-020), se muestra la parte del email antes de la @, nunca el email entero, y nada en la demo. Si la cuenta se borra, el movimiento se queda sin autor (`ON DELETE SET NULL`). Borrar el registro, la columna o la tabla borra sus movimientos.
+- **Redondeo:** las cantidades se redondean a 6 decimales, para que 0,1 + 0,2 no deje restos de coma flotante.
+- **Fuera de esta versión:** un historial de toda la tabla. Llegará con el historial de actividad, que reutilizará esta misma idea de eventos con autor y fecha.
+
+**Consecuencias**:
+- Rellenar con el valor por defecto los registros que ya existen al crear una columna, o activar la marca en una columna con datos, no crea movimientos. El primer movimiento parte del valor que hubiera, así que el saldo siempre es correcto.
+- Cada escritura de una columna de stock añade una fila más en la misma transacción.
+
+## ADR-025: Historial de actividad
+
+**Contexto**: en una tabla compartida hace falta saber quién cambió qué y cuándo, sobre todo cuando algo desaparece o cambia sin avisar.
+
+**Decisión**:
+- **Tabla `activity_events`,** con una fila por evento: tabla, autor, acción, registro (sin clave foránea, porque el evento sobrevive al registro), etiqueta, detalles en JSON y fecha.
+- **Acciones:**
+  - registro creado, editado o borrado;
+  - importación;
+  - columna creada, editada (con el nombre anterior si se renombra) o borrada;
+  - movimiento de stock anotado a mano (ADR-024).
+
+  Se registran en la misma transacción que el cambio, después de `touchTable`.
+- **Etiqueta guardada en el momento:** se guarda el nombre del registro (su primera columna) o de la columna tal como era entonces, para que el historial siga siendo legible aunque luego se borren o renombren.
+- **Sin valores en las ediciones:** de una edición solo se guardan los nombres de las columnas que cambiaron, no los valores. Así el historial no duplica los datos de la tabla.
+- **Una sola entrada por importación,** con cuántos registros creó y cuántos actualizó.
+- **Ediciones agrupadas:** las ediciones seguidas de la misma persona en el mismo registro, a menos de 5 minutos, se juntan en un evento. Si no, cada celda editada en línea llenaría el historial.
+- **Lectura:** `GET /tables/:tableId/activity?page=` para quien pueda ver la tabla, de 30 en 30 y lo más reciente primero.
+  - El autor se muestra como en el resto de la app (parte del email antes de la @, nada en la demo), con `mine` para decir «Tú» sin tener que conjugar verbos.
+  - Si la cuenta se borra, el evento se queda sin autor. Borrar la tabla borra su historial.
+- **Fuera de esta versión:**
+  - reordenar columnas;
+  - renombrar la tabla;
+  - los cambios de acceso, que ya quedan en el registro de permisos (ADR-019);
+  - los efectos en otras tablas, como vaciar enlaces a un registro borrado;
+  - un límite de antigüedad. Si crece demasiado, se podará por fecha con un trabajo programado.
+
+**Consecuencias**: cada escritura añade una fila en la misma transacción. El índice `(tableId, createdAt)` mantiene rápida la lectura paginada.
+
+## ADR-026: Enlaces públicos de solo lectura
+
+**Contexto**: a veces hay que enseñar una tabla a alguien sin cuenta: un cliente que consulta existencias o un proveedor que revisa un pedido. Invitar exige registrarse.
+
+**Decisión**:
+- **Un enlace por tabla,** en la tabla `public_links`. Lo crean, regeneran o desactivan sus administradores. Crear uno nuevo invalida el anterior, y borrar la tabla borra el enlace.
+- **Solo se guarda el hash** (SHA-256) de un token aleatorio de 256 bits, como en las invitaciones.
+  - El enlace se muestra una vez, al crearlo. Si se pierde, se crea otro.
+  - Así, una copia filtrada de la base de datos no da acceso a los datos actuales.
+- **El token va tras el `#`** (`/p#token`). Los navegadores nunca envían el fragmento, así que no acaba en los registros del servidor, ni en el `Referer`, ni en el historial de un proxy.
+  - La página lo lee y lo manda en la cabecera `X-Public-Token` a `GET /api/public/table`, la única ruta sin sesión aparte de las de autenticación.
+  - Esa ruta tiene un límite de 30 peticiones por minuto, responde `Cache-Control: no-store` y `X-Robots-Tag: noindex`, y la página lleva `noindex`.
+- **Qué se ve:** nombre, descripción, columnas y registros, con búsqueda y paginación, sin poder cambiar nada.
+  - Las columnas de relación se quitan, tanto de las columnas como de los datos, porque apuntan a tablas que el enlace no abre.
+  - Tampoco se pueden usar para ordenar ni filtrar (400).
+- **Respuesta igual para todo enlace que no vale:** un token mal formado, inexistente o desactivado da siempre 404, así que no se sabe cuál de los tres es.
+- **No disponible en la demo:** si no, cualquiera podría publicar texto bajo este dominio durante un día.
+- **Registro:** crear y desactivar un enlace queda en el registro de permisos (ADR-019), con ids y sin datos personales.
+
+**Consecuencias**: el enlace da acceso de lectura a quien lo tenga, sin saber quién es. Por eso se puede desactivar o cambiar en cualquier momento, y el diálogo lo explica.
 
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 

@@ -7,6 +7,7 @@ export const COLUMN_TYPES = [
   "boolean",
   "select",
   "currency",
+  "relation",
 ] as const;
 
 export type ColumnType = (typeof COLUMN_TYPES)[number];
@@ -44,6 +45,8 @@ export const columnValueSchemas = {
   // Select cells store the choice label; it must also be one of the column's choices.
   select: z.string().trim().min(1).max(SELECT_CHOICE_MAX_LENGTH),
   currency: z.number(),
+  // The id of a record in the linked table (ADR-022).
+  relation: z.uuid(),
 } satisfies Record<ColumnType, z.ZodType>;
 
 const currencyCodes = new Set(Intl.supportedValuesOf("currency"));
@@ -90,7 +93,11 @@ export const numberOptionsSchema = z.object({
   alertBelow: z.number().min(0).max(1_000_000_000),
 });
 
+/** A relation links each record to one record of another table of the same space. */
+export const relationOptionsSchema = z.object({ tableId: z.uuid() });
+
 export type SelectOptions = z.infer<typeof selectOptionsSchema>;
+export type RelationOptions = z.infer<typeof relationOptionsSchema>;
 export type CurrencyOptions = z.infer<typeof currencyOptionsSchema>;
 export type NumberOptions = z.infer<typeof numberOptionsSchema>;
 
@@ -99,7 +106,18 @@ export const columnNameSchema = z.string().trim().min(1).max(COLUMN_NAME_MAX_LEN
 const columnBase = {
   name: columnNameSchema,
   required: z.boolean().default(false),
+  /** No two records may hold the same value (SKU, serial number…); ADR-023. */
+  unique: z.boolean().default(false),
+  /** Number columns: every change is kept as a stock movement (ADR-024). */
+  stock: z.boolean().default(false),
 };
+
+/** Types whose values identify a record: unique columns are one of these. */
+export const UNIQUE_COLUMN_TYPES = ["text", "number"] as const satisfies readonly ColumnType[];
+
+export function canBeUnique(type: ColumnType): boolean {
+  return (UNIQUE_COLUMN_TYPES as readonly ColumnType[]).includes(type);
+}
 
 /** Types without settings of their own. */
 function plainColumn<T extends ColumnType, V extends z.ZodType<CellValue>>(type: T, value: V) {
@@ -135,8 +153,28 @@ export const columnDefinitionSchema = z
       options: currencyOptionsSchema,
       defaultValue: columnValueSchemas.currency.nullable().default(null),
     }),
+    z.object({
+      ...columnBase,
+      type: z.literal("relation"),
+      options: relationOptionsSchema,
+      // A default record would link every new record to the same one: never useful.
+      defaultValue: z.null().default(null),
+    }),
   ])
   .superRefine((column, ctx) => {
+    if (column.unique && !canBeUnique(column.type)) {
+      ctx.addIssue({ code: "custom", path: ["unique"], message: "Only text and numbers can be unique" });
+    }
+    if (column.stock && column.type !== "number") {
+      ctx.addIssue({ code: "custom", path: ["stock"], message: "Only numbers can track stock" });
+    }
+    if (column.stock && column.unique) {
+      ctx.addIssue({ code: "custom", path: ["stock"], message: "A stock column can't be unique" });
+    }
+    // Every record that leaves the cell empty would share the default.
+    if (column.unique && column.defaultValue !== null) {
+      ctx.addIssue({ code: "custom", path: ["defaultValue"], message: "A unique column has no default value" });
+    }
     if (
       column.type === "select" &&
       column.defaultValue !== null &&
@@ -162,6 +200,8 @@ export const updateColumnSchema = z
   .object({
     name: columnNameSchema,
     required: z.boolean(),
+    unique: z.boolean(),
+    stock: z.boolean(),
     type: z.enum(COLUMN_TYPES),
     options: z.unknown(),
     defaultValue: z.unknown(),

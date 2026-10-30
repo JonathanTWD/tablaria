@@ -46,11 +46,16 @@ export const importSchema = z.object({
   rows: rowsSchema,
   /** Adds the values that no select choice matches as new choices (admins only). */
   addMissingChoices: z.boolean().default(false),
+  /**
+   * Position of a file column mapped to a unique table column: rows whose
+   * value matches a record update it instead of adding a new one (ADR-023).
+   */
+  updateBy: z.number().int().min(0).max(MAX_COLUMNS_PER_TABLE - 1).optional(),
 });
 export type ImportInput = z.input<typeof importSchema>;
 
 /** A new table made from a file: every imported column is created with it. */
-export const importNewTableSchema = importSchema.extend({
+export const importNewTableSchema = importSchema.omit({ updateBy: true }).extend({
   name: tableNameSchema,
   columns: importSchema.shape.columns.refine(
     (targets) => targets.every((target) => typeof target !== "string"),
@@ -65,12 +70,14 @@ export interface ImportCellError {
   /** Position of the column in the file, from 0. */
   column: number;
   value: string;
-  reason: "invalid" | "required" | "unknownChoice";
+  reason: "invalid" | "required" | "unknownChoice" | "duplicate";
 }
 
 export interface ImportCheck {
   rows: number;
   validRows: number;
+  /** Valid rows that update an existing record (with `updateBy`). */
+  toUpdate: number;
   errorCount: number;
   /** The first MAX_IMPORT_ERRORS errors. */
   errors: ImportCellError[];
@@ -82,7 +89,10 @@ export interface ImportCheck {
 
 export interface ImportResult {
   tableId: string;
+  /** Records added. */
   imported: number;
+  /** Records updated through `updateBy`. */
+  updated: number;
   addedChoices: number;
   addedColumns: number;
 }

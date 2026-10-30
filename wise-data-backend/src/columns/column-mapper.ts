@@ -7,6 +7,8 @@ export function toColumnData(definition: ColumnDefinition) {
     name: definition.name,
     type: definition.type,
     required: definition.required,
+    unique: definition.unique,
+    stock: definition.stock,
     // A JSON column needs DbNull for SQL NULL; plain `null` is rejected.
     options: definition.options ?? Prisma.DbNull,
     defaultValue: definition.defaultValue ?? Prisma.DbNull,
@@ -19,6 +21,8 @@ export function toTableColumn(column: Column): TableColumn {
     name: column.name,
     type: column.type,
     required: column.required,
+    unique: column.unique,
+    stock: column.stock,
     options: column.options,
     defaultValue: column.defaultValue,
   } as ColumnDefinition;

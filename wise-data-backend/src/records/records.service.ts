@@ -6,6 +6,7 @@ import {
 import {
   MAX_RECORDS_PER_TABLE,
   type Paginated,
+  type RecordPage,
   type RecordColumn,
   type RecordData,
   recordDataSchema,
@@ -18,13 +19,25 @@ import {
   type TableRecord,
 } from '@wisedata/shared';
 import { toTableColumn } from '../columns/column-mapper';
+import {
+  changedColumns,
+  logActivity,
+  recordLabel,
+} from '../activity/activity-log';
 import { parseOrThrow } from '../common/pipes/zod-validation.pipe';
 import { PrismaService } from '../database/prisma.service';
 import { RealtimeService } from '../realtime/realtime.service';
 import { Prisma, type Record as RecordRow } from '../generated/prisma/client';
+import {
+  linkedLabels,
+  requireLinkedRecords,
+  unlinkRecord,
+} from '../relations/relations';
 import { accessibleTables, touchTable } from '../tables/table-access';
 import { buildRecordQuery } from './record-query';
-import { withoutEmptyCells } from './record-data';
+import { logStockChanges } from '../stock-movements/stock-log';
+import { toTableRecord, withoutEmptyCells } from './record-data';
+import { requireUniqueValues } from './unique-values';
 import { exportFileName, toCsv } from './record-export';
 import { statsColumns, summarizeGroups } from './record-stats';
 
@@ -45,7 +58,7 @@ export class RecordsService {
     userId: string,
     tableId: string,
     query: RecordListQuery,
-  ): Promise<Paginated<TableRecord>> {
+  ): Promise<RecordPage> {
     const table = await this.prisma.inventoryTable.findFirst({
       where: { id: tableId, ...accessibleTables(userId) },
       select: { columns: true },
@@ -54,32 +67,16 @@ export class RecordsService {
       throw new NotFoundException('Table not found');
     }
 
-    const { where, orderBy } = buildRecordQuery(
-      tableId,
-      table.columns.map(toTableColumn),
-      query,
-    );
-    const offset = (query.page - 1) * query.pageSize;
-    const [rows, [{ total }]] = await Promise.all([
-      this.prisma.$queryRaw<RecordRow[]>`
-        SELECT r.id, r."tableId", r.data, r."createdAt", r."updatedAt"
-        FROM records r
-        WHERE ${where}
-        ORDER BY ${orderBy}
-        LIMIT ${query.pageSize} OFFSET ${offset}`,
-      this.prisma.$queryRaw<{ total: bigint }[]>`
-        SELECT count(*) AS total FROM records r WHERE ${where}`,
-    ]);
-
-    const count = Number(total);
+    const columns = table.columns.map(toTableColumn);
+    const page = await queryRecordPage(this.prisma, tableId, columns, query);
     return {
-      data: rows.map(toTableRecord),
-      meta: {
-        page: query.page,
-        pageSize: query.pageSize,
-        total: count,
-        pageCount: Math.ceil(count / query.pageSize),
-      },
+      ...page,
+      linked: await linkedLabels(
+        this.prisma,
+        userId,
+        columns,
+        page.data.map(({ data }) => data),
+      ),
     };
   }
 
@@ -112,6 +109,13 @@ export class RecordsService {
         toCsv(
           columns,
           rows.map(({ data }) => data),
+          // Linked records by their label, as the table shows them.
+          await linkedLabels(
+            this.prisma,
+            userId,
+            columns,
+            rows.map(({ data }) => data),
+          ),
         ),
         'utf8',
       ),
@@ -178,8 +182,24 @@ export class RecordsService {
         recordDataSchema(columns, { partial: false }),
         input.data,
       );
+      await requireLinkedRecords(tx, userId, columns, [data]);
+      await requireUniqueValues(tx, tableId, columns, data);
       const record = await tx.record.create({
         data: { tableId, data: withoutEmptyCells(data) },
+      });
+      await logStockChanges(tx, {
+        tableId,
+        userId,
+        kind: 'EDIT',
+        columns,
+        writes: [{ id: record.id, before: {}, after: data }],
+      });
+      await logActivity(tx, {
+        tableId,
+        userId,
+        action: 'record.created',
+        recordId: record.id,
+        label: recordLabel(columns[0], data),
       });
       return toTableRecord(record);
     });
@@ -208,15 +228,32 @@ export class RecordsService {
         recordDataSchema(columns, { partial: true }),
         input.data,
       );
+      await requireLinkedRecords(tx, userId, columns, [changes]);
+      await requireUniqueValues(tx, tableId, columns, changes, recordId);
+      const before = toTableRecord(stored).data;
       const record = await tx.record.update({
         where: { id: recordId },
-        data: {
-          data: withoutEmptyCells({
-            ...toTableRecord(stored).data,
-            ...changes,
-          }),
-        },
+        data: { data: withoutEmptyCells({ ...before, ...changes }) },
       });
+      await logStockChanges(tx, {
+        tableId,
+        userId,
+        kind: 'EDIT',
+        columns,
+        writes: [{ id: recordId, before, after: { ...before, ...changes } }],
+      });
+      const after = { ...before, ...changes };
+      const changed = changedColumns(columns, before, after);
+      if (changed.length > 0) {
+        await logActivity(tx, {
+          tableId,
+          userId,
+          action: 'record.updated',
+          recordId,
+          label: recordLabel(columns[0], after),
+          details: { columns: changed },
+        });
+      }
       return toTableRecord(record);
     });
     this.realtime.publish(tableId, 'records');
@@ -228,33 +265,75 @@ export class RecordsService {
     tableId: string,
     recordId: string,
   ): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
+    const unlinked = await this.prisma.$transaction(async (tx) => {
       await touchTable(tx, userId, tableId, 'EDITOR');
-      const { count } = await tx.record.deleteMany({
+      const stored = await tx.record.findFirst({
         where: { id: recordId, tableId },
       });
-      if (count === 0) {
+      if (!stored) {
         throw new NotFoundException('Record not found');
       }
+      await tx.record.delete({ where: { id: recordId } });
+      const [first] = await loadColumns(tx, tableId);
+      await logActivity(tx, {
+        tableId,
+        userId,
+        action: 'record.deleted',
+        recordId,
+        label: recordLabel(first, stored.data as RecordData),
+      });
+      // Cells of other tables that linked to it are emptied, not left dangling.
+      return unlinkRecord(tx, tableId, recordId);
     });
     this.realtime.publish(tableId, 'records');
+    for (const linkingTable of unlinked) {
+      this.realtime.publish(linkingTable, 'records');
+    }
   }
+}
+
+/**
+ * One page of the records that match the view (search, filters, sort).
+ * `columns` are the ones the view may use: any other column it names is a 400.
+ */
+export async function queryRecordPage(
+  db: PrismaService,
+  tableId: string,
+  columns: RecordColumn[],
+  query: RecordListQuery,
+): Promise<Paginated<TableRecord>> {
+  const { where, orderBy } = buildRecordQuery(tableId, columns, query);
+  const offset = (query.page - 1) * query.pageSize;
+  const [rows, [{ total }]] = await Promise.all([
+    db.$queryRaw<RecordRow[]>`
+      SELECT r.id, r."tableId", r.data, r."createdAt", r."updatedAt"
+      FROM records r
+      WHERE ${where}
+      ORDER BY ${orderBy}
+      LIMIT ${query.pageSize} OFFSET ${offset}`,
+    db.$queryRaw<{ total: bigint }[]>`
+      SELECT count(*) AS total FROM records r WHERE ${where}`,
+  ]);
+  const count = Number(total);
+  return {
+    data: rows.map(toTableRecord),
+    meta: {
+      page: query.page,
+      pageSize: query.pageSize,
+      total: count,
+      pageCount: Math.ceil(count / query.pageSize),
+    },
+  };
 }
 
 async function loadColumns(
   tx: Prisma.TransactionClient,
   tableId: string,
 ): Promise<RecordColumn[]> {
-  const columns = await tx.column.findMany({ where: { tableId } });
+  // By position: the first one names the record in the history.
+  const columns = await tx.column.findMany({
+    where: { tableId },
+    orderBy: { position: 'asc' },
+  });
   return columns.map(toTableColumn);
-}
-
-function toTableRecord(record: RecordRow): TableRecord {
-  return {
-    id: record.id,
-    // Validated against the table's columns whenever it is written.
-    data: record.data as RecordData,
-    createdAt: record.createdAt.toISOString(),
-    updatedAt: record.updatedAt.toISOString(),
-  };
 }

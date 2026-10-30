@@ -49,13 +49,14 @@ describe("ImportDialog", () => {
         return {
           rows: 2,
           validRows: 2,
+          toUpdate: 0,
           errorCount: 0,
           errors: [],
           missingChoices: [],
           missingRequired: [],
         } satisfies ImportCheck;
       }
-      return { tableId: table.id, imported: 2, addedChoices: 0, addedColumns: 0 };
+      return { tableId: table.id, imported: 2, updated: 0, addedChoices: 0, addedColumns: 0 };
     });
     renderWithProviders(<ImportDialog destination={{ kind: "table", table }} open onOpenChange={() => undefined} />);
 
@@ -80,6 +81,50 @@ describe("ImportDialog", () => {
     expect(sent).toEqual([
       { path: `/api/tables/${table.id}/import/check`, body },
       { path: `/api/tables/${table.id}/import`, body },
+    ]);
+  });
+
+  it("updates the records whose unique key the file repeats", async () => {
+    const user = userEvent.setup();
+    const withSku: TableDetail = {
+      ...table,
+      columns: [column(PRODUCT_ID, 0, { name: "Producto", type: "text", unique: true }), table.columns[1]],
+    };
+    const sent: unknown[] = [];
+    mockApi((url, init) => {
+      sent.push(JSON.parse(String(init.body)));
+      if (url.pathname.endsWith("/import/check")) {
+        return {
+          rows: 2,
+          validRows: 2,
+          toUpdate: 1,
+          errorCount: 0,
+          errors: [],
+          missingChoices: [],
+          missingRequired: [],
+        } satisfies ImportCheck;
+      }
+      return { tableId: table.id, imported: 1, updated: 1, addedChoices: 0, addedColumns: 0 };
+    });
+    renderWithProviders(
+      <ImportDialog destination={{ kind: "table", table: withSku }} open onOpenChange={() => undefined} />,
+    );
+
+    await user.upload(screen.getByLabelText("Archivo CSV"), csvFile("Stock;Producto\n5;Taladro\n1;Sierra\n"));
+    // The unique column is the key by default.
+    expect(await screen.findByLabelText("Actualizar los registros que coincidan en")).toHaveTextContent(
+      "Producto",
+    );
+    await user.click(screen.getByRole("button", { name: "Comprobar" }));
+    expect(
+      await screen.findByText("De ellos, 1 actualiza el registro que ya tiene el mismo valor en «Producto»."),
+    ).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Importar 2 registros" }));
+
+    await waitFor(() => expect(sent).toHaveLength(2));
+    expect(sent).toEqual([
+      expect.objectContaining({ updateBy: 1 }),
+      expect.objectContaining({ updateBy: 1 }),
     ]);
   });
 
@@ -114,13 +159,14 @@ describe("ImportDialog", () => {
         return {
           rows: 2,
           validRows: 2,
+          toUpdate: 0,
           errorCount: 0,
           errors: [],
           missingChoices: [],
           missingRequired: [],
         } satisfies ImportCheck;
       }
-      return { tableId: "new-table", imported: 2, addedChoices: 0, addedColumns: 3 };
+      return { tableId: "new-table", imported: 2, updated: 0, addedChoices: 0, addedColumns: 3 };
     });
     renderWithProviders(
       <ImportDialog destination={{ kind: "newTable", organizationId }} open onOpenChange={() => undefined} />,

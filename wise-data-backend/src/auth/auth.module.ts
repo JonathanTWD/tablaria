@@ -5,6 +5,8 @@ import { JwtModule } from '@nestjs/jwt';
 import type { Env } from '../config/env.schema';
 import { DemoService } from '../demo/demo.service';
 import { UsersModule } from '../users/users.module';
+import { AccountController } from './account.controller';
+import { AccountService } from './account.service';
 import { ACCESS_TOKEN_TTL_SECONDS } from './auth.constants';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
@@ -27,8 +29,9 @@ import { SessionService } from './session.service';
       }),
     }),
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, AccountController],
   providers: [
+    AccountService,
     AuthService,
     DemoService,
     EmailTokenService,

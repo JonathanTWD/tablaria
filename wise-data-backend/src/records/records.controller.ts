@@ -15,8 +15,8 @@ import {
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import {
-  type Paginated,
   type RecordInput,
+  type RecordPage,
   recordInputSchema,
   type RecordExportQuery,
   recordExportQuerySchema,
@@ -44,7 +44,7 @@ export class RecordsController {
     @CurrentUserId() userId: string,
     @Param('tableId', ParseUUIDPipe) tableId: string,
     @Query(new ZodValidationPipe(recordListQuerySchema)) query: RecordListQuery,
-  ): Promise<Paginated<TableRecord>> {
+  ): Promise<RecordPage> {
     return this.records.list(userId, tableId, query);
   }
 

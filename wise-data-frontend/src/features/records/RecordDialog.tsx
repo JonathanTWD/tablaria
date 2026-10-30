@@ -29,8 +29,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { RelationPicker } from "@/features/relations/RelationPicker";
 import { ApiError } from "@/lib/api-client";
-import { apiErrorMessage } from "@/lib/error-message";
+import { apiErrorMessage, repeatedValues } from "@/lib/error-message";
 import { fromDraft, toDraft } from "./cell-draft";
 import { useCreateRecord, useUpdateRecord } from "./queries";
 
@@ -44,6 +45,8 @@ interface RecordDialogProps {
   record?: TableRecord;
   /** Names of other people editing a cell of this record right now. */
   editingBy?: string[];
+  /** Labels of the records relation cells link to (ADR-022). */
+  linked?: Record<string, string>;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -72,6 +75,7 @@ function RecordForm({
   columns,
   record,
   editingBy = [],
+  linked = {},
   onDone,
 }: Omit<RecordDialogProps, "open" | "onOpenChange"> & { onDone: () => void }) {
   const { t } = useTranslation("records");
@@ -119,6 +123,12 @@ function RecordForm({
       toast.success(record ? t("dialog.saved") : t("dialog.created"));
       onDone();
     };
+    // A unique column refused the value: point at its field.
+    const onError = (error: Error) => {
+      for (const { path } of repeatedValues(error)) {
+        form.setError(path, { type: "duplicate" }, { shouldFocus: true });
+      }
+    };
     if (record) {
       // Only what this person changed: sending every field would undo what
       // others saved on the same record while the dialog was open.
@@ -129,18 +139,20 @@ function RecordForm({
         onDone();
         return;
       }
-      update.mutate({ recordId: record.id, changes }, { onSuccess });
+      update.mutate({ recordId: record.id, changes }, { onSuccess, onError });
     } else {
-      create.mutate(data, { onSuccess });
+      create.mutate(data, { onSuccess, onError });
     }
   });
 
   const formError =
-    mutation.error instanceof ApiError && mutation.error.status === 422
-      ? t("dialog.limit")
-      : mutation.error instanceof ApiError && mutation.error.status === 400
-        ? t("dialog.changedColumns")
-        : mutation.error && apiErrorMessage(mutation.error);
+    repeatedValues(mutation.error).length > 0
+      ? null
+      : mutation.error instanceof ApiError && mutation.error.status === 422
+        ? t("dialog.limit")
+        : mutation.error instanceof ApiError && mutation.error.status === 400
+          ? t("dialog.changedColumns")
+          : mutation.error && apiErrorMessage(mutation.error);
 
   return (
     <form noValidate onSubmit={onSubmit}>
@@ -159,14 +171,34 @@ function RecordForm({
           const error = errors[column.id];
           const message =
             error &&
-            (error.type === "required" ? t("dialog.errors.required") : t(`dialog.errors.${column.type}`));
+            (error.type === "required"
+              ? t("dialog.errors.required")
+              : error.type === "duplicate"
+                ? t("dialog.errors.duplicate")
+                : t(`dialog.errors.${column.type}`));
           const label = `${column.name}${column.type === "currency" ? ` (${column.options.currency})` : ""}${column.required ? " *" : ""}`;
           const describedBy = message ? `${id}-error` : undefined;
 
           return (
             <Field key={column.id} data-invalid={Boolean(message)}>
               <FieldLabel htmlFor={id}>{label}</FieldLabel>
-              {column.type === "boolean" || column.type === "select" ? (
+              {column.type === "relation" ? (
+                <Controller
+                  control={form.control}
+                  name={column.id}
+                  render={({ field }) => (
+                    <RelationPicker
+                      id={id}
+                      column={column}
+                      value={field.value || null}
+                      linked={linked}
+                      label={column.name}
+                      onChange={(next) => field.onChange(next ?? "")}
+                      className="h-9 border border-input"
+                    />
+                  )}
+                />
+              ) : column.type === "boolean" || column.type === "select" ? (
                 <Controller
                   control={form.control}
                   name={column.id}

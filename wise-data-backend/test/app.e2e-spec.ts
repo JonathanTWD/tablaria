@@ -1,5 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import type { ApiErrorBody } from '@wisedata/shared';
+import { gzipSync } from 'node:zlib';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { createTestApp } from './helpers/app';
@@ -34,6 +35,21 @@ describe('App (e2e)', () => {
     const body = response.body as ApiErrorBody;
     expect(body.statusCode).toBe(404);
     expect(body.error).toBe('Not Found');
+  });
+
+  it('refuses compressed bodies, which the app never sends', async () => {
+    const body = Buffer.concat([
+      gzipSync(JSON.stringify({ email: 'ana@example.com' })),
+      Buffer.from('trailing bytes'),
+    ]);
+    await request(app.getHttpServer())
+      .post('/api/auth/login')
+      .set('Content-Type', 'application/json')
+      .set('Content-Encoding', 'gzip')
+      .send(body)
+      .expect(415);
+    // Still up: a bad compressed body used to crash body-parser < 2.4.0.
+    await request(app.getHttpServer()).get('/api/health').expect(200);
   });
 
   it('sets security headers', async () => {

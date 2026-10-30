@@ -1,3 +1,4 @@
+import type { ApiErrorDetail } from "@wisedata/shared";
 import i18n from "@/i18n";
 import { ApiError } from "./api-client";
 
@@ -16,6 +17,14 @@ export function genericErrorMessage(error: unknown): string | null {
     return i18n.t("errors.unexpected");
   }
   return null;
+}
+
+/**
+ * Values a unique column refused (ADR-023): `path` is the column id and
+ * `message` the value. Empty for any other error.
+ */
+export function repeatedValues(error: unknown): ApiErrorDetail[] {
+  return error instanceof ApiError && error.status === 409 ? (error.body?.details ?? []) : [];
 }
 
 /** Generic message, falling back to "unexpected" for errors the screen does not single out. */

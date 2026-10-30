@@ -13,6 +13,7 @@ import {
 import { WebSocket, WebSocketServer } from 'ws';
 import { generateSecureToken } from '../auth/secure-token';
 import { API_PREFIX } from '../common/api-prefix';
+import { displayName } from '../common/display-name';
 import type { Env } from '../config/env.schema';
 import { PrismaService } from '../database/prisma.service';
 import { tableRole } from '../tables/table-access';
@@ -101,7 +102,7 @@ export class RealtimeService implements OnModuleDestroy {
       where: { id: userId },
       select: { email: true, demoExpiresAt: true },
     });
-    const name = user.demoExpiresAt ? null : user.email.split('@')[0];
+    const name = displayName(user);
     const now = Date.now();
     for (const [ticket, { expiresAt }] of this.tickets) {
       if (expiresAt <= now) {
@@ -148,6 +149,15 @@ export class RealtimeService implements OnModuleDestroy {
       if (client.userId === userId) {
         this.leave(client, tableId);
         this.send(client, { type: 'revoked', tableId });
+      }
+    }
+  }
+
+  /** Closes every connection of the user: their sessions ended or the account is gone. */
+  disconnectUser(userId: string): void {
+    for (const client of this.clients) {
+      if (client.userId === userId) {
+        client.socket.close(CLOSE.unauthorized, 'Session ended');
       }
     }
   }

@@ -20,7 +20,13 @@ const RETRY_DELAYS_MS = [1_000, 2_000, 5_000, 10_000, 30_000];
 function refresh(queryClient: QueryClient, tableId: string, scope: RealtimeScope) {
   const keys: (readonly unknown[])[] = [];
   if (scope === "records" || scope === "columns") {
-    keys.push(tableKeys.records(tableId), tableKeys.stats(tableId), stockAlertsQuery.queryKey);
+    keys.push(
+      tableKeys.records(tableId),
+      tableKeys.stats(tableId),
+      tableKeys.movements(tableId),
+      tableKeys.activity(tableId),
+      stockAlertsQuery.queryKey,
+    );
   }
   if (scope === "records" || scope === "columns" || scope === "table") {
     // Counts and "last edited" live on the table and in the lists.

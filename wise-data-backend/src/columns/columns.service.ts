@@ -8,6 +8,7 @@ import {
 import {
   type CellValue,
   type ColumnDefinition,
+  canBeUnique,
   columnDefinitionSchema,
   MAX_COLUMNS_PER_TABLE,
   selectOptionsSchema,
@@ -19,8 +20,11 @@ import { parseOrThrow } from '../common/pipes/zod-validation.pipe';
 import { PrismaService } from '../database/prisma.service';
 import { RealtimeService } from '../realtime/realtime.service';
 import { Prisma } from '../generated/prisma/client';
+import { requireNoRepeatedValues } from '../records/unique-values';
+import { requireLinkableTable } from '../relations/relations';
 import { accessibleTables, touchTable } from '../tables/table-access';
 import { toColumnData, toTableColumn } from './column-mapper';
+import { logActivity } from '../activity/activity-log';
 import { convertCellValue } from './convert-value';
 
 @Injectable()
@@ -58,6 +62,7 @@ export class ColumnsService {
         if (_count >= MAX_COLUMNS_PER_TABLE) {
           throw new UnprocessableEntityException('Column limit reached');
         }
+        await requireLinkableTable(tx, tableId, definition);
 
         const column = await tx.column.create({
           data: {
@@ -74,6 +79,12 @@ export class ColumnsService {
             SET data = jsonb_set(data, ARRAY[${column.id}::text], ${JSON.stringify(definition.defaultValue)}::jsonb)
             WHERE "tableId" = ${tableId}::uuid`;
         }
+        await logActivity(tx, {
+          tableId,
+          userId,
+          action: 'column.created',
+          label: column.name,
+        });
         return toTableColumn(column);
       }),
     );
@@ -103,15 +114,27 @@ export class ColumnsService {
           columnDefinitionSchema,
           mergeColumnPatch(current, patch),
         );
+        await requireLinkableTable(tx, tableId, next);
         const clearedValues = await convertStoredValues(
           tx,
           tableId,
           current,
           next,
         );
+        if (next.unique) {
+          await requireNoRepeatedValues(tx, tableId, { ...next, id: columnId });
+        }
         const column = await tx.column.update({
           where: { id: columnId },
           data: toColumnData(next),
+        });
+        await logActivity(tx, {
+          tableId,
+          userId,
+          action: 'column.updated',
+          label: next.name,
+          details:
+            next.name === current.name ? {} : { renamedFrom: current.name },
         });
         return { column: toTableColumn(column), clearedValues };
       }),
@@ -162,12 +185,19 @@ export class ColumnsService {
     await this.prisma.$transaction(async (tx) => {
       await touchTable(tx, userId, tableId, 'ADMIN');
 
-      const { count } = await tx.column.deleteMany({
+      const stored = await tx.column.findFirst({
         where: { id: columnId, tableId },
       });
-      if (count === 0) {
+      if (!stored) {
         throw new NotFoundException('Column not found');
       }
+      await tx.column.delete({ where: { id: columnId } });
+      await logActivity(tx, {
+        tableId,
+        userId,
+        action: 'column.deleted',
+        label: stored.name,
+      });
       await tx.$executeRaw`
         UPDATE records
         SET data = data - ${columnId}::text
@@ -189,6 +219,17 @@ function mergeColumnPatch(
   return {
     name: patch.name ?? current.name,
     required: patch.required ?? current.required,
+    // A type that can't be unique drops the flag instead of failing.
+    unique:
+      patch.unique ??
+      (typeChanged && !canBeUnique(patch.type ?? current.type)
+        ? false
+        : current.unique),
+    stock:
+      patch.stock ??
+      (typeChanged && (patch.type ?? current.type) !== 'number'
+        ? false
+        : current.stock),
     type: patch.type ?? current.type,
     options: keep('options', current.options),
     defaultValue: keep('defaultValue', followDefaultChoice(current, patch)),
@@ -251,7 +292,14 @@ async function convertStoredValues(
   next: ColumnDefinition,
 ): Promise<number> {
   // Select choices may have been renamed or removed even when the type stays.
-  if (current.type === next.type && next.type !== 'select') {
+  const sameRelation =
+    current.type === 'relation' &&
+    next.type === 'relation' &&
+    current.options.tableId === next.options.tableId;
+  if (
+    sameRelation ||
+    (current.type === next.type && !['select', 'relation'].includes(next.type))
+  ) {
     return 0;
   }
 
@@ -269,7 +317,9 @@ async function convertStoredValues(
     }
     const source =
       typeof value === 'string' ? (renames.get(value) ?? value) : value;
-    const converted = convertCellValue(source, next);
+    // A record id means nothing once the column stops linking to its table.
+    const converted =
+      current.type === 'relation' ? null : convertCellValue(source, next);
     if (converted !== value) {
       changes[id] = converted;
       cleared += converted === null ? 1 : 0;

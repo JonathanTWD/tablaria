@@ -1,5 +1,46 @@
 # Changelog
 
+## v1.5.0 — Inventario conectado
+
+- **Seguridad** (auditoría OWASP Top 10:2025 de la release):
+  - **Código:** sin hallazgos nuevos. Se revisaron el acceso a las tablas enlazadas, la importación por clave, los movimientos, el historial, la ruta pública sin sesión y la gestión de la cuenta.
+  - **Dependencias:** `pnpm audit` avisó de que body-parser < 2.4.0 se cae con un cuerpo comprimido seguido de bytes de más, sin necesidad de sesión. Mientras llega la actualización, la API rechaza los cuerpos comprimidos (415), que la app nunca envía.
+  - **Avisos sin riesgo aquí:** multer (no hay subidas de archivos), qs (solo afecta a `stringify`), nodemailer (producción envía con Resend) y deepmerge (solo en la CLI de shadcn). Se actualizan hacia el 6 de noviembre, cuando pasen los 14 días de antigüedad mínima de pnpm.
+- **Enlaces públicos de solo lectura** (Compartir → «Enlace público de solo lectura»):
+  - **Ver sin cuenta:** quien administra una tabla puede crear un enlace para verla sin iniciar sesión y sin poder cambiar nada, con búsqueda y paginación.
+  - **Seguridad:** el enlace se muestra una vez para copiarlo, porque solo se guarda su huella. Crear uno nuevo desactiva el anterior, y también se puede desactivar sin más.
+  - **Qué no se ve:** las columnas de relación, porque apuntarían a otras tablas.
+  - **En la demo** no está disponible.
+- **Historial de actividad** (pestaña «Actividad» de cada tabla):
+  - **Qué se ve:** quién creó, editó o borró registros y columnas, las importaciones y los movimientos de stock, agrupado por día y empezando por lo más reciente.
+  - **Ediciones:** las seguidas de una persona en un mismo registro se juntan en una entrada, y dicen qué columnas cambiaron, no los valores.
+  - **Nombres:** los registros y columnas borrados siguen apareciendo con el nombre que tenían.
+  - **Quién lo ve:** cualquiera que pueda abrir la tabla. Se actualiza en tiempo real.
+- **Movimientos de stock:**
+  - **Columna de stock:** una columna de número puede llevar la cuenta de su stock (interruptor «Columna de stock» al crearla o editarla). Las plantillas de inventario y la demo ya la traen, y su referencia o SKU ahora es de valor único.
+  - **Entradas, salidas y recuentos** desde «Movimientos de stock» en el menú de cada registro, con nota opcional y una vista previa del stock que quedará. Una salida no puede dejar el stock por debajo de cero.
+  - **Historial por registro**, también para quien solo puede ver la tabla: quién hizo cada cambio, cuánto y cuándo. También quedan los cambios hechos editando la celda o importando, así que el historial siempre cuadra con el stock.
+- **Columnas de valor único:**
+  - **Una columna de texto o número puede ser única** (interruptor «Valor único» al crear o editar la columna), como el SKU o el número de serie: no deja guardar un valor que ya tiene otro registro, sin distinguir mayúsculas ni espacios.
+  - **Al activarla** en una columna que ya repite valores, dice cuáles para corregirlos antes.
+  - **Si otro registro ya tiene el valor,** el formulario lo marca en su campo y la celda avisa y recupera el valor anterior.
+  - **Importar actualizando:** al importar, «Actualizar los registros que coincidan en» elige una columna única como clave (la primera emparejada, por defecto). Las filas cuyo valor ya existe actualizan ese registro en vez de duplicarlo y el resto se crean; la revisión dice cuántas actualizan.
+  - **Al importar sin clave,** un valor repetido en el archivo o que ya está en la tabla aparece como error de esa fila.
+- **Relaciones entre tablas**:
+  - **Nuevo tipo de columna «Relación con otra tabla».** Al crearla eliges con qué tabla del mismo espacio enlaza, por ejemplo cada producto con su proveedor.
+  - **Elegir el registro:** en la celda o en el formulario, un buscador lista los registros de esa tabla por su primera columna.
+  - **Lo que ves:** la tabla muestra el nombre del registro enlazado. Si no puedes abrir la tabla enlazada, solo ves que hay un enlace, nunca qué es.
+  - **Limpieza:** borrar un registro o una tabla limpia los enlaces que apuntaban a ellos.
+  - **CSV:** la exportación muestra el nombre.
+  - **Por ahora,** estas columnas no se pueden filtrar ni ordenar.
+- **Tu cuenta** (Ajustes):
+  - **cambiar la contraseña**, pidiendo la actual; el resto de dispositivos pierde la sesión;
+  - **cerrar sesión en todos los dispositivos**;
+  - **descargar tus datos** en JSON: la cuenta, tus espacios y las tablas de «Mi espacio» con sus registros, por nombre de columna (RGPD, portabilidad);
+  - **borrar la cuenta** con su contraseña: se borran «Mi espacio», las organizaciones donde eres el único miembro y las invitaciones que te enviaron, así que tu email no queda en ningún sitio. Si eres el único propietario de una organización con más gente, primero hay que nombrar otro propietario, y se indica cuáles.
+  
+  Nada de esto aparece en la demo, que no tiene contraseña y se borra sola.
+
 ## v1.4.0 — Importar
 
 - **Importar CSV** (fase 10): el botón «Importar CSV» de una tabla abre un asistente en tres pasos.

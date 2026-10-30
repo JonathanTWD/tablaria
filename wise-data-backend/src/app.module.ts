@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { ActivityModule } from './activity/activity.module';
 import { AuthModule } from './auth/auth.module';
 import { ColumnsModule } from './columns/columns.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
@@ -12,10 +13,12 @@ import { HealthModule } from './health/health.module';
 import { ImportsModule } from './imports/imports.module';
 import { MailModule } from './mail/mail.module';
 import { OrganizationsModule } from './organizations/organizations.module';
+import { PublicLinksModule } from './public-links/public-links.module';
 import { RecordsModule } from './records/records.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { SharingModule } from './sharing/sharing.module';
 import { StockAlertsModule } from './stock-alerts/stock-alerts.module';
+import { StockMovementsModule } from './stock-movements/stock-movements.module';
 import { TablesModule } from './tables/tables.module';
 
 @Module({
@@ -31,6 +34,9 @@ import { TablesModule } from './tables/tables.module';
     RecordsModule,
     ImportsModule,
     StockAlertsModule,
+    StockMovementsModule,
+    ActivityModule,
+    PublicLinksModule,
     SharingModule,
     OrganizationsModule,
     RealtimeModule,

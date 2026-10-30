@@ -191,6 +191,7 @@ export default function TablePage() {
         {[
           { to: "", end: true, label: t("records:tabs.records") },
           { to: "columns", end: false, label: t("records:tabs.columns") },
+          { to: "activity", end: false, label: t("records:tabs.activity") },
         ].map(({ to, end, label }) => (
           <NavLink
             key={label}

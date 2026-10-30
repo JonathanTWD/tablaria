@@ -32,9 +32,13 @@ export function configureApp(app: INestApplication): void {
 
   app.use(helmet());
   app.use(cookieParser());
+  // Compressed bodies are refused (415): the app never sends them, and
+  // body-parser < 2.4.0 crashes on one with trailing bytes (GHSA advisory of
+  // 2026-10-23). Keep it after upgrading: decompressing only adds risk.
+  const parserOptions = { inflate: false };
   // An import carries a whole file's rows; every other route keeps the 100 KB default.
   const sessions = app.get(SessionService);
-  const importParser = json({ limit: IMPORT_BODY_LIMIT });
+  const importParser = json({ ...parserOptions, limit: IMPORT_BODY_LIMIT });
   for (const path of [
     `/${API_PREFIX}/tables/:tableId/import`,
     `/${API_PREFIX}/organizations/:organizationId/tables/import`,
@@ -53,8 +57,8 @@ export function configureApp(app: INestApplication): void {
       },
     );
   }
-  app.use(json());
-  app.use(urlencoded({ extended: true }));
+  app.use(json(parserOptions));
+  app.use(urlencoded({ ...parserOptions, extended: true }));
   app.enableCors({
     origin: config.get('CORS_ORIGINS', { infer: true }),
     credentials: true,

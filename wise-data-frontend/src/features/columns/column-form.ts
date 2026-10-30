@@ -1,4 +1,5 @@
 import {
+  canBeUnique,
   COLUMN_TYPES,
   columnDefinitionSchema,
   columnNameSchema,
@@ -19,10 +20,16 @@ export interface ColumnFormValues {
   name: string;
   type: ColumnType;
   required: boolean;
+  /** Text and number columns: no two records may share a value. */
+  unique: boolean;
+  /** Number columns: changes are kept as stock movements. */
+  stock: boolean;
   currency: string;
   /** Number columns: warn when a value drops below this. Empty for no warning. */
   alertBelow: string;
   choices: { id: string; label: string; color: SelectColor }[];
+  /** Relation columns: the table they link to. */
+  tableId: string;
   /** Typed text, "true"/"false" for booleans, or the choice id for selects. */
   defaultValue: string;
 }
@@ -40,9 +47,12 @@ export function columnFormDefaults(column?: TableColumn): ColumnFormValues {
     name: column?.name ?? "",
     type: column?.type ?? "text",
     required: column?.required ?? false,
+    unique: column?.unique ?? false,
+    stock: column?.stock ?? false,
     currency: "EUR",
     alertBelow: "",
     choices: [newChoice(0)],
+    tableId: "",
     defaultValue: "",
   };
   if (!column) {
@@ -53,6 +63,9 @@ export function columnFormDefaults(column?: TableColumn): ColumnFormValues {
   }
   if (column.type === "select") {
     values.choices = column.options.choices;
+  }
+  if (column.type === "relation") {
+    values.tableId = column.options.tableId;
   }
   if (column.type === "number" && column.options) {
     values.alertBelow = String(column.options.alertBelow);
@@ -92,16 +105,25 @@ function parseDefault(values: ColumnFormValues): CellValue {
 
 /** Unvalidated column definition built from the form values. */
 function toDraft(values: ColumnFormValues) {
+  // Kept while other types are tried, but only sent for types that allow them.
+  // A stock column can't be unique: the form offers one or the other.
+  const stock = values.stock && values.type === "number";
+  const unique = values.unique && canBeUnique(values.type) && !stock;
   const base = {
     name: values.name,
     required: values.required,
-    defaultValue: parseDefault(values),
+    unique,
+    stock,
+    // Every record left empty would share the default, so unique columns have none.
+    defaultValue: unique ? null : parseDefault(values),
   };
   switch (values.type) {
     case "select":
       return { ...base, type: "select", options: { choices: values.choices } };
     case "currency":
       return { ...base, type: "currency", options: { currency: values.currency } };
+    case "relation":
+      return { ...base, type: "relation", options: { tableId: values.tableId }, defaultValue: null };
     case "number": {
       const alertBelow = values.alertBelow.trim();
       return {
@@ -133,11 +155,14 @@ export const columnFormSchema = z
     name: z.string(),
     type: z.enum(COLUMN_TYPES),
     required: z.boolean(),
+    unique: z.boolean(),
+    stock: z.boolean(),
     currency: z.string(),
     alertBelow: z.string(),
     choices: z.array(
       z.object({ id: z.string(), label: z.string(), color: z.enum(SELECT_COLORS) }),
     ),
+    tableId: z.string(),
     defaultValue: z.string(),
   })
   .superRefine((values, ctx) => {

@@ -1,5 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQuery } from "@tanstack/react-query";
 import {
+  canBeUnique,
   COLUMN_TYPES,
   MAX_SELECT_CHOICES,
   SELECT_COLORS,
@@ -43,9 +45,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { useCreateColumn, useUpdateColumn } from "@/features/tables/queries";
+import {
+  tableQuery,
+  tablesQuery,
+  useCreateColumn,
+  useUpdateColumn,
+} from "@/features/tables/queries";
 import { ApiError } from "@/lib/api-client";
-import { apiErrorMessage } from "@/lib/error-message";
+import { apiErrorMessage, repeatedValues } from "@/lib/error-message";
 import { cn } from "@/lib/utils";
 import {
   columnFormDefaults,
@@ -110,11 +117,15 @@ function ColumnForm({
   const mutation = column ? update : create;
 
   const type = useWatch({ control: form.control, name: "type" });
+  const stock = useWatch({ control: form.control, name: "stock" }) && type === "number";
+  const unique =
+    useWatch({ control: form.control, name: "unique" }) && canBeUnique(type) && !stock;
   const choiceValues = useWatch({ control: form.control, name: "choices" });
   const { errors } = form.formState;
 
   const onError = (error: Error) => {
-    if (error instanceof ApiError && error.status === 409) {
+    // A 409 with values is a unique column whose records repeat them.
+    if (error instanceof ApiError && error.status === 409 && repeatedValues(error).length === 0) {
       form.setError("name", { type: "conflict" }, { shouldFocus: true });
     }
   };
@@ -147,12 +158,16 @@ function ColumnForm({
     }
   });
 
+  const repeated = repeatedValues(mutation.error).map(({ message }) => message);
   const formError =
-    mutation.error instanceof ApiError && mutation.error.status === 409
-      ? null
-      : mutation.error instanceof ApiError && mutation.error.status === 422
-        ? t("columnForm.limit")
-        : mutation.error && apiErrorMessage(mutation.error);
+    repeated.length > 0
+      ? t("columnForm.errors.repeated", { values: repeated.join(", "), count: repeated.length })
+      : mutation.error instanceof ApiError && mutation.error.status === 409
+        ? null
+        : mutation.error instanceof ApiError && mutation.error.status === 422
+          ? // For a relation, the linked table is the likelier cause than the column limit.
+            t(type === "relation" ? "columnForm.linkedTableError" : "columnForm.limit")
+          : mutation.error && apiErrorMessage(mutation.error);
 
   const typeItems = Object.fromEntries(
     COLUMN_TYPES.map((value) => [value, t(`types.${value}`)]),
@@ -263,6 +278,8 @@ function ColumnForm({
             />
           </Field>
         )}
+
+        {type === "relation" && <LinkedTableField tableId={tableId} form={form} id={`${ids}-linked`} />}
 
         {type === "number" && (
           <FormField
@@ -387,13 +404,61 @@ function ColumnForm({
           />
         </Field>
 
-        <DefaultValueField
-          id={`${ids}-default`}
-          type={type}
-          choices={choiceValues}
-          form={form}
-          error={errors.defaultValue ? t("columnForm.errors.defaultValue") : undefined}
-        />
+        {type === "number" && !unique && (
+          <Field orientation="horizontal">
+            <FieldContent>
+              <FieldLabel htmlFor={`${ids}-stock`}>{t("columnForm.stock")}</FieldLabel>
+              <FieldDescription id={`${ids}-stock-hint`}>{t("columnForm.stockHint")}</FieldDescription>
+            </FieldContent>
+            <Controller
+              control={form.control}
+              name="stock"
+              render={({ field }) => (
+                <Switch
+                  id={`${ids}-stock`}
+                  aria-describedby={`${ids}-stock-hint`}
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              )}
+            />
+          </Field>
+        )}
+
+        {canBeUnique(type) && !stock && (
+          <Field orientation="horizontal">
+            <FieldContent>
+              <FieldLabel htmlFor={`${ids}-unique`}>{t("columnForm.unique")}</FieldLabel>
+              <FieldDescription id={`${ids}-unique-hint`}>
+                {t("columnForm.uniqueHint")}
+              </FieldDescription>
+            </FieldContent>
+            <Controller
+              control={form.control}
+              name="unique"
+              render={({ field }) => (
+                <Switch
+                  id={`${ids}-unique`}
+                  aria-describedby={`${ids}-unique-hint`}
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              )}
+            />
+          </Field>
+        )}
+
+        {/* A default record would link every new record to the same one, and
+            a unique column can't give the same value to every record. */}
+        {type !== "relation" && !unique && (
+          <DefaultValueField
+            id={`${ids}-default`}
+            type={type}
+            choices={choiceValues}
+            form={form}
+            error={errors.defaultValue ? t("columnForm.errors.defaultValue") : undefined}
+          />
+        )}
       </FieldGroup>
 
       <DialogFooter className="mt-6">
@@ -405,6 +470,58 @@ function ColumnForm({
         </SubmitButton>
       </DialogFooter>
     </form>
+  );
+}
+
+/** The table a relation links to: any table of the same space, this one included. */
+function LinkedTableField({
+  tableId,
+  form,
+  id,
+}: {
+  tableId: string;
+  form: ReturnType<typeof useForm<ColumnFormValues>>;
+  id: string;
+}) {
+  const { t } = useTranslation("tables");
+  const table = useQuery(tableQuery(tableId));
+  const organizationId = table.data?.organizationId;
+  const tables = useQuery({ ...tablesQuery(organizationId ?? ""), enabled: Boolean(organizationId) });
+  const error = form.formState.errors.tableId;
+  const items = Object.fromEntries((tables.data ?? []).map((item) => [item.id, item.name]));
+
+  return (
+    <Field data-invalid={Boolean(error)}>
+      <FieldLabel htmlFor={id}>{t("columnForm.linkedTable")}</FieldLabel>
+      <Controller
+        control={form.control}
+        name="tableId"
+        render={({ field }) => (
+          <Select items={items} value={field.value} onValueChange={(value) => value && field.onChange(value)}>
+            <SelectTrigger
+              id={id}
+              aria-invalid={Boolean(error)}
+              aria-describedby={`${id}-hint`}
+              className="h-9 w-full"
+            >
+              <SelectValue placeholder={t("columnForm.linkedTablePlaceholder")} />
+            </SelectTrigger>
+            <SelectContent>
+              {(tables.data ?? []).map((item) => (
+                <SelectItem key={item.id} value={item.id}>
+                  {item.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+      />
+      {error ? (
+        <FieldError id={`${id}-hint`}>{t("columnForm.errors.linkedTable")}</FieldError>
+      ) : (
+        <FieldDescription id={`${id}-hint`}>{t("columnForm.linkedTableHint")}</FieldDescription>
+      )}
+    </Field>
   );
 }
 
