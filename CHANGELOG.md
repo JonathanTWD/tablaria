@@ -2,7 +2,10 @@
 
 ## v1.5.0 — Inventario conectado
 
-- **Seguridad** (auditoría OWASP Top 10:2025 de la release): sin hallazgos nuevos en el código. Se revisaron el acceso a las tablas enlazadas, la importación por clave, los movimientos, el historial, la ruta pública sin sesión y la gestión de la cuenta. Sigue pendiente, con fecha, la actualización de dependencias que espera la antigüedad mínima de pnpm (hacia el 6 de noviembre).
+- **Seguridad** (auditoría OWASP Top 10:2025 de la release):
+  - **Código:** sin hallazgos nuevos. Se revisaron el acceso a las tablas enlazadas, la importación por clave, los movimientos, el historial, la ruta pública sin sesión y la gestión de la cuenta.
+  - **Dependencias:** `pnpm audit` avisó de que body-parser < 2.4.0 se cae con un cuerpo comprimido seguido de bytes de más, sin necesidad de sesión. Mientras llega la actualización, la API rechaza los cuerpos comprimidos (415), que la app nunca envía.
+  - **Avisos sin riesgo aquí:** multer (no hay subidas de archivos), qs (solo afecta a `stringify`), nodemailer (producción envía con Resend) y deepmerge (solo en la CLI de shadcn). Se actualizan hacia el 6 de noviembre, cuando pasen los 14 días de antigüedad mínima de pnpm.
 - **Enlaces públicos de solo lectura** (Compartir → «Enlace público de solo lectura»):
   - **Ver sin cuenta:** quien administra una tabla puede crear un enlace para verla sin iniciar sesión y sin poder cambiar nada, con búsqueda y paginación.
   - **Seguridad:** el enlace se muestra una vez para copiarlo, porque solo se guarda su huella. Crear uno nuevo desactiva el anterior, y también se puede desactivar sin más.
