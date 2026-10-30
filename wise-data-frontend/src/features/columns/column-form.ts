@@ -22,6 +22,8 @@ export interface ColumnFormValues {
   required: boolean;
   /** Text and number columns: no two records may share a value. */
   unique: boolean;
+  /** Number columns: changes are kept as stock movements. */
+  stock: boolean;
   currency: string;
   /** Number columns: warn when a value drops below this. Empty for no warning. */
   alertBelow: string;
@@ -46,6 +48,7 @@ export function columnFormDefaults(column?: TableColumn): ColumnFormValues {
     type: column?.type ?? "text",
     required: column?.required ?? false,
     unique: column?.unique ?? false,
+    stock: column?.stock ?? false,
     currency: "EUR",
     alertBelow: "",
     choices: [newChoice(0)],
@@ -108,6 +111,7 @@ function toDraft(values: ColumnFormValues) {
     name: values.name,
     required: values.required,
     unique,
+    stock: values.stock && values.type === "number",
     // Every record left empty would share the default, so unique columns have none.
     defaultValue: unique ? null : parseDefault(values),
   };
@@ -150,6 +154,7 @@ export const columnFormSchema = z
     type: z.enum(COLUMN_TYPES),
     required: z.boolean(),
     unique: z.boolean(),
+    stock: z.boolean(),
     currency: z.string(),
     alertBelow: z.string(),
     choices: z.array(

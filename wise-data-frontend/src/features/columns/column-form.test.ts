@@ -30,3 +30,11 @@ describe("column form unique values", () => {
     expect(toColumnDefinition(active).unique).toBe(false);
   });
 });
+
+describe("column form stock", () => {
+  it("keeps a stock column's flag, and drops it for other types", () => {
+    const stock = { ...columnFormDefaults(), name: "Stock", type: "number" as const, stock: true };
+    expect(toColumnDefinition(stock).stock).toBe(true);
+    expect(toColumnDefinition({ ...stock, type: "text" }).stock).toBe(false);
+  });
+});

@@ -108,6 +108,8 @@ const columnBase = {
   required: z.boolean().default(false),
   /** No two records may hold the same value (SKU, serial number…); ADR-023. */
   unique: z.boolean().default(false),
+  /** Number columns: every change is kept as a stock movement (ADR-024). */
+  stock: z.boolean().default(false),
 };
 
 /** Types whose values identify a record: unique columns are one of these. */
@@ -163,6 +165,12 @@ export const columnDefinitionSchema = z
     if (column.unique && !canBeUnique(column.type)) {
       ctx.addIssue({ code: "custom", path: ["unique"], message: "Only text and numbers can be unique" });
     }
+    if (column.stock && column.type !== "number") {
+      ctx.addIssue({ code: "custom", path: ["stock"], message: "Only numbers can track stock" });
+    }
+    if (column.stock && column.unique) {
+      ctx.addIssue({ code: "custom", path: ["stock"], message: "A stock column can't be unique" });
+    }
     // Every record that leaves the cell empty would share the default.
     if (column.unique && column.defaultValue !== null) {
       ctx.addIssue({ code: "custom", path: ["defaultValue"], message: "A unique column has no default value" });
@@ -193,6 +201,7 @@ export const updateColumnSchema = z
     name: columnNameSchema,
     required: z.boolean(),
     unique: z.boolean(),
+    stock: z.boolean(),
     type: z.enum(COLUMN_TYPES),
     options: z.unknown(),
     defaultValue: z.unknown(),

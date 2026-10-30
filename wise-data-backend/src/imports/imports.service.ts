@@ -12,6 +12,7 @@ import {
   type ImportResult,
   MAX_RECORDS_PER_TABLE,
   type RecordColumn,
+  type RecordData,
 } from '@wisedata/shared';
 import type { z } from 'zod';
 import { toColumnData, toTableColumn } from '../columns/column-mapper';
@@ -20,6 +21,10 @@ import type { Prisma, Role } from '../generated/prisma/client';
 import { requireOrganizationRole } from '../organizations/organization-access';
 import { RealtimeService } from '../realtime/realtime.service';
 import { inInsertionOrder, withoutEmptyCells } from '../records/record-data';
+import {
+  logStockChanges,
+  type RecordWrite,
+} from '../stock-movements/stock-log';
 import { requireTableRole, touchTable } from '../tables/table-access';
 import { insertTable } from '../tables/tables.service';
 import { takenKeys } from '../records/unique-values';
@@ -109,7 +114,10 @@ export class ImportsService {
             data: { options: column.options ?? undefined },
           });
         }
-        await storeRecords(tx, tableId, analysis);
+        await storeRecords(tx, userId, tableId, analysis, [
+          ...existing,
+          ...analysis.createdColumns,
+        ]);
         return summary(tableId, existing, analysis);
       },
       { timeout: IMPORT_TIMEOUT_MS },
@@ -148,7 +156,13 @@ export class ImportsService {
           description: null,
           columns: analysis.createdColumns,
         });
-        await storeRecords(tx, table.id, analysis);
+        await storeRecords(
+          tx,
+          userId,
+          table.id,
+          analysis,
+          analysis.createdColumns,
+        );
         return summary(table.id, [], analysis);
       },
       { timeout: IMPORT_TIMEOUT_MS },
@@ -213,11 +227,29 @@ function analyze(
   }
 }
 
+/** Stores the rows, keeping the stock they change as movements (ADR-024). */
 async function storeRecords(
   tx: Prisma.TransactionClient,
+  userId: string,
   tableId: string,
   analysis: ImportAnalysis,
+  columns: RecordColumn[],
 ): Promise<void> {
+  const tracksStock = columns.some((column) => column.stock);
+  const writes: RecordWrite[] = [];
+  if (tracksStock && analysis.updates.length > 0) {
+    const stored = await tx.record.findMany({
+      where: { tableId, id: { in: analysis.updates.map(({ id }) => id) } },
+      select: { id: true, data: true },
+    });
+    const byId = new Map(
+      stored.map(({ id, data }) => [id, data as RecordData]),
+    );
+    for (const { id, data } of analysis.updates) {
+      const before = byId.get(id) ?? {};
+      writes.push({ id, before, after: { ...before, ...data } });
+    }
+  }
   if (analysis.updates.length > 0) {
     // Only the cells the file brings change; an empty one empties its cell.
     // One statement for every updated record, whatever the file's size.
@@ -235,15 +267,31 @@ async function storeRecords(
         AS u(id uuid, filled jsonb, emptied jsonb)
       WHERE r.id = u.id AND r."tableId" = ${tableId}::uuid`;
   }
-  await tx.record.createMany({
-    // The file's order is the table's order.
-    data: inInsertionOrder(
-      analysis.records.map((data) => ({
-        tableId,
-        data: withoutEmptyCells(data),
-      })),
-    ),
-  });
+  // The file's order is the table's order.
+  const rows = inInsertionOrder(
+    analysis.records.map((data) => ({
+      tableId,
+      data: withoutEmptyCells(data),
+    })),
+  );
+  if (tracksStock) {
+    const created = await tx.record.createManyAndReturn({
+      data: rows,
+      select: { id: true, data: true },
+    });
+    for (const { id, data } of created) {
+      writes.push({ id, before: {}, after: data as RecordData });
+    }
+    await logStockChanges(tx, {
+      tableId,
+      userId,
+      kind: 'IMPORT',
+      columns,
+      writes,
+    });
+  } else {
+    await tx.record.createMany({ data: rows });
+  }
 }
 
 function choiceCount(column: RecordColumn | undefined): number {

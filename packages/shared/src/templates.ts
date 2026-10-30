@@ -9,11 +9,12 @@ export type TableTemplateId = (typeof TABLE_TEMPLATE_IDS)[number];
 export const TABLE_TEMPLATES: Record<TableTemplateId, ColumnDefinitionInput[]> = {
   "basic-inventory": [
     { name: "Producto", type: "text", required: true },
-    { name: "SKU", type: "text" },
+    { name: "SKU", type: "text", unique: true },
     {
       name: "Cantidad",
       type: "number",
       required: true,
+      stock: true,
       defaultValue: 0,
       options: { alertBelow: 5 },
     },
@@ -22,10 +23,10 @@ export const TABLE_TEMPLATES: Record<TableTemplateId, ColumnDefinitionInput[]> =
   ],
   "product-catalog": [
     { name: "Producto", type: "text", required: true },
-    { name: "Referencia", type: "text" },
+    { name: "Referencia", type: "text", unique: true },
     { name: "Categoría", type: "text" },
     { name: "Precio", type: "currency", options: { currency: "EUR" } },
-    { name: "Stock", type: "number", defaultValue: 0, options: { alertBelow: 5 } },
+    { name: "Stock", type: "number", stock: true, defaultValue: 0, options: { alertBelow: 5 } },
     {
       name: "Estado",
       type: "select",
