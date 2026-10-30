@@ -1,8 +1,8 @@
 {
-  "name": "@wisedata/shared",
+  "name": "@tablaria/shared",
   "version": "0.0.0",
   "private": true,
-  "description": "Types, validation schemas and constants shared by the WiseData frontend and backend.",
+  "description": "Types, validation schemas and constants shared by the Tablaria frontend and backend.",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
   "types": "./dist/cjs/index.d.ts",

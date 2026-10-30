@@ -1,6 +1,6 @@
 packages:
-  - wise-data-frontend
-  - wise-data-backend
+  - tablaria-frontend
+  - tablaria-backend
   - packages/*
   - e2e
 

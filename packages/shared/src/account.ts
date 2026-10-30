@@ -16,7 +16,7 @@ export const deleteAccountSchema = z.object({ password: currentPasswordSchema })
 export type DeleteAccountInput = z.infer<typeof deleteAccountSchema>;
 
 /**
- * Everything the user put into WiseData, readable without it (RGPD,
+ * Everything the user put into Tablaria, readable without it (RGPD,
  * portability): the account, where they have access, and the tables of their
  * personal space with records keyed by column name.
  */
