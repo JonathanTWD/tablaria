@@ -14,7 +14,7 @@ La especificación completa del MVP está en [MVP_PROMPT.md](MVP_PROMPT.md).
 
 ## Después del MVP
 
-- [x] **Fase 7 — Despliegue y demo**: publicado en Render + Neon + Resend. Botón "Probar la demo" con cuentas temporales y datos de ejemplo, migraciones al arrancar la API, aviso mientras el servidor gratuito despierta y vista previa al compartir el enlace.
+- [x] **Fase 7 — Despliegue y demo**: publicado en https://tablaria.es (Render + Neon + Resend). Botón "Probar la demo" con cuentas temporales y datos de ejemplo, migraciones al arrancar la API, aviso mientras el servidor gratuito despierta y vista previa al compartir el enlace.
 - [x] **Fase 8 — Exportar, alertas y gráficos** (v1.2.0): exportación CSV de la vista actual, alertas de stock bajo con tarjeta en el panel y resumen con gráfico de barras por columna. Falta la exportación a Excel.
 - [x] **Fase 8.5 — Pantallas grandes**: la app aprovecha el ancho (tabla a ancho completo, inicio con columna lateral) la landing se adapta a monitores de 27" y más, y la barra lateral se pliega a iconos.
 - [x] **Fase 9 — Trabajo en equipo** (v1.3.0): compartir tablas por email, organizaciones con roles, tiempo real y presencia.

@@ -160,7 +160,7 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
   - **API:** Render Web Service con el Dockerfile.
   - **Base de datos:** Neon. La PostgreSQL gratuita de Render caduca.
   - **Correo:** Resend, desde un subdominio de correo verificado (`mail.<dominio>`).
-  - **Dirección pública:** las URLs de Render, de momento. Ver ADR-027.
+  - **Dominio:** `tablaria.es`, en Hostalia, con el correo de Resend en `mail.tablaria.es`. Ver ADR-027.
   - **Lo que hay que configurar a mano en Render:** las cabeceras de seguridad (CSP incluida) en el panel del Static Site y `TRUST_PROXY_HOPS` en la API.
 - **Migraciones al arrancar**:
   - El plan gratuito de Render no tiene paso previo al despliegue. Por eso el contenedor ejecuta `prisma migrate deploy` antes de `node dist/main`, y la CLI de Prisma pasa a ser dependencia de producción.
@@ -476,7 +476,7 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
   - la marca de la interfaz, los correos y los documentos;
   - las carpetas `tablaria-frontend` y `tablaria-backend`, el paquete `@tablaria/shared` y la base de datos local;
   - las claves de `localStorage` y las cookies de sesión (`tb_access` y `tb_refresh`).
-- **Se publica en servicios nuevos de Render,** con el nombre nuevo en la URL. El dominio anterior deja de usarse, y uno propio se decidirá más adelante.
+- **Se publica en servicios nuevos de Render** con el dominio `tablaria.es` (Hostalia). El dominio anterior deja de usarse.
 - **La URL pública de la web es configurable** (`SITE_URL`, al compilar): la canónica y la vista previa al compartir no dependen de ningún dominio fijo.
 - **El historial de git no se reescribe.**
 
@@ -484,7 +484,7 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 - Al cambiar las cookies y el origen, todo el mundo tiene que volver a iniciar sesión una vez.
 - Las preferencias guardadas en el navegador (tema, barra lateral y espacio elegido) vuelven a sus valores iniciales.
 - Los datos no cambian: la base de datos de Neon es la misma.
-- Hasta tener dominio propio, los correos salen desde el subdominio que ya está verificado en Resend.
+- Los correos salen desde `mail.tablaria.es` una vez verificado en Resend. Hasta entonces, desde el subdominio anterior.
 
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 

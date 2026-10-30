@@ -2,7 +2,7 @@
 
 Gestión de inventario flexible: cada usuario crea sus propias tablas, define columnas con tipo y trabaja con sus registros como en una hoja de cálculo, pero con validación, búsqueda, filtros y orden en el servidor. Las tablas se comparten por email o dentro de organizaciones, y los cambios se ven en directo.
 
-**Demo en directo: [tablaria.onrender.com](https://tablaria.onrender.com).** Pulsa «Probar la demo» y entrarás sin registrarte en una cuenta temporal con tablas de ejemplo, que se borra a las 24 h.
+**Demo en directo: [tablaria.es](https://tablaria.es).** Pulsa «Probar la demo» y entrarás sin registrarte en una cuenta temporal con tablas de ejemplo, que se borra a las 24 h.
 
 ## Funcionalidades
 
@@ -104,13 +104,13 @@ Así está publicada la demo; los motivos están en [ADR-013](docs/DECISIONS.md)
   - **Tiempo real:** `REALTIME_URL=wss://<api>.onrender.com/api/realtime`. La rewrite del Static Site no transporta WebSockets de forma fiable, así que el navegador se conecta directamente a la API ([ADR-020](docs/DECISIONS.md)).
 - **Web (Render Static Site)**:
   - **Build:** `corepack enable && pnpm install --frozen-lockfile && pnpm --filter @tablaria/shared build && pnpm --filter tablaria-frontend build`.
-  - **Variable `SITE_URL`:** la URL pública de la web, sin barra final (por ejemplo `https://tablaria.onrender.com`). Se escribe al compilar en la URL canónica y en la vista previa al compartir de `index.html`.
+  - **Variable `SITE_URL`:** la URL pública de la web, sin barra final (por ejemplo `https://tablaria.es`). Se escribe al compilar en la URL canónica y en la vista previa al compartir de `index.html`.
   - **Publicación:** carpeta `tablaria-frontend/dist`, con `NODE_VERSION=22`.
   - **Rewrites:**
     - `/api/*` → `https://<api>.onrender.com/api/*`, de tipo Rewrite y la primera de la lista;
     - `/*` → `/index.html`.
   - **Cabeceras:** las mismas que [nginx.conf.template](tablaria-frontend/nginx.conf.template), con la CSP incluida. Añade `wss://<api>.onrender.com` a `connect-src` para el tiempo real.
-- **Dominio propio** (opcional; ahora se usan las URLs de Render):
+- **Dominio** (`tablaria.es`, en Hostalia):
   - **Raíz:** un registro `A` a la IP que indica Render.
   - **`www`:** un `CNAME` al Static Site.
   - **Resend:** sus registros DNS en `mail.<dominio>`.
