@@ -142,7 +142,7 @@ Las versiones son semánticas: funcionalidades nuevas suben la menor (1.6.0), ar
 
 Es la más interesante para el producto y amplía el ADR-022. Por orden de valor:
 
-1. **Filtrar, buscar y ordenar por la etiqueta** del registro enlazado. Ahora las columnas de relación no admiten filtros ni orden.
+1. ~~Filtrar, buscar y ordenar por la etiqueta del registro enlazado~~: hecho en el ADR-028 (`labelSources` en `relations/relations.ts` y `labelText` en `record-query.ts`).
 2. **Columnas de consulta (*lookup*):** mostrar un campo del registro enlazado, como el teléfono del proveedor, sin copiarlo.
 3. **Columnas de resumen (*rollup*):** contar o sumar desde la otra tabla, como «nº de productos» o «stock total» de un proveedor.
 4. **Selección múltiple:** varios registros por celda.
@@ -150,7 +150,7 @@ Es la más interesante para el producto y amplía el ADR-022. Por orden de valor
 
 Puntos delicados que hay que respetar:
 - **Permisos:** las etiquetas solo se resuelven para tablas que el usuario puede abrir (`linkedLabels` en `relations/relations.ts`). Un *lookup* o un *rollup* sobre una tabla sin acceso no debe filtrar nada.
-- **SQL:** filtrar y ordenar por etiqueta exige un JOIN sobre el JSONB de la otra tabla, parametrizado y con la lista blanca de columnas de `record-query.ts`.
+- **SQL:** cualquier valor de la otra tabla se lee como en `labelText` (`record-query.ts`): una subconsulta por clave primaria, parametrizada y solo para las fuentes que devuelve `labelSources`.
 - **Enlaces públicos:** siguen sin mostrar relaciones (ADR-026), y lo mismo vale para *lookups* y *rollups*.
 
 ### Otras tareas difíciles

@@ -133,6 +133,41 @@ export async function linkedLabels(
   return labels;
 }
 
+/** Where a relation column's labels live: the first column of its table. */
+export interface LabelSource {
+  tableId: string;
+  columnId: string;
+}
+
+/**
+ * For each relation column whose table the user can open, the column that
+ * names its records. Others are left out, so their labels can't be searched,
+ * filtered or sorted by: that would reveal what the user can't see.
+ */
+export async function labelSources(
+  db: Db,
+  userId: string,
+  columns: RecordColumn[],
+): Promise<Map<string, LabelSource>> {
+  const sources = new Map<string, LabelSource>();
+  for (const column of columns.filter(isRelation)) {
+    const tableId = column.options.tableId;
+    if (!(await tableRole(db, userId, tableId))) {
+      continue;
+    }
+    const first = await db.column.findFirst({
+      where: { tableId },
+      orderBy: { position: 'asc' },
+      select: { id: true, type: true },
+    });
+    // A relation naming the records would only give another record id.
+    if (first && first.type !== 'relation') {
+      sources.set(column.id, { tableId, columnId: first.id });
+    }
+  }
+  return sources;
+}
+
 /**
  * Empties the cells that linked to a deleted record; returns the tables they
  * are in, so their open pages refresh.

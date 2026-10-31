@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import {
   FILTER_OPERATOR_BY_TYPE,
   type RecordColumn,
@@ -6,6 +6,7 @@ import {
   type RecordListQuery,
 } from '@tablaria/shared';
 import { Prisma } from '../generated/prisma/client';
+import type { LabelSource } from '../relations/relations';
 
 export interface RecordQuerySql {
   where: Prisma.Sql;
@@ -16,11 +17,15 @@ export interface RecordQuerySql {
  * Builds the WHERE and ORDER BY of a records listing. Every value travels as a
  * bound parameter, and column ids are only used after matching them against
  * the table's own columns, so user input never becomes SQL text.
+ *
+ * Relation columns are searched, filtered and sorted by the label of the
+ * record they link to, and only those in `labels` (ADR-028).
  */
 export function buildRecordQuery(
   tableId: string,
   columns: RecordColumn[],
   query: Pick<RecordListQuery, 'search' | 'sort' | 'order' | 'filters'>,
+  labels: ReadonlyMap<string, LabelSource> = new Map(),
 ): RecordQuerySql {
   const byId = new Map(columns.map((column) => [column.id, column]));
   const findColumn = (columnId: string) => {
@@ -30,19 +35,33 @@ export function buildRecordQuery(
     }
     return column;
   };
+  /** The cell as text: a relation's is its linked record's label. */
+  const textOf = (column: RecordColumn): Prisma.Sql => {
+    if (column.type !== 'relation') {
+      return cellText(column);
+    }
+    const source = labels.get(column.id);
+    if (!source) {
+      throw new ForbiddenException('No access to the linked table');
+    }
+    return labelText(column, source);
+  };
 
   const conditions = [Prisma.sql`r."tableId" = ${tableId}::uuid`];
 
   if (query.search) {
     const pattern = `%${escapeLike(query.search)}%`;
     const searchable = columns.filter(
-      ({ type }) => type === 'text' || type === 'select',
+      ({ id, type }) =>
+        type === 'text' ||
+        type === 'select' ||
+        (type === 'relation' && labels.has(id)),
     );
     conditions.push(
       searchable.length > 0
         ? Prisma.sql`(${Prisma.join(
             searchable.map(
-              (column) => Prisma.sql`${cellText(column)} ILIKE ${pattern}`,
+              (column) => Prisma.sql`${textOf(column)} ILIKE ${pattern}`,
             ),
             ' OR ',
           )})`
@@ -51,12 +70,14 @@ export function buildRecordQuery(
   }
 
   for (const filter of query.filters) {
-    conditions.push(filterCondition(findColumn(filter.columnId), filter));
+    const column = findColumn(filter.columnId);
+    conditions.push(filterCondition(column, filter, textOf(column)));
   }
 
   const direction = Prisma.raw(query.order === 'desc' ? 'DESC' : 'ASC');
-  const orderBy = query.sort
-    ? Prisma.sql`${sortableValue(findColumn(query.sort))} ${direction} NULLS LAST, r."createdAt" ASC, r.id ASC`
+  const sortColumn = query.sort ? findColumn(query.sort) : undefined;
+  const orderBy = sortColumn
+    ? Prisma.sql`${sortableValue(sortColumn, textOf(sortColumn))} ${direction} NULLS LAST, r."createdAt" ASC, r.id ASC`
     : Prisma.sql`r."createdAt" ${direction}, r.id ${direction}`;
 
   return { where: Prisma.join(conditions, ' AND '), orderBy };
@@ -65,6 +86,7 @@ export function buildRecordQuery(
 function filterCondition(
   column: RecordColumn,
   filter: RecordFilter,
+  text: Prisma.Sql,
 ): Prisma.Sql {
   if (FILTER_OPERATOR_BY_TYPE[column.type] !== filter.op) {
     throw new BadRequestException(
@@ -74,11 +96,11 @@ function filterCondition(
 
   switch (filter.op) {
     case 'contains':
-      return Prisma.sql`${cellText(column)} ILIKE ${`%${escapeLike(filter.value)}%`}`;
+      return Prisma.sql`${text} ILIKE ${`%${escapeLike(filter.value)}%`}`;
     case 'is':
-      return Prisma.sql`${cellText(column)}::boolean = ${filter.value}::boolean`;
+      return Prisma.sql`${text}::boolean = ${filter.value}::boolean`;
     case 'in':
-      return Prisma.sql`${cellText(column)} IN (${Prisma.join(filter.values)})`;
+      return Prisma.sql`${text} IN (${Prisma.join(filter.values)})`;
     case 'between': {
       const cast = Prisma.raw(column.type === 'date' ? 'date' : 'numeric');
       const bounds = [filter.min, filter.max];
@@ -90,7 +112,7 @@ function filterCondition(
           `Range bounds of ${column.type} columns must be ${column.type === 'date' ? 'ISO dates' : 'numbers'}`,
         );
       }
-      const value = Prisma.sql`${cellText(column)}::${cast}`;
+      const value = Prisma.sql`${text}::${cast}`;
       const parts = [
         filter.min !== undefined &&
           Prisma.sql`${value} >= ${filter.min}::${cast}`,
@@ -107,9 +129,18 @@ function cellText(column: RecordColumn): Prisma.Sql {
   return Prisma.sql`(r.data ->> ${column.id}::text)`;
 }
 
+/**
+ * The label of the record a relation cell links to, as text: the first
+ * column of the linked table. Relation cells always hold a validated uuid.
+ */
+function labelText(column: RecordColumn, source: LabelSource): Prisma.Sql {
+  return Prisma.sql`(SELECT lr.data ->> ${source.columnId}::text FROM records lr
+    WHERE lr."tableId" = ${source.tableId}::uuid
+      AND lr.id = (r.data ->> ${column.id}::text)::uuid)`;
+}
+
 /** The cell cast to its type, so numbers and dates sort by value, not as text. */
-function sortableValue(column: RecordColumn): Prisma.Sql {
-  const text = cellText(column);
+function sortableValue(column: RecordColumn, text: Prisma.Sql): Prisma.Sql {
   switch (column.type) {
     case 'number':
     case 'currency':

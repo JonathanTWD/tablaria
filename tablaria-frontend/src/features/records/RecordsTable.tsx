@@ -137,18 +137,20 @@ export function RecordsTable({ table }: { table: TableDetail }) {
     setView({ sort: next?.id, order: next?.desc ? "desc" : "asc" });
   };
 
+  // Relations sort and filter by their linked record's label, when the user can open its table.
+  const labelledRelations = records.data?.labelledRelations;
   const tableColumns = useMemo(
     () =>
       columnHelper.columns(
         columns.map((column) =>
           columnHelper.accessor((record) => record.data[column.id], {
             id: column.id,
-            // A relation holds a record id: sorting by it would mean nothing.
-            enableSorting: column.type !== "relation",
+            enableSorting:
+              column.type !== "relation" || (labelledRelations ?? []).includes(column.id),
           }),
         ),
       ),
-    [columns],
+    [columns, labelledRelations],
   );
 
   const grid = useTable({
@@ -228,7 +230,9 @@ export function RecordsTable({ table }: { table: TableDetail }) {
           onSearch={(search) => setView({ search }, { replace: true })}
         />
         <FiltersSheet
-          columns={columns}
+          columns={columns.filter(
+            (column) => column.type !== "relation" || (labelledRelations ?? []).includes(column.id),
+          )}
           filters={view.filters}
           onApply={(filters) => setView({ filters })}
         />
@@ -300,18 +304,25 @@ export function RecordsTable({ table }: { table: TableDetail }) {
                         index === 0 && cn(STICKY_CELL, "bg-[color-mix(in_oklab,var(--muted)_60%,var(--card))]"),
                       )}
                     >
-                      <button
-                        type="button"
-                        onClick={header.column.getToggleSortingHandler()}
-                        className={cn(
-                          "inline-flex h-8 items-center gap-1.5 rounded-md px-1.5 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring",
-                          numeric && "flex-row-reverse",
-                          sorted && "text-foreground",
-                        )}
-                      >
-                        {column.name}
-                        <SortIcon aria-hidden="true" className="size-3.5" />
-                      </button>
+                      {header.column.getCanSort() ? (
+                        <button
+                          type="button"
+                          onClick={header.column.getToggleSortingHandler()}
+                          className={cn(
+                            "inline-flex h-8 items-center gap-1.5 rounded-md px-1.5 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring",
+                            numeric && "flex-row-reverse",
+                            sorted && "text-foreground",
+                          )}
+                        >
+                          {column.name}
+                          <SortIcon aria-hidden="true" className="size-3.5" />
+                        </button>
+                      ) : (
+                        // Not a button: a relation to a table the user can't open doesn't sort.
+                        <span className="inline-flex h-8 items-center px-1.5 text-muted-foreground">
+                          {column.name}
+                        </span>
+                      )}
                     </th>
                   );
                 })}
