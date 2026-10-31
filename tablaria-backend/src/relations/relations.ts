@@ -6,11 +6,12 @@ import type {
   CellValue,
   ColumnDefinition,
   ColumnType,
+  IncomingRelation,
   RecordColumn,
   RecordData,
 } from '@tablaria/shared';
 import type { Prisma } from '../generated/prisma/client';
-import { dropLookups } from '../lookups/lookups';
+import { dropComputedColumns } from '../lookups/lookups';
 import { tableRole } from '../tables/table-access';
 
 /** Relation columns link records to tables of their own space (ADR-022). */
@@ -135,6 +136,48 @@ export async function linkedLabels(
   return labels;
 }
 
+/**
+ * Relation columns, of tables the user can open, that link to this table:
+ * what a rollup can sum up through (ADR-031). Includes this table's own.
+ */
+export async function incomingRelations(
+  db: Db,
+  userId: string,
+  tableId: string,
+): Promise<IncomingRelation[]> {
+  const columns = await db.column.findMany({
+    where: {
+      type: 'relation',
+      options: { path: ['tableId'], equals: tableId },
+    },
+    select: {
+      id: true,
+      name: true,
+      table: { select: { id: true, name: true } },
+    },
+    orderBy: [{ table: { name: 'asc' } }, { position: 'asc' }],
+  });
+  const access = new Map<string, boolean>();
+  const result: IncomingRelation[] = [];
+  for (const column of columns) {
+    if (!access.has(column.table.id)) {
+      access.set(
+        column.table.id,
+        (await tableRole(db, userId, column.table.id)) !== null,
+      );
+    }
+    if (access.get(column.table.id)) {
+      result.push({
+        columnId: column.id,
+        columnName: column.name,
+        tableId: column.table.id,
+        tableName: column.table.name,
+      });
+    }
+  }
+  return result;
+}
+
 /** Where a relation column's labels live: the first column of its table. */
 export interface LabelSource {
   tableId: string;
@@ -220,7 +263,7 @@ export async function dropRelationsTo(
       WHERE "tableId" = ${column.tableId}::uuid`;
   }
   // Lookups reading through those relations go with them (ADR-030).
-  const lookupTables = await dropLookups(tx, {
+  const lookupTables = await dropComputedColumns(tx, {
     relationColumnIds: columns.map(({ id }) => id),
   });
   await tx.column.deleteMany({

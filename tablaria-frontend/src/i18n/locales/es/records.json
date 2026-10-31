@@ -103,7 +103,8 @@
       "select": "Elige una de las opciones.",
       "boolean": "Elige Sí o No.",
       "relation": "Elige un registro de la tabla enlazada.",
-      "lookup": "Este dato se lee de otra tabla."
+      "lookup": "Este dato se lee de otra tabla.",
+      "rollup": "Este dato se calcula con otros registros."
     }
   },
   "delete": {
@@ -169,7 +170,8 @@
         "boolean": "no es Sí o No",
         "select": "no es una opción de la lista",
         "relation": "no se puede importar en una relación: enlázala después en la tabla",
-        "lookup": "se lee de otra tabla"
+        "lookup": "se lee de otra tabla",
+        "rollup": "se calcula con otros registros"
       }
     },
     "submit_one": "Importar {{count}} registro",

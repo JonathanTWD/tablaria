@@ -9,10 +9,10 @@ import {
 } from "@tablaria/shared";
 
 /** What an import can create: relations need a linked table, which no file names. */
-export type ImportableType = Exclude<ColumnType, "relation" | "lookup">;
+export type ImportableType = Exclude<ColumnType, "relation" | "lookup" | "rollup">;
 
 export const IMPORTABLE_TYPES = COLUMN_TYPES.filter(
-  (type): type is ImportableType => type !== "relation" && type !== "lookup",
+  (type): type is ImportableType => type !== "relation" && type !== "lookup" && type !== "rollup",
 );
 
 /** Most distinct values a column can have to be offered as a list of options. */

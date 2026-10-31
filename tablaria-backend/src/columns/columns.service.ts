@@ -23,11 +23,12 @@ import { RealtimeService } from '../realtime/realtime.service';
 import { Prisma } from '../generated/prisma/client';
 import { requireNoRepeatedValues } from '../records/unique-values';
 import {
-  dropLookups,
+  dropComputedColumns,
   requireLookupSource,
   requireSameLookupType,
 } from '../lookups/lookups';
 import { requireLinkableTable } from '../relations/relations';
+import { dropRollupsNotFitting, requireRollupSource } from '../rollups/rollups';
 import { accessibleTables, touchTable } from '../tables/table-access';
 import { toColumnData, toTableColumn } from './column-mapper';
 import { logActivity } from '../activity/activity-log';
@@ -70,6 +71,7 @@ export class ColumnsService {
         }
         await requireLinkableTable(tx, tableId, definition);
         await requireLookupSource(tx, userId, tableId, definition);
+        await requireRollupSource(tx, userId, tableId, definition);
 
         const column = await tx.column.create({
           data: {
@@ -126,7 +128,8 @@ export class ColumnsService {
         );
         await requireLinkableTable(tx, tableId, next);
         await requireLookupSource(tx, userId, tableId, next);
-        droppedIn = await dropLookups(tx, {
+        await requireRollupSource(tx, userId, tableId, next);
+        droppedIn = await dropComputedColumns(tx, {
           // A relation that links elsewhere, or no longer links.
           relationColumnIds:
             current.type === 'relation' &&
@@ -140,6 +143,12 @@ export class ColumnsService {
               ? [columnId]
               : [],
         });
+        if (next.type !== current.type) {
+          droppedIn = [
+            ...droppedIn,
+            ...(await dropRollupsNotFitting(tx, columnId, next.type)),
+          ];
+        }
         const clearedValues = await convertStoredValues(
           tx,
           tableId,
@@ -230,7 +239,7 @@ export class ColumnsService {
         SET data = data - ${columnId}::text
         WHERE "tableId" = ${tableId}::uuid AND data ? ${columnId}::text`;
       // Lookups reading through this relation, or showing this column (ADR-030).
-      return dropLookups(tx, {
+      return dropComputedColumns(tx, {
         relationColumnIds: [columnId],
         targetColumnIds: [columnId],
       });

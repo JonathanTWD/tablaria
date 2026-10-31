@@ -9,6 +9,7 @@ export const COLUMN_TYPES = [
   "currency",
   "relation",
   "lookup",
+  "rollup",
 ] as const;
 
 export type ColumnType = (typeof COLUMN_TYPES)[number];
@@ -50,6 +51,8 @@ export const columnValueSchemas = {
   relation: z.uuid(),
   // Lookups are read from the linked record, never written (ADR-030).
   lookup: z.never(),
+  // Rollups are computed from the records that link here, never written (ADR-031).
+  rollup: z.never(),
 } satisfies Record<ColumnType, z.ZodType>;
 
 const currencyCodes = new Set(Intl.supportedValuesOf("currency"));
@@ -124,8 +127,46 @@ export function canBeLookedUp(type: ColumnType): boolean {
   return (LOOKUP_TARGET_TYPES as readonly ColumnType[]).includes(type);
 }
 
+/** How a rollup sums up the records that link to each record (ADR-031). */
+export const ROLLUP_FUNCTIONS = ["count", "sum", "avg", "min", "max"] as const;
+
+/** The column types each function can sum up; "count" needs none. */
+export const ROLLUP_TARGET_TYPES: Record<
+  Exclude<(typeof ROLLUP_FUNCTIONS)[number], "count">,
+  readonly ColumnType[]
+> = {
+  sum: ["number", "currency"],
+  avg: ["number", "currency"],
+  min: ["number", "currency", "date"],
+  max: ["number", "currency", "date"],
+};
+
+export function canRollUp(fn: (typeof ROLLUP_FUNCTIONS)[number], type: ColumnType): boolean {
+  return fn === "count" || ROLLUP_TARGET_TYPES[fn].includes(type);
+}
+
+/**
+ * A rollup sums up, for each record, the records of another table (or this
+ * one) whose relation links to it: how many employees a team has, or the sum
+ * of their salaries.
+ */
+export const rollupOptionsSchema = z
+  .object({
+    /** A relation column, in the other table, that links to this one. */
+    relationColumnId: z.uuid(),
+    function: z.enum(ROLLUP_FUNCTIONS),
+    /** The column of those records it sums up; none to count them. */
+    targetColumnId: z.uuid().nullable().default(null),
+  })
+  .refine((options) => (options.function === "count") === (options.targetColumnId === null), {
+    path: ["targetColumnId"],
+    message: "Count needs no column; the other functions need one",
+  });
+
 export type SelectOptions = z.infer<typeof selectOptionsSchema>;
 export type RelationOptions = z.infer<typeof relationOptionsSchema>;
+export type RollupOptions = z.infer<typeof rollupOptionsSchema>;
+export type RollupFunction = (typeof ROLLUP_FUNCTIONS)[number];
 export type LookupOptions = z.infer<typeof lookupOptionsSchema>;
 export type CurrencyOptions = z.infer<typeof currencyOptionsSchema>;
 export type NumberOptions = z.infer<typeof numberOptionsSchema>;
@@ -195,11 +236,17 @@ export const columnDefinitionSchema = z
       options: lookupOptionsSchema,
       defaultValue: z.null().default(null),
     }),
+    z.object({
+      ...columnBase,
+      type: z.literal("rollup"),
+      options: rollupOptionsSchema,
+      defaultValue: z.null().default(null),
+    }),
   ])
   .superRefine((column, ctx) => {
-    // Nobody fills a lookup: it can't be required.
-    if (column.type === "lookup" && column.required) {
-      ctx.addIssue({ code: "custom", path: ["required"], message: "A lookup can't be required" });
+    // Nobody fills a lookup or a rollup: they can't be required.
+    if ((column.type === "lookup" || column.type === "rollup") && column.required) {
+      ctx.addIssue({ code: "custom", path: ["required"], message: "Computed columns can't be required" });
     }
     if (column.unique && !canBeUnique(column.type)) {
       ctx.addIssue({ code: "custom", path: ["unique"], message: "Only text and numbers can be unique" });
