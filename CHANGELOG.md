@@ -1,7 +1,17 @@
 # Changelog
 
-## Sin publicar
+## v1.6.0 — Relaciones avanzadas
 
+- **Seguridad** (auditoría OWASP Top 10:2025 de la release):
+  - **Código:** sin hallazgos. Se revisaron las etiquetas de las relaciones, la agrupación, las consultas, los resúmenes y las relaciones múltiples.
+    - Todo el SQL va parametrizado, y las columnas se comprueban contra la tabla.
+    - Los datos de otra tabla solo se muestran, buscan, filtran, ordenan o agrupan si puedes abrirla.
+    - Los enlaces públicos siguen sin mostrar relaciones ni nada calculado a partir de ellas.
+  - **Dependencias:** siguen los avisos de la v1.5.0 (body-parser, ya mitigado) y aparecen otros nuevos, ninguno alcanzable en producción:
+    - nodemailer solo se usa con SMTP; producción envía con Resend.
+    - multer no se usa: no hay subidas de archivos.
+    - minimatch solo está en la CLI de shadcn.
+    - Todos se actualizan hacia el 6 de noviembre.
 - **Relaciones con varios registros** (ADR-032):
   - **Qué son:** una relación puede enlazar cada registro con varios de otra tabla, por ejemplo los miembros de un proyecto o los proveedores de un producto. Se activan con «Varios registros» al crear o editar la columna de relación.
   - **Elegir:** el selector deja la lista abierta para añadir o quitar registros uno a uno, y muestra arriba los que ya están enlazados.
