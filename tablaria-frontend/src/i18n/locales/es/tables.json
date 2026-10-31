@@ -224,7 +224,10 @@
     },
     "linkedTable": "Tabla enlazada",
     "linkedTablePlaceholder": "Elige una tabla",
-    "linkedTableHint": "Cada registro podrá enlazar con un registro de esa tabla. Solo tablas de este espacio.",
+    "linkedTableHint": "Cada registro podrá enlazar con un registro de esa tabla, y se verá su primera columna. Solo tablas de este espacio.",
+    "linkedLabel": "Se verá «{{column}}», la primera columna de {{table}}. Para mostrar otra, súbela a la primera posición en esa tabla.",
+    "linkedLabelNone": "{{table}} todavía no tiene columnas: los registros enlazados no tendrán nombre hasta que le añadas una.",
+    "linkedLabelRelation": "La primera columna de {{table}} es otra relación: sube una de texto a la primera posición para que los registros enlazados tengan nombre.",
     "linkedTableError": "Esa tabla ya no existe o no es de este espacio."
   },
   "validation": {

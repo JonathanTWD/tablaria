@@ -489,6 +489,20 @@ function LinkedTableField({
   const tables = useQuery({ ...tablesQuery(organizationId ?? ""), enabled: Boolean(organizationId) });
   const error = form.formState.errors.tableId;
   const items = Object.fromEntries((tables.data ?? []).map((item) => [item.id, item.name]));
+  // Linked records are named by the first column of their table (ADR-022): say which one.
+  const linkedId = useWatch({ control: form.control, name: "tableId" });
+  const linked = useQuery({ ...tableQuery(linkedId), enabled: linkedId !== "" });
+  const first = linked.data?.columns.reduce<TableColumn | undefined>(
+    (lowest, column) => (lowest === undefined || column.position < lowest.position ? column : lowest),
+    undefined,
+  );
+  const labelHint =
+    linked.data &&
+    (first === undefined
+      ? t("columnForm.linkedLabelNone", { table: linked.data.name })
+      : first.type === "relation"
+        ? t("columnForm.linkedLabelRelation", { table: linked.data.name })
+        : t("columnForm.linkedLabel", { column: first.name, table: linked.data.name }));
 
   return (
     <Field data-invalid={Boolean(error)}>
@@ -519,7 +533,15 @@ function LinkedTableField({
       {error ? (
         <FieldError id={`${id}-hint`}>{t("columnForm.errors.linkedTable")}</FieldError>
       ) : (
-        <FieldDescription id={`${id}-hint`}>{t("columnForm.linkedTableHint")}</FieldDescription>
+        <FieldDescription id={`${id}-hint`}>
+          {t("columnForm.linkedTableHint")}
+          {labelHint && (
+            <>
+              {" "}
+              <span className="text-foreground">{labelHint}</span>
+            </>
+          )}
+        </FieldDescription>
       )}
     </Field>
   );
