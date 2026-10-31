@@ -91,8 +91,11 @@ export function cellValueSchema(column: ColumnDefinition): z.ZodType<CellValue> 
  * cells it sends. Null means "empty the cell".
  */
 export function recordDataSchema(columns: RecordColumn[], { partial }: { partial: boolean }) {
+  // Lookups are read, never written: sending one is an unknown key (ADR-030).
   const shape = Object.fromEntries(
-    columns.map((column) => [column.id, cellValueSchema(column).optional()]),
+    columns
+      .filter((column) => column.type !== "lookup")
+      .map((column) => [column.id, cellValueSchema(column).optional()]),
   );
   return z
     .strictObject(shape)
@@ -139,6 +142,8 @@ export const FILTER_OPERATOR_BY_TYPE: Record<ColumnType, FilterOperator> = {
   select: "in",
   // By the linked record's label (ADR-028).
   relation: "contains",
+  // By the value it shows, as text (ADR-030).
+  lookup: "contains",
 };
 
 const rangeBoundSchema = z.union([z.number(), z.iso.date()]);

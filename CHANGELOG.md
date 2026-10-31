@@ -2,6 +2,12 @@
 
 ## Sin publicar
 
+- **Columnas de consulta** (ADR-030):
+  - **Qué son:** muestran un dato del registro enlazado, por ejemplo «Teléfono del proveedor» en Productos. Se crean en «Añadir columna → Consulta de otra tabla», eligiendo la relación y la columna que se quiere ver.
+  - **Siempre al día:** el valor se lee de la otra tabla cada vez, así que si cambia allí, cambia aquí. No se edita en esta tabla.
+  - **Funciones:** se pueden ordenar (por valor, si es un número o una fecha), filtrar y buscar, y salen en el CSV con el mismo formato que en su tabla.
+  - **Permisos:** solo muestran datos de tablas que puedes abrir.
+  - **Limpieza:** si se borra la relación o la columna que muestran, la consulta se borra con ellas.
 - **Agrupar registros** (ADR-029): el selector «Agrupar por…» ordena la tabla por una lista de opciones, Sí/No, texto o relación, con una cabecera por grupo que dice cuántos registros tiene. Funciona con la búsqueda, los filtros, el orden, la paginación y la exportación, y queda en la URL para compartir la vista.
 - **Qué se ve de un registro enlazado:** al crear o editar una columna de relación, la ayuda dice qué columna de la tabla enlazada se mostrará (su primera columna, por ejemplo «Nombre») y cómo cambiarla.
 

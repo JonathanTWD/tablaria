@@ -5,10 +5,12 @@ import {
 import type {
   CellValue,
   ColumnDefinition,
+  ColumnType,
   RecordColumn,
   RecordData,
 } from '@tablaria/shared';
 import type { Prisma } from '../generated/prisma/client';
+import { dropLookups } from '../lookups/lookups';
 import { tableRole } from '../tables/table-access';
 
 /** Relation columns link records to tables of their own space (ADR-022). */
@@ -136,7 +138,12 @@ export async function linkedLabels(
 /** Where a relation column's labels live: the first column of its table. */
 export interface LabelSource {
   tableId: string;
+  /** The column of the linked table read as text. */
   columnId: string;
+  /** The column of this table that holds the linked record's id. */
+  viaColumnId: string;
+  /** How the value compares when sorting. */
+  type: ColumnType;
 }
 
 /**
@@ -162,7 +169,12 @@ export async function labelSources(
     });
     // A relation naming the records would only give another record id.
     if (first && first.type !== 'relation') {
-      sources.set(column.id, { tableId, columnId: first.id });
+      sources.set(column.id, {
+        tableId,
+        columnId: first.id,
+        viaColumnId: column.id,
+        type: 'text',
+      });
     }
   }
   return sources;
@@ -207,8 +219,14 @@ export async function dropRelationsTo(
       UPDATE records SET data = data - ${column.id}::text
       WHERE "tableId" = ${column.tableId}::uuid`;
   }
+  // Lookups reading through those relations go with them (ADR-030).
+  const lookupTables = await dropLookups(tx, {
+    relationColumnIds: columns.map(({ id }) => id),
+  });
   await tx.column.deleteMany({
     where: { id: { in: columns.map(({ id }) => id) } },
   });
-  return [...new Set(columns.map((column) => column.tableId))];
+  return [
+    ...new Set([...columns.map((column) => column.tableId), ...lookupTables]),
+  ];
 }

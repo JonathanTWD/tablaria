@@ -519,6 +519,30 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 
 **Consecuencias**: una consulta más (`GROUP BY`) cuando se agrupa, sobre las mismas condiciones de la lista.
 
+## ADR-030: Columnas de consulta (lookup)
+
+**Contexto**: con una relación (ADR-022), cada producto enlaza con su proveedor, pero para ver el teléfono del proveedor había que copiarlo en Productos, y la copia se quedaba desfasada al cambiar el original.
+
+**Decisión**:
+- **Tipo de columna `lookup`,** con dos opciones: `relationColumnId` (una relación de la misma tabla) y `targetColumnId` (una columna de la tabla enlazada). El valor de la celda es el de esa columna en el registro enlazado.
+- **No se guarda nunca:** se lee al listar o exportar (`fillLookups`, una consulta por relación). Así siempre está al día. Escribirlo da 400, porque la clave no existe en el esquema de datos del registro. Una importación no puede rellenarlo ni crearlo.
+- **Qué puede mostrar:** texto, número, fecha, Sí/No, lista y precio. Ni relaciones ni otras consultas, para que no haya cadenas.
+- **Tipo fijo:** una consulta se crea como tal y no cambia de tipo, y ninguna otra columna se convierte en consulta. No puede ser obligatoria ni tener valor por defecto.
+- **Permisos:**
+  - para crearla hay que poder abrir la tabla enlazada (403 si no);
+  - para ver sus valores también: quien no puede abrirla ve la columna vacía, y `TableDetail.lookupTargets` no la incluye;
+  - buscar, filtrar u ordenar por ella sigue las mismas reglas que las relaciones (ADR-028): 403 si no hay acceso.
+- **Búsqueda, filtro y orden:** reutilizan la subconsulta de los nombres enlazados (ADR-028), generalizada para leer cualquier columna:
+  - el orden respeta el tipo de la columna mostrada (números por valor, fechas por fecha);
+  - el filtro es «contiene» sobre su texto;
+  - la búsqueda general incluye las que muestran texto o listas.
+- **Formato:** `lookupTargets` da a la interfaz la definición de la columna mostrada, para formatear igual que en su tabla (precio con su moneda, chips de lista…). El CSV hace lo mismo.
+- **Limpieza** (`dropLookups`): una consulta se borra con su relación, con la columna que muestra, cuando la relación pasa a enlazar otra tabla o deja de ser relación, cuando la columna mostrada pasa a un tipo que no se puede mostrar y cuando se borra la tabla enlazada.
+- **Enlaces públicos:** no muestran consultas, igual que no muestran relaciones (ADR-026).
+- **Fuera de esta versión:** agrupar por una consulta y mostrar en una lista desplegable los valores posibles de su filtro.
+
+**Consecuencias**: leer una página con consultas añade una consulta por relación usada. Ordenar o filtrar por una consulta hace una búsqueda por clave primaria por fila, como con los nombres enlazados.
+
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
 Todas están especificadas en [MVP_PROMPT.md](MVP_PROMPT.md):

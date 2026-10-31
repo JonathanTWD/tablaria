@@ -35,10 +35,15 @@ export default defineConfig({
       timeout: 120_000,
     },
     {
-      command: "pnpm --filter tablaria-frontend dev --port 5173 --strictPort",
+      // CI tests the production build, as users get it: the dev server compiles
+      // each module on first request, and a cold first page can outlast the
+      // assertions' timeout.
+      command: isCI
+        ? "pnpm --filter tablaria-frontend build && pnpm --filter tablaria-frontend preview --port 5173 --strictPort"
+        : "pnpm --filter tablaria-frontend dev --port 5173 --strictPort",
       url: BASE_URL,
       reuseExistingServer: !isCI,
-      timeout: 120_000,
+      timeout: 180_000,
     },
   ],
 });

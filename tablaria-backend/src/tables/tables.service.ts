@@ -16,6 +16,7 @@ import {
   type updateTableSchema,
 } from '@tablaria/shared';
 import type { z } from 'zod';
+import { lookupSources } from '../lookups/lookups';
 import { toColumnData, toTableColumn } from '../columns/column-mapper';
 import { PrismaService } from '../database/prisma.service';
 import type { InventoryTable, Prisma } from '../generated/prisma/client';
@@ -127,11 +128,16 @@ export class TablesService {
       },
       select: { role: true },
     });
+    const columns = table.columns.map(toTableColumn);
+    const lookups = await lookupSources(this.prisma, userId, columns);
     return {
       ...toTableSummary(table, role),
       organizationId: table.organizationId,
       member: membership !== null,
-      columns: table.columns.map(toTableColumn),
+      columns,
+      lookupTargets: Object.fromEntries(
+        [...lookups].map(([id, { target }]) => [id, target]),
+      ),
     };
   }
 

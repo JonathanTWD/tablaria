@@ -1,6 +1,7 @@
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import {
   canGroupRecordsBy,
+  type ColumnType,
   FILTER_OPERATOR_BY_TYPE,
   type RecordColumn,
   type RecordFilter,
@@ -41,17 +42,22 @@ export function buildRecordQuery(
     }
     return column;
   };
-  /** The cell as text: a relation's is its linked record's label. */
+  /**
+   * The cell as text: a relation's is its linked record's label, and a
+   * lookup's the column it shows of that record.
+   */
   const textOf = (column: RecordColumn): Prisma.Sql => {
-    if (column.type !== 'relation') {
+    if (column.type !== 'relation' && column.type !== 'lookup') {
       return cellText(column);
     }
     const source = labels.get(column.id);
     if (!source) {
       throw new ForbiddenException('No access to the linked table');
     }
-    return labelText(column, source);
+    return labelText(source);
   };
+  const typeOf = (column: RecordColumn) =>
+    labels.get(column.id)?.type ?? column.type;
 
   const conditions = [Prisma.sql`r."tableId" = ${tableId}::uuid`];
 
@@ -61,7 +67,9 @@ export function buildRecordQuery(
       ({ id, type }) =>
         type === 'text' ||
         type === 'select' ||
-        (type === 'relation' && labels.has(id)),
+        (type === 'relation' && labels.has(id)) ||
+        (type === 'lookup' &&
+          ['text', 'select'].includes(labels.get(id)?.type ?? '')),
     );
     conditions.push(
       searchable.length > 0
@@ -83,7 +91,7 @@ export function buildRecordQuery(
   const direction = Prisma.raw(query.order === 'desc' ? 'DESC' : 'ASC');
   const sortColumn = query.sort ? findColumn(query.sort) : undefined;
   const orderBy = sortColumn
-    ? Prisma.sql`${sortableValue(sortColumn, textOf(sortColumn))} ${direction} NULLS LAST, r."createdAt" ASC, r.id ASC`
+    ? Prisma.sql`${sortableValue(typeOf(sortColumn), textOf(sortColumn))} ${direction} NULLS LAST, r."createdAt" ASC, r.id ASC`
     : Prisma.sql`r."createdAt" ${direction}, r.id ${direction}`;
 
   if (!query.group) {
@@ -149,18 +157,18 @@ function cellText(column: RecordColumn): Prisma.Sql {
 }
 
 /**
- * The label of the record a relation cell links to, as text: the first
- * column of the linked table. Relation cells always hold a validated uuid.
+ * A column of the record that a relation cell links to, as text. Relation
+ * cells always hold a validated uuid.
  */
-function labelText(column: RecordColumn, source: LabelSource): Prisma.Sql {
+function labelText(source: LabelSource): Prisma.Sql {
   return Prisma.sql`(SELECT lr.data ->> ${source.columnId}::text FROM records lr
     WHERE lr."tableId" = ${source.tableId}::uuid
-      AND lr.id = (r.data ->> ${column.id}::text)::uuid)`;
+      AND lr.id = (r.data ->> ${source.viaColumnId}::text)::uuid)`;
 }
 
 /** The cell cast to its type, so numbers and dates sort by value, not as text. */
-function sortableValue(column: RecordColumn, text: Prisma.Sql): Prisma.Sql {
-  switch (column.type) {
+function sortableValue(type: ColumnType, text: Prisma.Sql): Prisma.Sql {
+  switch (type) {
     case 'number':
     case 'currency':
       return Prisma.sql`${text}::numeric`;

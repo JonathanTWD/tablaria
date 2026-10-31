@@ -53,4 +53,9 @@ export interface TableDetail extends TableSummary {
   member: boolean;
   /** Ordered by position. */
   columns: TableColumn[];
+  /**
+   * For each lookup whose linked table the user can open, the column it
+   * shows (to format its values). Others show nothing (ADR-030).
+   */
+  lookupTargets: Record<string, TableColumn>;
 }

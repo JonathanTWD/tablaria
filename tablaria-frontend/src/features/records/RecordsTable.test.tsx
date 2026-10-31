@@ -35,6 +35,7 @@ const table: TableDetail = {
   recordCount: 1,
   createdAt: "2026-01-01T00:00:00.000Z",
   updatedAt: "2026-01-01T00:00:00.000Z",
+  lookupTargets: {},
   columns: [
     column(NAME_ID, 0, { name: "Nombre", type: "text" }),
     column(PRICE_ID, 1, { name: "Precio", type: "currency", options: { currency: "EUR" } }),
@@ -62,6 +63,42 @@ function listRequests(fetchMock: ReturnType<typeof mockApi>) {
 }
 
 describe("RecordsTable", () => {
+  it("shows a lookup read-only, formatted like the column it shows", async () => {
+    const LEAD_ID = "4f5a6b7c-3333-4aaa-8bbb-000000000006";
+    const SUPPLIER_ID = "4f5a6b7c-1111-4aaa-8bbb-000000000003";
+    const days = column("6a7b8c9d-2222-4aaa-8bbb-000000000007", 1, { name: "Plazo", type: "currency", options: { currency: "EUR" } });
+    const withLookup: TableDetail = {
+      ...table,
+      columns: [
+        ...table.columns,
+        column(SUPPLIER_ID, 2, {
+          name: "Proveedor",
+          type: "relation",
+          options: { tableId: "6a7b8c9d-1111-4aaa-8bbb-000000000004" },
+        }),
+        column(LEAD_ID, 3, {
+          name: "Coste de envío",
+          type: "lookup",
+          options: { relationColumnId: SUPPLIER_ID, targetColumnId: days.id },
+        }),
+      ],
+      lookupTargets: { [LEAD_ID]: days },
+    };
+    mockApi(() => ({
+      ...page,
+      data: [{ ...page.data[0], data: { ...page.data[0].data, [LEAD_ID]: 4.5 } }],
+      linked: {},
+      labelledRelations: [],
+      groups: [],
+    }));
+    renderWithProviders(<RecordsTable table={withLookup} />, { route: "/app/tables/x" });
+
+    // Formatted as the currency it shows, and not an editable cell.
+    expect(await screen.findByText("4,50 €")).toBeVisible();
+    expect(screen.queryByRole("button", { name: /^Coste de envío de Taladro/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Coste de envío" })).toBeVisible();
+  });
+
   it("shows a header with the size of each group", async () => {
     const STATUS_ID = "4f5a6b7c-2222-4aaa-8bbb-000000000005";
     const grouped: TableDetail = {

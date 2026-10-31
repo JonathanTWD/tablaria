@@ -61,12 +61,19 @@ export function toCsv(
   columns: TableColumn[],
   rows: RecordData[],
   linked: Record<string, string> = {},
+  lookupTargets: ReadonlyMap<string, TableColumn> = new Map(),
 ): string {
   const lines = [
     columns.map((column) => csvField(headerText(column))),
     ...rows.map((row) =>
       columns.map((column) =>
-        csvField(cellText(column, row[column.id], linked)),
+        csvField(
+          cellText(
+            lookupTargets.get(column.id) ?? column,
+            row[column.id],
+            linked,
+          ),
+        ),
       ),
     ),
   ];

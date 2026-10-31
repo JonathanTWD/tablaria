@@ -8,6 +8,7 @@ export const COLUMN_TYPES = [
   "select",
   "currency",
   "relation",
+  "lookup",
 ] as const;
 
 export type ColumnType = (typeof COLUMN_TYPES)[number];
@@ -47,6 +48,8 @@ export const columnValueSchemas = {
   currency: z.number(),
   // The id of a record in the linked table (ADR-022).
   relation: z.uuid(),
+  // Lookups are read from the linked record, never written (ADR-030).
+  lookup: z.never(),
 } satisfies Record<ColumnType, z.ZodType>;
 
 const currencyCodes = new Set(Intl.supportedValuesOf("currency"));
@@ -96,8 +99,34 @@ export const numberOptionsSchema = z.object({
 /** A relation links each record to one record of another table of the same space. */
 export const relationOptionsSchema = z.object({ tableId: z.uuid() });
 
+/**
+ * A lookup shows a column of the record that a relation of the same table
+ * links to, such as the supplier's phone next to each product (ADR-030).
+ */
+export const lookupOptionsSchema = z.object({
+  /** A relation column of this table. */
+  relationColumnId: z.uuid(),
+  /** The column of the linked table whose value is shown. */
+  targetColumnId: z.uuid(),
+});
+
+/** Columns a lookup can show: plain values, not other links. */
+export const LOOKUP_TARGET_TYPES = [
+  "text",
+  "number",
+  "date",
+  "boolean",
+  "select",
+  "currency",
+] as const satisfies readonly ColumnType[];
+
+export function canBeLookedUp(type: ColumnType): boolean {
+  return (LOOKUP_TARGET_TYPES as readonly ColumnType[]).includes(type);
+}
+
 export type SelectOptions = z.infer<typeof selectOptionsSchema>;
 export type RelationOptions = z.infer<typeof relationOptionsSchema>;
+export type LookupOptions = z.infer<typeof lookupOptionsSchema>;
 export type CurrencyOptions = z.infer<typeof currencyOptionsSchema>;
 export type NumberOptions = z.infer<typeof numberOptionsSchema>;
 
@@ -160,8 +189,18 @@ export const columnDefinitionSchema = z
       // A default record would link every new record to the same one: never useful.
       defaultValue: z.null().default(null),
     }),
+    z.object({
+      ...columnBase,
+      type: z.literal("lookup"),
+      options: lookupOptionsSchema,
+      defaultValue: z.null().default(null),
+    }),
   ])
   .superRefine((column, ctx) => {
+    // Nobody fills a lookup: it can't be required.
+    if (column.type === "lookup" && column.required) {
+      ctx.addIssue({ code: "custom", path: ["required"], message: "A lookup can't be required" });
+    }
     if (column.unique && !canBeUnique(column.type)) {
       ctx.addIssue({ code: "custom", path: ["unique"], message: "Only text and numbers can be unique" });
     }

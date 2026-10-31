@@ -150,11 +150,13 @@ export function RecordsTable({ table }: { table: TableDetail }) {
           columnHelper.accessor((record) => record.data[column.id], {
             id: column.id,
             enableSorting:
-              column.type !== "relation" || (labelledRelations ?? []).includes(column.id),
+              column.type === "relation"
+                ? (labelledRelations ?? []).includes(column.id)
+                : column.type !== "lookup" || column.id in table.lookupTargets,
           }),
         ),
       ),
-    [columns, labelledRelations],
+    [columns, labelledRelations, table.lookupTargets],
   );
 
   const grid = useTable({
@@ -234,8 +236,10 @@ export function RecordsTable({ table }: { table: TableDetail }) {
           onSearch={(search) => setView({ search }, { replace: true })}
         />
         <FiltersSheet
-          columns={columns.filter(
-            (column) => column.type !== "relation" || (labelledRelations ?? []).includes(column.id),
+          columns={columns.filter((column) =>
+            column.type === "relation"
+              ? (labelledRelations ?? []).includes(column.id)
+              : column.type !== "lookup" || column.id in table.lookupTargets,
           )}
           filters={view.filters}
           onApply={(filters) => setView({ filters })}
@@ -303,7 +307,8 @@ export function RecordsTable({ table }: { table: TableDetail }) {
                   const sorted = header.column.getIsSorted();
                   const SortIcon =
                     sorted === "asc" ? ArrowUp : sorted === "desc" ? ArrowDown : ArrowUpDown;
-                  const numeric = column.type === "number" || column.type === "currency";
+                  const shown = table.lookupTargets[column.id] ?? column;
+                  const numeric = shown.type === "number" || shown.type === "currency";
                   return (
                     <th
                       key={header.id}
@@ -422,7 +427,18 @@ export function RecordsTable({ table }: { table: TableDetail }) {
                             >
                               {/* On phones the fixed column must leave room for the cell being edited. */}
                               <div className={cn(index === 0 && "max-w-36 sm:max-w-56 lg:max-w-none")}>
-                                {canEdit ? (
+                                {column.type === "lookup" ? (
+                                  // Read from the linked record, never edited here (ADR-030).
+                                  table.lookupTargets[column.id] ? (
+                                    <ReadOnlyCell
+                                      column={table.lookupTargets[column.id]}
+                                      value={record.data[column.id]}
+                                      format={format}
+                                    />
+                                  ) : (
+                                    <span className="block h-8" />
+                                  )
+                                ) : canEdit ? (
                                   <EditableCell
                                     column={column}
                                     value={record.data[column.id]}
@@ -537,7 +553,8 @@ export function RecordsTable({ table }: { table: TableDetail }) {
 
       <RecordDialog
         tableId={table.id}
-        columns={columns}
+        // Lookups aren't filled by hand: the form leaves them out.
+        columns={columns.filter(({ type }) => type !== "lookup")}
         linked={records.data?.linked}
         record={dialog.kind === "create" ? undefined : dialog.record}
         editingBy={

@@ -50,6 +50,7 @@ enum ColumnType {
   select
   currency
   relation
+  lookup
 }
 
 model User {

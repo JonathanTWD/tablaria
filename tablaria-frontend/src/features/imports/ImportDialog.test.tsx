@@ -29,6 +29,7 @@ const table: TableDetail = {
   recordCount: 0,
   createdAt: "2026-01-01T00:00:00.000Z",
   updatedAt: "2026-01-01T00:00:00.000Z",
+  lookupTargets: {},
   columns: [
     column(PRODUCT_ID, 0, { name: "Producto", type: "text" }),
     column(STOCK_ID, 1, { name: "Stock", type: "number" }),

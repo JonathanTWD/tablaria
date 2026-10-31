@@ -39,6 +39,9 @@ export function convertCellValue(
     case 'relation':
       // Nothing else names a record of the linked table.
       return null;
+    case 'lookup':
+      // Never stored: read from the linked record (ADR-030).
+      return null;
   }
 }
 
