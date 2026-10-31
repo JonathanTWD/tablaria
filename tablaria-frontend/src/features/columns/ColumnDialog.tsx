@@ -291,6 +291,8 @@ function ColumnForm({
 
         {type === "relation" && <LinkedTableField tableId={tableId} form={form} id={`${ids}-linked`} />}
 
+        {type === "relation" && <MultipleField column={column} form={form} id={`${ids}-multiple`} />}
+
         {type === "lookup" && <LookupFields tableId={tableId} form={form} id={`${ids}-lookup`} />}
 
         {type === "rollup" && <RollupFields tableId={tableId} form={form} id={`${ids}-rollup`} />}
@@ -489,6 +491,53 @@ function ColumnForm({
   );
 }
 
+/**
+ * Whether each record links to several records (ADR-032), warning about what
+ * switching an existing relation changes.
+ */
+function MultipleField({
+  column,
+  form,
+  id,
+}: {
+  column: TableColumn | undefined;
+  form: ReturnType<typeof useForm<ColumnFormValues>>;
+  id: string;
+}) {
+  const { t } = useTranslation("tables");
+  const multiple = useWatch({ control: form.control, name: "multiple" });
+  const was = column?.type === "relation" ? column.options.multiple : multiple;
+  const hint =
+    multiple === was
+      ? t("columnForm.multipleHint")
+      : multiple
+        ? t("columnForm.multipleOn")
+        : t("columnForm.multipleOff");
+
+  return (
+    <Field orientation="horizontal">
+      <FieldContent>
+        <FieldLabel htmlFor={id}>{t("columnForm.multiple")}</FieldLabel>
+        <FieldDescription id={`${id}-hint`} className={cn(multiple !== was && "text-foreground")}>
+          {hint}
+        </FieldDescription>
+      </FieldContent>
+      <Controller
+        control={form.control}
+        name="multiple"
+        render={({ field }) => (
+          <Switch
+            id={id}
+            aria-describedby={`${id}-hint`}
+            checked={field.value}
+            onCheckedChange={field.onChange}
+          />
+        )}
+      />
+    </Field>
+  );
+}
+
 /** The table a relation links to: any table of the same space, this one included. */
 function LinkedTableField({
   tableId,
@@ -574,7 +623,10 @@ function LookupFields({
 }) {
   const { t } = useTranslation("tables");
   const table = useQuery(tableQuery(tableId));
-  const relations = (table.data?.columns ?? []).filter(({ type }) => type === "relation");
+  // A lookup shows one value: it reads through single relations only (ADR-032).
+  const relations = (table.data?.columns ?? []).filter(
+    (item) => item.type === "relation" && !item.options.multiple,
+  );
   const relationColumnId = useWatch({ control: form.control, name: "relationColumnId" });
   const relation = relations.find(({ id: columnId }) => columnId === relationColumnId);
   const linkedTableId = relation?.type === "relation" ? relation.options.tableId : "";

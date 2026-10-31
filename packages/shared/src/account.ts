@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { PASSWORD_MAX_LENGTH, passwordSchema } from "./auth.js";
-import type { ColumnType } from "./column-types.js";
+import type { CellValue, ColumnType } from "./column-types.js";
 import type { TableRole } from "./sharing.js";
 
 /** The current password, checked but not held to today's policy. */
@@ -29,6 +29,6 @@ export interface AccountExport {
     name: string;
     description: string | null;
     columns: { name: string; type: ColumnType; required: boolean }[];
-    records: Record<string, string | number | boolean | null>[];
+    records: Record<string, CellValue>[];
   }[];
 }

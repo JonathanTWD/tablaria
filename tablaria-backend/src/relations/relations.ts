@@ -2,13 +2,14 @@ import {
   ForbiddenException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import type {
-  CellValue,
-  ColumnDefinition,
-  ColumnType,
-  IncomingRelation,
-  RecordColumn,
-  RecordData,
+import {
+  type CellValue,
+  type ColumnDefinition,
+  type ColumnType,
+  type IncomingRelation,
+  linkedRecordIds,
+  type RecordColumn,
+  type RecordData,
 } from '@tablaria/shared';
 import type { Prisma } from '../generated/prisma/client';
 import { dropComputedColumns } from '../lookups/lookups';
@@ -20,7 +21,7 @@ type Db = Prisma.TransactionClient;
 
 type RelationColumn = RecordColumn & {
   type: 'relation';
-  options: { tableId: string };
+  options: { tableId: string; multiple: boolean };
 };
 
 export function isRelation(column: RecordColumn): column is RelationColumn {
@@ -68,11 +69,7 @@ export async function requireLinkedRecords(
 ): Promise<void> {
   for (const column of columns.filter(isRelation)) {
     const ids = [
-      ...new Set(
-        rows
-          .map((row) => row[column.id])
-          .filter((value): value is string => typeof value === 'string'),
-      ),
+      ...new Set(rows.flatMap((row) => linkedRecordIds(row[column.id]))),
     ];
     if (ids.length === 0) {
       continue;
@@ -102,8 +99,7 @@ export async function linkedLabels(
   const idsByTable = new Map<string, Set<string>>();
   for (const column of columns.filter(isRelation)) {
     for (const row of rows) {
-      const id = row[column.id];
-      if (typeof id === 'string') {
+      for (const id of linkedRecordIds(row[column.id])) {
         const ids = idsByTable.get(column.options.tableId) ?? new Set<string>();
         ids.add(id);
         idsByTable.set(column.options.tableId, ids);
@@ -187,6 +183,8 @@ export interface LabelSource {
   viaColumnId: string;
   /** How the value compares when sorting. */
   type: ColumnType;
+  /** The cell holds a list of linked records (ADR-032). */
+  multiple: boolean;
 }
 
 /**
@@ -217,6 +215,7 @@ export async function labelSources(
         columnId: first.id,
         viaColumnId: column.id,
         type: 'text',
+        multiple: column.options.multiple,
       });
     }
   }
@@ -224,8 +223,9 @@ export async function labelSources(
 }
 
 /**
- * Empties the cells that linked to a deleted record; returns the tables they
- * are in, so their open pages refresh.
+ * Takes a deleted record out of the cells that linked to it: a single link
+ * empties its cell, and a list loses that record, emptying it if it was the
+ * last. Returns the tables they are in, so their open pages refresh.
  */
 export async function unlinkRecord(
   tx: Db,
@@ -234,12 +234,18 @@ export async function unlinkRecord(
 ): Promise<string[]> {
   const rows = await tx.$queryRaw<{ tableId: string }[]>`
     UPDATE records AS r
-    SET data = r.data - c.id::text
+    SET data = CASE
+      WHEN jsonb_typeof(r.data -> c.id::text) = 'array'
+           AND jsonb_array_length((r.data -> c.id::text) - ${recordId}::text) > 0
+        THEN jsonb_set(r.data, ARRAY[c.id::text], (r.data -> c.id::text) - ${recordId}::text)
+      ELSE r.data - c.id::text
+    END
     FROM columns AS c
     WHERE c.type = 'relation'
       AND c.options ->> 'tableId' = ${tableId}
       AND r."tableId" = c."tableId"
-      AND r.data ->> c.id::text = ${recordId}
+      AND (r.data ->> c.id::text = ${recordId}
+           OR r.data -> c.id::text @> jsonb_build_array(${recordId}::text))
     RETURNING r."tableId"`;
   return [...new Set(rows.map((row) => row.tableId))];
 }

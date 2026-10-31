@@ -251,7 +251,7 @@ export function RecordsTable({ table }: { table: TableDetail }) {
         <GroupBySelect
           columns={columns.filter(
             (column) =>
-              canGroupRecordsBy(column.type) &&
+              canGroupRecordsBy(column) &&
               (column.type !== "relation" || (labelledRelations ?? []).includes(column.id)),
           )}
           value={view.group}

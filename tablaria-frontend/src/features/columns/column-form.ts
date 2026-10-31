@@ -30,8 +30,9 @@ export interface ColumnFormValues {
   /** Number columns: warn when a value drops below this. Empty for no warning. */
   alertBelow: string;
   choices: { id: string; label: string; color: SelectColor }[];
-  /** Relation columns: the table they link to. */
+  /** Relation columns: the table they link to, and whether to several of its records. */
   tableId: string;
+  multiple: boolean;
   /**
    * Lookups: the relation they read through and the column they show.
    * Rollups: the relation that links here and the column they sum up.
@@ -63,6 +64,7 @@ export function columnFormDefaults(column?: TableColumn): ColumnFormValues {
     alertBelow: "",
     choices: [newChoice(0)],
     tableId: "",
+    multiple: false,
     relationColumnId: "",
     targetColumnId: "",
     rollupFunction: "count",
@@ -79,6 +81,7 @@ export function columnFormDefaults(column?: TableColumn): ColumnFormValues {
   }
   if (column.type === "relation") {
     values.tableId = column.options.tableId;
+    values.multiple = column.options.multiple;
   }
   if (column.type === "lookup") {
     values.relationColumnId = column.options.relationColumnId;
@@ -145,7 +148,12 @@ function toDraft(values: ColumnFormValues) {
     case "currency":
       return { ...base, type: "currency", options: { currency: values.currency } };
     case "relation":
-      return { ...base, type: "relation", options: { tableId: values.tableId }, defaultValue: null };
+      return {
+        ...base,
+        type: "relation",
+        options: { tableId: values.tableId, multiple: values.multiple },
+        defaultValue: null,
+      };
     case "lookup":
       return {
         ...base,
@@ -205,6 +213,7 @@ export const columnFormSchema = z
       z.object({ id: z.string(), label: z.string(), color: z.enum(SELECT_COLORS) }),
     ),
     tableId: z.string(),
+    multiple: z.boolean(),
     relationColumnId: z.string(),
     targetColumnId: z.string(),
     rollupFunction: z.enum(ROLLUP_FUNCTIONS),

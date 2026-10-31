@@ -198,7 +198,10 @@
     "searchPlaceholder": "Buscar…",
     "noResults": "Ningún registro coincide.",
     "noAccess": "No tienes acceso a la tabla enlazada. Pide a quien la administra que te la comparta.",
-    "clear": "Quitar el enlace"
+    "clear": "Quitar el enlace",
+    "clearAll": "Quitar todos los enlaces",
+    "selected": "Enlazados",
+    "remove": "Quitar {{label}}"
   },
   "stock": {
     "title": "Stock de «{{label}}»",

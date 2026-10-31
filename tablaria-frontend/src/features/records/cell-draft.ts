@@ -1,10 +1,17 @@
 import type { CellValue, ColumnDefinition } from "@tablaria/shared";
 
+// Record ids are uuids: they never hold one.
+const ID_SEPARATOR = ",";
+
 /**
  * Text the user edits for a cell: numbers as typed, "true"/"false" for
- * booleans, ISO dates, select labels. "" means empty.
+ * booleans, ISO dates, select labels, and the linked record ids of a
+ * multiple relation, comma-separated. "" means empty.
  */
 export function toDraft(value: CellValue | undefined): string {
+  if (Array.isArray(value)) {
+    return value.join(ID_SEPARATOR);
+  }
   return value === null || value === undefined ? "" : String(value);
 }
 
@@ -13,7 +20,7 @@ export function toDraft(value: CellValue | undefined): string {
  * numbers accept a decimal comma. Invalid numbers become NaN, which the
  * column schema rejects.
  */
-export function fromDraft(column: ColumnDefinition, draft: string): unknown {
+export function fromDraft(column: ColumnDefinition, draft: string): CellValue {
   const text = draft.trim();
   if (text === "") {
     return null;
@@ -24,6 +31,8 @@ export function fromDraft(column: ColumnDefinition, draft: string): unknown {
       return Number(text.replace(",", "."));
     case "boolean":
       return text === "true";
+    case "relation":
+      return column.options.multiple ? text.split(ID_SEPARATOR) : text;
     default:
       return text;
   }

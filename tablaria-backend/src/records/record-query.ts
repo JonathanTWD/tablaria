@@ -103,8 +103,10 @@ export function buildRecordQuery(
   }
   // Grouped: records come group by group, each group in the requested order.
   const groupColumn = findColumn(query.group);
-  if (!canGroupRecordsBy(groupColumn.type)) {
-    throw new BadRequestException(`Can't group by ${groupColumn.type} columns`);
+  if (!canGroupRecordsBy(groupColumn)) {
+    throw new BadRequestException(
+      `Can't group by ${groupColumn.type === 'relation' ? 'multiple relation' : groupColumn.type} columns`,
+    );
   }
   const groupValue = textOf(groupColumn);
   return {
@@ -162,9 +164,19 @@ function cellText(column: RecordColumn): Prisma.Sql {
 
 /**
  * A column of the record that a relation cell links to, as text. Relation
- * cells always hold a validated uuid.
+ * cells always hold a validated uuid, or a list of them when multiple: then
+ * it is every linked record's, alphabetically and comma-separated (ADR-032).
  */
 function labelText(source: LabelSource): Prisma.Sql {
+  if (source.multiple) {
+    return Prisma.sql`(SELECT string_agg(lr.data ->> ${source.columnId}::text, ', '
+        ORDER BY lower(lr.data ->> ${source.columnId}::text))
+      FROM records lr
+      WHERE lr."tableId" = ${source.tableId}::uuid
+        AND lr.id IN (SELECT jsonb_array_elements_text(
+          CASE WHEN jsonb_typeof(r.data -> ${source.viaColumnId}::text) = 'array'
+               THEN r.data -> ${source.viaColumnId}::text END)::uuid))`;
+  }
   return Prisma.sql`(SELECT lr.data ->> ${source.columnId}::text FROM records lr
     WHERE lr."tableId" = ${source.tableId}::uuid
       AND lr.id = (r.data ->> ${source.viaColumnId}::text)::uuid)`;

@@ -19,6 +19,8 @@ export const COLUMN_NAME_MAX_LENGTH = 60;
 export const TEXT_VALUE_MAX_LENGTH = 2000;
 export const MAX_SELECT_CHOICES = 50;
 export const SELECT_CHOICE_MAX_LENGTH = 50;
+/** Records one cell of a multiple relation can link to. */
+export const MAX_LINKS_PER_CELL = 100;
 
 export const SELECT_COLORS = [
   "gray",
@@ -35,8 +37,11 @@ export const SELECT_COLORS = [
 
 export type SelectColor = (typeof SELECT_COLORS)[number];
 
-/** A stored cell value. Empty cells are absent (or null), never an empty string. */
-export type CellValue = string | number | boolean | null;
+/**
+ * A stored cell value. Empty cells are absent (or null), never an empty
+ * string or list. A list holds the records a multiple relation links to (ADR-032).
+ */
+export type CellValue = string | number | boolean | null | string[];
 
 /** Valid value for each column type, ignoring per-column settings such as select choices. */
 export const columnValueSchemas = {
@@ -99,8 +104,14 @@ export const numberOptionsSchema = z.object({
   alertBelow: z.number().min(0).max(1_000_000_000),
 });
 
-/** A relation links each record to one record of another table of the same space. */
-export const relationOptionsSchema = z.object({ tableId: z.uuid() });
+/**
+ * A relation links each record to one record of another table of the same
+ * space or, when multiple, to several (ADR-032).
+ */
+export const relationOptionsSchema = z.object({
+  tableId: z.uuid(),
+  multiple: z.boolean().default(false),
+});
 
 /**
  * A lookup shows a column of the record that a relation of the same table
