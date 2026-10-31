@@ -30,6 +30,9 @@ export interface ColumnFormValues {
   choices: { id: string; label: string; color: SelectColor }[];
   /** Relation columns: the table they link to. */
   tableId: string;
+  /** Lookup columns: the relation they read through and the column they show. */
+  relationColumnId: string;
+  targetColumnId: string;
   /** Typed text, "true"/"false" for booleans, or the choice id for selects. */
   defaultValue: string;
 }
@@ -53,6 +56,8 @@ export function columnFormDefaults(column?: TableColumn): ColumnFormValues {
     alertBelow: "",
     choices: [newChoice(0)],
     tableId: "",
+    relationColumnId: "",
+    targetColumnId: "",
     defaultValue: "",
   };
   if (!column) {
@@ -66,6 +71,10 @@ export function columnFormDefaults(column?: TableColumn): ColumnFormValues {
   }
   if (column.type === "relation") {
     values.tableId = column.options.tableId;
+  }
+  if (column.type === "lookup") {
+    values.relationColumnId = column.options.relationColumnId;
+    values.targetColumnId = column.options.targetColumnId;
   }
   if (column.type === "number" && column.options) {
     values.alertBelow = String(column.options.alertBelow);
@@ -124,6 +133,14 @@ function toDraft(values: ColumnFormValues) {
       return { ...base, type: "currency", options: { currency: values.currency } };
     case "relation":
       return { ...base, type: "relation", options: { tableId: values.tableId }, defaultValue: null };
+    case "lookup":
+      return {
+        ...base,
+        type: "lookup",
+        required: false,
+        options: { relationColumnId: values.relationColumnId, targetColumnId: values.targetColumnId },
+        defaultValue: null,
+      };
     case "number": {
       const alertBelow = values.alertBelow.trim();
       return {
@@ -163,6 +180,8 @@ export const columnFormSchema = z
       z.object({ id: z.string(), label: z.string(), color: z.enum(SELECT_COLORS) }),
     ),
     tableId: z.string(),
+    relationColumnId: z.string(),
+    targetColumnId: z.string(),
     defaultValue: z.string(),
   })
   .superRefine((values, ctx) => {

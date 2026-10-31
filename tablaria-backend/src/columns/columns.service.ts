@@ -8,6 +8,7 @@ import {
 import {
   type CellValue,
   type ColumnDefinition,
+  canBeLookedUp,
   canBeUnique,
   columnDefinitionSchema,
   MAX_COLUMNS_PER_TABLE,
@@ -21,6 +22,11 @@ import { PrismaService } from '../database/prisma.service';
 import { RealtimeService } from '../realtime/realtime.service';
 import { Prisma } from '../generated/prisma/client';
 import { requireNoRepeatedValues } from '../records/unique-values';
+import {
+  dropLookups,
+  requireLookupSource,
+  requireSameLookupType,
+} from '../lookups/lookups';
 import { requireLinkableTable } from '../relations/relations';
 import { accessibleTables, touchTable } from '../tables/table-access';
 import { toColumnData, toTableColumn } from './column-mapper';
@@ -63,6 +69,7 @@ export class ColumnsService {
           throw new UnprocessableEntityException('Column limit reached');
         }
         await requireLinkableTable(tx, tableId, definition);
+        await requireLookupSource(tx, userId, tableId, definition);
 
         const column = await tx.column.create({
           data: {
@@ -98,6 +105,8 @@ export class ColumnsService {
     columnId: string,
     patch: UpdateColumnInput,
   ): Promise<UpdateColumnResponse> {
+    // Other tables whose lookups this change removes, to refresh them too.
+    let droppedIn: string[] = [];
     const result = await withUniqueColumnName(() =>
       this.prisma.$transaction(async (tx) => {
         await touchTable(tx, userId, tableId, 'ADMIN');
@@ -110,11 +119,27 @@ export class ColumnsService {
         }
 
         const current = toTableColumn(stored);
+        requireSameLookupType(current.type, patch.type ?? current.type);
         const next = parseOrThrow(
           columnDefinitionSchema,
           mergeColumnPatch(current, patch),
         );
         await requireLinkableTable(tx, tableId, next);
+        await requireLookupSource(tx, userId, tableId, next);
+        droppedIn = await dropLookups(tx, {
+          // A relation that links elsewhere, or no longer links.
+          relationColumnIds:
+            current.type === 'relation' &&
+            (next.type !== 'relation' ||
+              next.options.tableId !== current.options.tableId)
+              ? [columnId]
+              : [],
+          // A column that stops being something a lookup can show.
+          targetColumnIds:
+            canBeLookedUp(current.type) && !canBeLookedUp(next.type)
+              ? [columnId]
+              : [],
+        });
         const clearedValues = await convertStoredValues(
           tx,
           tableId,
@@ -139,7 +164,9 @@ export class ColumnsService {
         return { column: toTableColumn(column), clearedValues };
       }),
     );
-    this.realtime.publish(tableId, 'columns');
+    for (const changed of new Set([tableId, ...droppedIn])) {
+      this.realtime.publish(changed, 'columns');
+    }
     return result;
   }
 
@@ -182,7 +209,7 @@ export class ColumnsService {
     tableId: string,
     columnId: string,
   ): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
+    const droppedIn = await this.prisma.$transaction(async (tx) => {
       await touchTable(tx, userId, tableId, 'ADMIN');
 
       const stored = await tx.column.findFirst({
@@ -202,8 +229,15 @@ export class ColumnsService {
         UPDATE records
         SET data = data - ${columnId}::text
         WHERE "tableId" = ${tableId}::uuid AND data ? ${columnId}::text`;
+      // Lookups reading through this relation, or showing this column (ADR-030).
+      return dropLookups(tx, {
+        relationColumnIds: [columnId],
+        targetColumnIds: [columnId],
+      });
     });
-    this.realtime.publish(tableId, 'columns');
+    for (const changed of new Set([tableId, ...droppedIn])) {
+      this.realtime.publish(changed, 'columns');
+    }
   }
 }
 

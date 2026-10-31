@@ -50,6 +50,7 @@ function toFilter(column: TableColumn, draft: FilterDraft): RecordFilter | null 
   switch (column.type) {
     case "text":
     case "relation":
+    case "lookup":
       return draft.value.trim() ? { columnId, op: "contains", value: draft.value.trim() } : null;
     case "boolean":
       return draft.is ? { columnId, op: "is", value: draft.is === "true" } : null;
@@ -155,7 +156,7 @@ function ColumnFilter({
   const set = (patch: Partial<FilterDraft>) => onChange({ ...draft, ...patch });
 
   // A relation matches by its linked record's name.
-  if (column.type === "text" || column.type === "relation") {
+  if (column.type === "text" || column.type === "relation" || column.type === "lookup") {
     return (
       <div className="space-y-1.5">
         <label htmlFor={id} className="text-sm font-medium">

@@ -38,6 +38,11 @@ import {
 } from '../relations/relations';
 import { accessibleTables, touchTable } from '../tables/table-access';
 import { buildRecordQuery } from './record-query';
+import {
+  fillLookups,
+  lookupLabelSources,
+  lookupSources,
+} from '../lookups/lookups';
 import { logStockChanges } from '../stock-movements/stock-log';
 import { toTableRecord, withoutEmptyCells } from './record-data';
 import { requireUniqueValues } from './unique-values';
@@ -71,14 +76,13 @@ export class RecordsService {
     }
 
     const columns = table.columns.map(toTableColumn);
-    const labels = await labelSources(this.prisma, userId, columns);
-    const page = await queryRecordPage(
-      this.prisma,
-      tableId,
-      columns,
-      query,
-      labels,
-    );
+    const relations = await labelSources(this.prisma, userId, columns);
+    const lookups = await lookupSources(this.prisma, userId, columns);
+    const page = await queryRecordPage(this.prisma, tableId, columns, query, [
+      ...relations,
+      ...lookupLabelSources(lookups),
+    ]);
+    await fillLookups(this.prisma, lookups, page.data);
     return {
       ...page,
       linked: await linkedLabels(
@@ -87,7 +91,7 @@ export class RecordsService {
         columns,
         page.data.map(({ data }) => data),
       ),
-      labelledRelations: [...labels.keys()],
+      labelledRelations: [...relations.keys()],
     };
   }
 
@@ -106,17 +110,22 @@ export class RecordsService {
     }
 
     const columns = table.columns.map(toTableColumn);
+    const lookups = await lookupSources(this.prisma, userId, columns);
     const { where, orderBy } = buildRecordQuery(
       tableId,
       columns,
       query,
-      await labelSources(this.prisma, userId, columns),
+      new Map([
+        ...(await labelSources(this.prisma, userId, columns)),
+        ...lookupLabelSources(lookups),
+      ]),
     );
     const rows = await this.prisma.$queryRaw<{ data: RecordData }[]>`
       SELECT r.data FROM records r
       WHERE ${where}
       ORDER BY ${orderBy}
       LIMIT ${MAX_RECORDS_PER_TABLE}`;
+    await fillLookups(this.prisma, lookups, rows);
 
     return {
       fileName: exportFileName(table.name, 'csv'),
@@ -132,6 +141,8 @@ export class RecordsService {
             columns,
             rows.map(({ data }) => data),
           ),
+          // Lookups are formatted like the column they show.
+          new Map([...lookups].map(([id, { target }]) => [id, target])),
         ),
         'utf8',
       ),
@@ -317,13 +328,13 @@ export async function queryRecordPage(
   tableId: string,
   columns: RecordColumn[],
   query: RecordListQuery,
-  labels?: ReadonlyMap<string, LabelSource>,
+  labels?: Iterable<[string, LabelSource]>,
 ): Promise<Paginated<TableRecord> & { groups: RecordGroup[] }> {
   const { where, orderBy, groupValue } = buildRecordQuery(
     tableId,
     columns,
     query,
-    labels,
+    new Map(labels),
   );
   const offset = (query.page - 1) * query.pageSize;
   const [rows, [{ total }], groups] = await Promise.all([

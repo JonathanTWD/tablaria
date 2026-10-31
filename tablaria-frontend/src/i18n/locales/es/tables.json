@@ -149,7 +149,9 @@
     "deleteDescription": "Se borrarán también sus valores en todos los registros. No se puede deshacer.",
     "deleted": "Columna «{{name}}» borrada",
     "yes": "Sí",
-    "no": "No"
+    "no": "No",
+    "lookup": "Muestra «{{target}}» a través de «{{relation}}»",
+    "lookupHidden": "A través de «{{relation}}», de una tabla que no puedes abrir"
   },
   "types": {
     "text": "Texto",
@@ -158,7 +160,8 @@
     "boolean": "Sí / No",
     "select": "Lista de opciones",
     "currency": "Precio",
-    "relation": "Relación con otra tabla"
+    "relation": "Relación con otra tabla",
+    "lookup": "Consulta de otra tabla"
   },
   "typeHints": {
     "text": "Nombres, referencias, notas…",
@@ -167,7 +170,8 @@
     "boolean": "Activo, revisado, en oferta…",
     "select": "Estado, categoría… con colores",
     "currency": "Importes en la moneda que elijas",
-    "relation": "Un registro de otra tabla de este espacio"
+    "relation": "Un registro de otra tabla de este espacio",
+    "lookup": "Muestra un dato del registro enlazado, como el teléfono del proveedor"
   },
   "colors": {
     "gray": "Gris",
@@ -220,7 +224,8 @@
       "choiceLabel": "Escribe la opción (hasta 50 caracteres) sin repetir otra.",
       "defaultValue": "Este valor no encaja con el tipo de la columna.",
       "alertBelow": "Escribe un número igual o mayor que 0.",
-      "linkedTable": "Elige la tabla con la que enlazar."
+      "linkedTable": "Elige la tabla con la que enlazar.",
+      "lookup": "Elige la relación y el dato que quieres mostrar."
     },
     "linkedTable": "Tabla enlazada",
     "linkedTablePlaceholder": "Elige una tabla",
@@ -228,7 +233,14 @@
     "linkedLabel": "Se verá «{{column}}», la primera columna de {{table}}. Para mostrar otra, súbela a la primera posición en esa tabla.",
     "linkedLabelNone": "{{table}} todavía no tiene columnas: los registros enlazados no tendrán nombre hasta que le añadas una.",
     "linkedLabelRelation": "La primera columna de {{table}} es otra relación: sube una de texto a la primera posición para que los registros enlazados tengan nombre.",
-    "linkedTableError": "Esa tabla ya no existe o no es de este espacio."
+    "linkedTableError": "Esa tabla ya no existe o no es de este espacio.",
+    "lookupRelation": "A través de la relación",
+    "lookupRelationPlaceholder": "Elige una columna de relación",
+    "lookupRelationHint": "La columna de esta tabla que enlaza con la otra.",
+    "lookupNoRelations": "Primero añade una columna de tipo «Relación con otra tabla»: la consulta lee a través de ella.",
+    "lookupTarget": "Dato que se muestra",
+    "lookupTargetPlaceholder": "Elige una columna",
+    "lookupTargetHint": "Se lee del registro enlazado cada vez: si cambia allí, cambia aquí. No se puede editar en esta tabla."
   },
   "validation": {
     "tableName": "Escribe un nombre de hasta 80 caracteres.",

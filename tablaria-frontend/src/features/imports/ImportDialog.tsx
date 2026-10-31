@@ -113,7 +113,11 @@ function ImportWizard({ destination, onDone }: { destination: ImportDestination;
   const { t, i18n } = useTranslation("records");
   const navigate = useNavigate();
   const maxRows = MAX_IMPORT_ROWS.toLocaleString(i18n.language);
-  const tableColumns = destination.kind === "table" ? destination.table.columns : [];
+  // Lookups are read from another table, never filled (ADR-030).
+  const tableColumns =
+    destination.kind === "table"
+      ? destination.table.columns.filter(({ type }) => type !== "lookup")
+      : [];
   // Columns and choices change the table's structure: admins only (the API checks too).
   const canChangeColumns = destination.kind === "newTable" || hasRole(destination.table.role, "ADMIN");
   const [file, setFile] = useState<LoadedFile | null>(null);

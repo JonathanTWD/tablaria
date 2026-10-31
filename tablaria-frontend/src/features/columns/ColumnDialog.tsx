@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery } from "@tanstack/react-query";
 import {
+  canBeLookedUp,
   canBeUnique,
   COLUMN_TYPES,
   MAX_SELECT_CHOICES,
@@ -208,6 +209,7 @@ function ColumnForm({
               <Select
                 items={typeItems}
                 value={field.value}
+                disabled={column?.type === "lookup"}
                 onValueChange={(value) => {
                   if (value) {
                     field.onChange(value);
@@ -220,7 +222,8 @@ function ColumnForm({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {COLUMN_TYPES.map((value) => {
+                  {/* A lookup is created as one and stays one (ADR-030). */}
+                  {COLUMN_TYPES.filter((value) => !column || value !== "lookup").map((value) => {
                     const Icon = COLUMN_TYPE_ICONS[value];
                     return (
                       <SelectItem key={value} value={value} className="py-1.5">
@@ -280,6 +283,8 @@ function ColumnForm({
         )}
 
         {type === "relation" && <LinkedTableField tableId={tableId} form={form} id={`${ids}-linked`} />}
+
+        {type === "lookup" && <LookupFields tableId={tableId} form={form} id={`${ids}-lookup`} />}
 
         {type === "number" && (
           <FormField
@@ -383,6 +388,7 @@ function ColumnForm({
           </fieldset>
         )}
 
+        {type !== "lookup" && (
         <Field orientation="horizontal">
           <FieldContent>
             <FieldLabel htmlFor={`${ids}-required`}>{t("columnForm.required")}</FieldLabel>
@@ -403,6 +409,7 @@ function ColumnForm({
             )}
           />
         </Field>
+        )}
 
         {type === "number" && !unique && (
           <Field orientation="horizontal">
@@ -450,7 +457,7 @@ function ColumnForm({
 
         {/* A default record would link every new record to the same one, and
             a unique column can't give the same value to every record. */}
-        {type !== "relation" && !unique && (
+        {type !== "relation" && type !== "lookup" && !unique && (
           <DefaultValueField
             id={`${ids}-default`}
             type={type}
@@ -544,6 +551,112 @@ function LinkedTableField({
         </FieldDescription>
       )}
     </Field>
+  );
+}
+
+function LookupFields({
+  tableId,
+  form,
+  id,
+}: {
+  tableId: string;
+  form: ReturnType<typeof useForm<ColumnFormValues>>;
+  id: string;
+}) {
+  const { t } = useTranslation("tables");
+  const table = useQuery(tableQuery(tableId));
+  const relations = (table.data?.columns ?? []).filter(({ type }) => type === "relation");
+  const relationColumnId = useWatch({ control: form.control, name: "relationColumnId" });
+  const relation = relations.find(({ id: columnId }) => columnId === relationColumnId);
+  const linkedTableId = relation?.type === "relation" ? relation.options.tableId : "";
+  const linked = useQuery({ ...tableQuery(linkedTableId), enabled: linkedTableId !== "" });
+  const targets = (linked.data?.columns ?? []).filter(({ type }) => canBeLookedUp(type));
+  const { errors } = form.formState;
+
+  if (table.data && relations.length === 0) {
+    return <FormAlert>{t("columnForm.lookupNoRelations")}</FormAlert>;
+  }
+
+  return (
+    <>
+      <Field data-invalid={Boolean(errors.relationColumnId)}>
+        <FieldLabel htmlFor={`${id}-relation`}>{t("columnForm.lookupRelation")}</FieldLabel>
+        <Controller
+          control={form.control}
+          name="relationColumnId"
+          render={({ field }) => (
+            <Select
+              items={Object.fromEntries(relations.map((item) => [item.id, item.name]))}
+              value={field.value}
+              onValueChange={(value) => {
+                if (value) {
+                  field.onChange(value);
+                  // Another relation links to another table: its columns differ.
+                  form.setValue("targetColumnId", "");
+                }
+              }}
+            >
+              <SelectTrigger
+                id={`${id}-relation`}
+                aria-invalid={Boolean(errors.relationColumnId)}
+                aria-describedby={`${id}-relation-hint`}
+                className="h-9 w-full"
+              >
+                <SelectValue placeholder={t("columnForm.lookupRelationPlaceholder")} />
+              </SelectTrigger>
+              <SelectContent>
+                {relations.map((item) => (
+                  <SelectItem key={item.id} value={item.id}>
+                    {item.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        />
+        {errors.relationColumnId ? (
+          <FieldError id={`${id}-relation-hint`}>{t("columnForm.errors.lookup")}</FieldError>
+        ) : (
+          <FieldDescription id={`${id}-relation-hint`}>{t("columnForm.lookupRelationHint")}</FieldDescription>
+        )}
+      </Field>
+      <Field data-invalid={Boolean(errors.targetColumnId)}>
+        <FieldLabel htmlFor={`${id}-target`}>{t("columnForm.lookupTarget")}</FieldLabel>
+        <Controller
+          control={form.control}
+          name="targetColumnId"
+          render={({ field }) => (
+            <Select
+              items={Object.fromEntries(targets.map((item) => [item.id, item.name]))}
+              value={field.value}
+              disabled={!relation}
+              onValueChange={(value) => value && field.onChange(value)}
+            >
+              <SelectTrigger
+                id={`${id}-target`}
+                aria-invalid={Boolean(errors.targetColumnId)}
+                aria-describedby={`${id}-target-hint`}
+                className="h-9 w-full"
+              >
+                <SelectValue placeholder={t("columnForm.lookupTargetPlaceholder")} />
+              </SelectTrigger>
+              <SelectContent>
+                {targets.map((item) => (
+                  <SelectItem key={item.id} value={item.id}>
+                    {item.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        />
+        {errors.targetColumnId ? (
+          <FieldError id={`${id}-target-hint`}>{t("columnForm.errors.lookup")}</FieldError>
+        ) : (
+          <FieldDescription id={`${id}-target-hint`}>{t("columnForm.lookupTargetHint")}</FieldDescription>
+        )}
+      </Field>
+    </>
   );
 }
 

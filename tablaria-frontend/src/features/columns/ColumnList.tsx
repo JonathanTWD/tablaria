@@ -79,6 +79,14 @@ export function ColumnList({ table }: { table: TableDetail }) {
               key={column.id}
               canManage={canManage}
               column={column}
+              lookup={
+                column.type === "lookup"
+                  ? {
+                      relation: columns.find(({ id }) => id === column.options.relationColumnId)?.name ?? "",
+                      target: table.lookupTargets[column.id]?.name,
+                    }
+                  : undefined
+              }
               isFirst={index === 0}
               isLast={index === columns.length - 1}
               onMove={(offset) => move(index, offset)}
@@ -109,6 +117,7 @@ export function ColumnList({ table }: { table: TableDetail }) {
 
 function ColumnRow({
   column,
+  lookup,
   canManage,
   isFirst,
   isLast,
@@ -117,6 +126,8 @@ function ColumnRow({
   onDelete,
 }: {
   column: TableColumn;
+  /** For a lookup: the relation it reads through and what it shows, if visible. */
+  lookup?: { relation: string; target: string | undefined };
   canManage: boolean;
   isFirst: boolean;
   isLast: boolean;
@@ -139,6 +150,10 @@ function ColumnRow({
     column.type === "number" &&
       column.options &&
       t("columns.alertBelow", { value: format(column, column.options.alertBelow) }),
+    lookup &&
+      (lookup.target
+        ? t("columns.lookup", { target: lookup.target, relation: lookup.relation })
+        : t("columns.lookupHidden", { relation: lookup.relation })),
   ].filter(Boolean);
 
   return (

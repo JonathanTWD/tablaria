@@ -102,7 +102,8 @@
       "date": "Elige una fecha válida.",
       "select": "Elige una de las opciones.",
       "boolean": "Elige Sí o No.",
-      "relation": "Elige un registro de la tabla enlazada."
+      "relation": "Elige un registro de la tabla enlazada.",
+      "lookup": "Este dato se lee de otra tabla."
     }
   },
   "delete": {
@@ -167,7 +168,8 @@
         "date": "no es una fecha (usa 31/12/2026 o 2026-12-31)",
         "boolean": "no es Sí o No",
         "select": "no es una opción de la lista",
-        "relation": "no se puede importar en una relación: enlázala después en la tabla"
+        "relation": "no se puede importar en una relación: enlázala después en la tabla",
+        "lookup": "se lee de otra tabla"
       }
     },
     "submit_one": "Importar {{count}} registro",
