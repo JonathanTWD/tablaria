@@ -38,6 +38,7 @@ import {
 } from '../relations/relations';
 import { accessibleTables, touchTable } from '../tables/table-access';
 import { buildRecordQuery } from './record-query';
+import { fillRollups, rollupSources } from '../rollups/rollups';
 import {
   fillLookups,
   lookupLabelSources,
@@ -83,6 +84,11 @@ export class RecordsService {
       ...lookupLabelSources(lookups),
     ]);
     await fillLookups(this.prisma, lookups, page.data);
+    await fillRollups(
+      this.prisma,
+      await rollupSources(this.prisma, userId, columns),
+      page.data,
+    );
     return {
       ...page,
       linked: await linkedLabels(
@@ -120,12 +126,16 @@ export class RecordsService {
         ...lookupLabelSources(lookups),
       ]),
     );
-    const rows = await this.prisma.$queryRaw<{ data: RecordData }[]>`
-      SELECT r.data FROM records r
+    const rows = await this.prisma.$queryRaw<
+      { id: string; data: RecordData }[]
+    >`
+      SELECT r.id, r.data FROM records r
       WHERE ${where}
       ORDER BY ${orderBy}
       LIMIT ${MAX_RECORDS_PER_TABLE}`;
     await fillLookups(this.prisma, lookups, rows);
+    const rollups = await rollupSources(this.prisma, userId, columns);
+    await fillRollups(this.prisma, rollups, rows);
 
     return {
       fileName: exportFileName(table.name, 'csv'),
@@ -141,8 +151,13 @@ export class RecordsService {
             columns,
             rows.map(({ data }) => data),
           ),
-          // Lookups are formatted like the column they show.
-          new Map([...lookups].map(([id, { target }]) => [id, target])),
+          // Lookups and rollups are formatted like the column they show.
+          new Map([
+            ...[...lookups].map(([id, { target }]) => [id, target] as const),
+            ...[...rollups].flatMap(([id, { target }]) =>
+              target ? [[id, target] as const] : [],
+            ),
+          ]),
         ),
         'utf8',
       ),

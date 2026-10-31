@@ -40,7 +40,8 @@ export function convertCellValue(
       // Nothing else names a record of the linked table.
       return null;
     case 'lookup':
-      // Never stored: read from the linked record (ADR-030).
+    case 'rollup':
+      // Never stored: computed when read (ADR-030, ADR-031).
       return null;
   }
 }

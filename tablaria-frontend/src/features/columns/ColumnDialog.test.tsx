@@ -33,6 +33,8 @@ function table(id: string, name: string, columns: TableColumn[]): TableDetail {
     updatedAt: "2026-01-01T00:00:00.000Z",
     columns,
     lookupTargets: {},
+  rollupTargets: {},
+  incomingRelations: [],
   };
 }
 
@@ -114,6 +116,74 @@ describe("ColumnDialog", () => {
           required: false,
           options: { relationColumnId: supplier.id, targetColumnId: phone.id },
           defaultValue: null,
+        }),
+      ]),
+    );
+  });
+
+  it("creates a rollup that adds up a column of the records linking here", async () => {
+    const user = userEvent.setup();
+    const TEAMS_ID = "7b8c9d0e-1111-4aaa-8bbb-000000000010";
+    const PEOPLE_ID = "7b8c9d0e-2222-4aaa-8bbb-000000000011";
+    const salary = column("7b8c9d0e-3333-4aaa-8bbb-000000000012", 1, {
+      name: "Salario",
+      type: "currency",
+      options: { currency: "EUR" },
+    });
+    const team = column("7b8c9d0e-4444-4aaa-8bbb-000000000013", 2, {
+      name: "Equipo",
+      type: "relation",
+      options: { tableId: TEAMS_ID },
+    });
+    const people = table(PEOPLE_ID, "Empleados", [
+      column("7b8c9d0e-5555-4aaa-8bbb-000000000014", 0, { name: "Nombre", type: "text" }),
+      salary,
+      column("7b8c9d0e-6666-4aaa-8bbb-000000000015", 3, { name: "Puesto", type: "text" }),
+      team,
+    ]);
+    const teams = {
+      ...table(TEAMS_ID, "Equipos", []),
+      incomingRelations: [
+        { columnId: team.id, columnName: "Equipo", tableId: PEOPLE_ID, tableName: "Empleados" },
+      ],
+    };
+    const sent: unknown[] = [];
+    mockApi((url, init) => {
+      if (init.method === "POST") {
+        sent.push(JSON.parse(String(init.body)));
+        return { ...team, id: "7b8c9d0e-7777-4aaa-8bbb-000000000016" };
+      }
+      if (url.pathname.endsWith(`/tables/${PEOPLE_ID}`)) {
+        return people;
+      }
+      if (url.pathname.endsWith(`/tables/${TEAMS_ID}`)) {
+        return teams;
+      }
+      return [teams, people];
+    });
+    renderWithProviders(
+      <ColumnDialog tableId={TEAMS_ID} recordCount={0} open onOpenChange={() => undefined} />,
+    );
+
+    await user.type(screen.getByLabelText("Nombre"), "Coste en salarios");
+    await user.click(screen.getByLabelText("Tipo"));
+    await user.click(await screen.findByRole("option", { name: /Resumen de otra tabla/ }));
+    await user.click(await screen.findByLabelText("Registros que enlazan aquí"));
+    await user.click(await screen.findByRole("option", { name: "Empleados · Equipo" }));
+    await user.click(screen.getByLabelText("Cálculo"));
+    await user.click(await screen.findByRole("option", { name: "Sumar" }));
+    // Only what can be added up: the salary, not the job title.
+    await user.click(screen.getByLabelText("Columna"));
+    expect(screen.queryByRole("option", { name: "Puesto" })).not.toBeInTheDocument();
+    await user.click(await screen.findByRole("option", { name: "Salario" }));
+    await user.click(screen.getByRole("button", { name: "Añadir columna" }));
+
+    await waitFor(() =>
+      expect(sent).toEqual([
+        expect.objectContaining({
+          type: "rollup",
+          required: false,
+          options: { relationColumnId: team.id, function: "sum", targetColumnId: salary.id },
         }),
       ]),
     );

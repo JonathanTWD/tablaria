@@ -1,4 +1,4 @@
-import { hasRole, type TableColumn, type TableDetail } from "@tablaria/shared";
+import { hasRole, type RollupFunction, type TableColumn, type TableDetail } from "@tablaria/shared";
 import { ArrowDown, ArrowUp, Columns3, Ellipsis, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -87,6 +87,7 @@ export function ColumnList({ table }: { table: TableDetail }) {
                     }
                   : undefined
               }
+              rollup={column.type === "rollup" ? rollupSummary(table, column) : undefined}
               isFirst={index === 0}
               isLast={index === columns.length - 1}
               onMove={(offset) => move(index, offset)}
@@ -118,6 +119,7 @@ export function ColumnList({ table }: { table: TableDetail }) {
 function ColumnRow({
   column,
   lookup,
+  rollup,
   canManage,
   isFirst,
   isLast,
@@ -128,6 +130,8 @@ function ColumnRow({
   column: TableColumn;
   /** For a lookup: the relation it reads through and what it shows, if visible. */
   lookup?: { relation: string; target: string | undefined };
+  /** For a rollup: what it sums up, or null when its table can't be opened. */
+  rollup?: RollupSummary | null;
   canManage: boolean;
   isFirst: boolean;
   isLast: boolean;
@@ -154,6 +158,13 @@ function ColumnRow({
       (lookup.target
         ? t("columns.lookup", { target: lookup.target, relation: lookup.relation })
         : t("columns.lookupHidden", { relation: lookup.relation })),
+    rollup === null && t("columns.rollupHidden"),
+    rollup &&
+      t(`columns.rollup.${rollup.fn}`, {
+        table: rollup.table,
+        relation: rollup.relation,
+        target: rollup.target,
+      }),
   ].filter(Boolean);
 
   return (
@@ -230,4 +241,27 @@ function ColumnRow({
       )}
     </li>
   );
+}
+
+interface RollupSummary {
+  fn: RollupFunction;
+  table: string;
+  relation: string;
+  target: string;
+}
+
+/** What a rollup sums up, in words; null when its linking table can't be opened. */
+function rollupSummary(table: TableDetail, column: TableColumn): RollupSummary | null {
+  if (column.type !== "rollup" || !(column.id in table.rollupTargets)) {
+    return null;
+  }
+  const relation = table.incomingRelations.find(
+    ({ columnId }) => columnId === column.options.relationColumnId,
+  );
+  return {
+    fn: column.options.function,
+    table: relation?.tableName ?? "",
+    relation: relation?.columnName ?? "",
+    target: table.rollupTargets[column.id]?.name ?? "",
+  };
 }

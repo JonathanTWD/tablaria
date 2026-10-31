@@ -40,6 +40,10 @@ export function buildRecordQuery(
     if (!column) {
       throw new BadRequestException(`Unknown column ${columnId}`);
     }
+    // Computed per page in the API, not in SQL: not a filter or sort key yet (ADR-031).
+    if (column.type === 'rollup') {
+      throw new BadRequestException("Rollups can't be filtered or sorted yet");
+    }
     return column;
   };
   /**

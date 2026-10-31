@@ -74,12 +74,18 @@ export function planImport(
       if (!column) {
         throw new InvalidImportError(`Column ${target} is not in this table`);
       }
-      if (column.type === 'lookup') {
-        throw new InvalidImportError('An import cannot fill lookup columns');
+      if (column.type === 'lookup' || column.type === 'rollup') {
+        throw new InvalidImportError(
+          `An import cannot fill ${column.type} columns`,
+        );
       }
       return column;
     }
-    if (target.create.type === 'relation' || target.create.type === 'lookup') {
+    if (
+      target.create.type === 'relation' ||
+      target.create.type === 'lookup' ||
+      target.create.type === 'rollup'
+    ) {
       // What they link to is decided in the column settings, not in a file.
       throw new InvalidImportError(
         `An import cannot create ${target.create.type} columns`,

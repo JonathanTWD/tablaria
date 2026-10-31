@@ -2,6 +2,8 @@ import {
   canBeUnique,
   COLUMN_TYPES,
   columnDefinitionSchema,
+  ROLLUP_FUNCTIONS,
+  type RollupFunction,
   columnNameSchema,
   SELECT_COLORS,
   type CellValue,
@@ -30,9 +32,14 @@ export interface ColumnFormValues {
   choices: { id: string; label: string; color: SelectColor }[];
   /** Relation columns: the table they link to. */
   tableId: string;
-  /** Lookup columns: the relation they read through and the column they show. */
+  /**
+   * Lookups: the relation they read through and the column they show.
+   * Rollups: the relation that links here and the column they sum up.
+   */
   relationColumnId: string;
   targetColumnId: string;
+  /** Rollup columns: how they sum up the linking records. */
+  rollupFunction: RollupFunction;
   /** Typed text, "true"/"false" for booleans, or the choice id for selects. */
   defaultValue: string;
 }
@@ -58,6 +65,7 @@ export function columnFormDefaults(column?: TableColumn): ColumnFormValues {
     tableId: "",
     relationColumnId: "",
     targetColumnId: "",
+    rollupFunction: "count",
     defaultValue: "",
   };
   if (!column) {
@@ -75,6 +83,11 @@ export function columnFormDefaults(column?: TableColumn): ColumnFormValues {
   if (column.type === "lookup") {
     values.relationColumnId = column.options.relationColumnId;
     values.targetColumnId = column.options.targetColumnId;
+  }
+  if (column.type === "rollup") {
+    values.relationColumnId = column.options.relationColumnId;
+    values.targetColumnId = column.options.targetColumnId ?? "";
+    values.rollupFunction = column.options.function;
   }
   if (column.type === "number" && column.options) {
     values.alertBelow = String(column.options.alertBelow);
@@ -141,6 +154,18 @@ function toDraft(values: ColumnFormValues) {
         options: { relationColumnId: values.relationColumnId, targetColumnId: values.targetColumnId },
         defaultValue: null,
       };
+    case "rollup":
+      return {
+        ...base,
+        type: "rollup",
+        required: false,
+        options: {
+          relationColumnId: values.relationColumnId,
+          function: values.rollupFunction,
+          targetColumnId: values.rollupFunction === "count" ? null : values.targetColumnId,
+        },
+        defaultValue: null,
+      };
     case "number": {
       const alertBelow = values.alertBelow.trim();
       return {
@@ -182,6 +207,7 @@ export const columnFormSchema = z
     tableId: z.string(),
     relationColumnId: z.string(),
     targetColumnId: z.string(),
+    rollupFunction: z.enum(ROLLUP_FUNCTIONS),
     defaultValue: z.string(),
   })
   .superRefine((values, ctx) => {

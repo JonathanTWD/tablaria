@@ -91,10 +91,10 @@ export function cellValueSchema(column: ColumnDefinition): z.ZodType<CellValue> 
  * cells it sends. Null means "empty the cell".
  */
 export function recordDataSchema(columns: RecordColumn[], { partial }: { partial: boolean }) {
-  // Lookups are read, never written: sending one is an unknown key (ADR-030).
+  // Lookups and rollups are computed, never written: sending one is an unknown key.
   const shape = Object.fromEntries(
     columns
-      .filter((column) => column.type !== "lookup")
+      .filter((column) => column.type !== "lookup" && column.type !== "rollup")
       .map((column) => [column.id, cellValueSchema(column).optional()]),
   );
   return z
@@ -144,6 +144,8 @@ export const FILTER_OPERATOR_BY_TYPE: Record<ColumnType, FilterOperator> = {
   relation: "contains",
   // By the value it shows, as text (ADR-030).
   lookup: "contains",
+  // Not filterable yet: the API refuses it (ADR-031).
+  rollup: "between",
 };
 
 const rangeBoundSchema = z.union([z.number(), z.iso.date()]);

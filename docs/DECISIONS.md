@@ -543,6 +543,33 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 
 **Consecuencias**: leer una página con consultas añade una consulta por relación usada. Ordenar o filtrar por una consulta hace una búsqueda por clave primaria por fila, como con los nombres enlazados.
 
+## ADR-031: Columnas de resumen (rollup)
+
+**Contexto**: una relación (ADR-022) une, por ejemplo, cada empleado con su equipo, y una consulta (ADR-030) lee datos en esa dirección. Faltaba la contraria: desde el equipo, cuántos empleados tiene o cuánto suman sus salarios.
+
+**Decisión**:
+- **Tipo de columna `rollup`,** con las opciones `relationColumnId`, `function` y `targetColumnId`:
+  - la relación es una columna, de cualquier tabla del espacio o de esta misma, que apunta a esta tabla, como «Jefe» en Empleados para contar las personas a cargo;
+  - las funciones son contar, sumar, media, mínimo y máximo;
+  - contar no lleva columna. Sumar y media necesitan un número o un precio; mínimo y máximo, además, admiten fechas.
+- **Genérico:** no hay nada específico de ningún caso (productos y proveedores, equipos y empleados, clientes y pedidos). Lo decide quien crea la columna.
+- **Calculado al leer, nunca guardado** (`fillRollups`): una consulta `GROUP BY` por resumen y página sobre los registros que enlazan con los de la página.
+  - Sin registros que enlacen, contar y sumar dan 0, y media, mínimo y máximo quedan vacíos.
+  - La media se redondea a 6 decimales.
+  - Solo cuentan las celdas del tipo JSON correcto, así que un valor raro no rompe la conversión.
+- **Validación:** la relación tiene que apuntar a esta tabla; la columna, estar en la tabla de esa relación y encajar con la función; hay que poder abrir esa tabla (403). No puede ser obligatoria, y el tipo no cambia, ni a resumen ni desde resumen.
+- **Permisos:** quien no puede abrir la tabla de la relación ve la columna vacía. `TableDetail.rollupTargets` y `incomingRelations` (las relaciones que apuntan aquí, para el formulario) solo incluyen tablas que puede abrir.
+- **Limpieza** (`dropComputedColumns`, compartida con las consultas):
+  - el resumen se borra con su relación (al borrarla, o si deja de apuntar aquí) o con la columna que suma, y al borrar la tabla que enlaza;
+  - si la columna sumada cambia a un tipo que no encaja con su función, se borra (`dropRollupsNotFitting`).
+- **Formato:** contar se muestra como número; sumar y media, como la columna sumada (precio con moneda), pero sin el aviso de stock bajo, que tiene sentido por registro y no para un total; mínimo y máximo, como su columna (fechas).
+- **Fuera de esta versión:**
+  - ordenar y filtrar por un resumen (400), porque hoy se calcula por página y no en el SQL de la lista;
+  - resúmenes con condición («tareas pendientes»);
+  - la selección múltiple, que cambiará qué cuenta como «enlaza aquí».
+
+**Consecuencias**: cada página con resúmenes hace una consulta agrupada por resumen sobre la tabla que enlaza, acotada por `tableId`. Va bien con 10.000 registros por tabla. Si hiciera falta ordenar por resumen, la vía es un índice sobre la celda de la relación.
+
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
 Todas están especificadas en [MVP_PROMPT.md](MVP_PROMPT.md):

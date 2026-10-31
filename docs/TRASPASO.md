@@ -144,7 +144,7 @@ Es la más interesante para el producto y amplía el ADR-022. Por orden de valor
 
 1. ~~Filtrar, buscar y ordenar por la etiqueta del registro enlazado~~: hecho en el ADR-028 (`labelSources` en `relations/relations.ts` y `labelText` en `record-query.ts`).
 2. ~~Columnas de consulta (*lookup*)~~: hecho en el ADR-030 (`src/lookups/lookups.ts`: `lookupSources`, `fillLookups`, `dropLookups`; en la interfaz, `LookupFields` en `ColumnDialog.tsx`).
-3. **Columnas de resumen (*rollup*):** contar o sumar desde la otra tabla, como «nº de productos» o «stock total» de un proveedor.
+3. ~~Columnas de resumen (*rollup*)~~: hecho en el ADR-031 (`src/rollups/rollups.ts`; en la interfaz, `RollupFields` en `ColumnDialog.tsx`). Pendiente: ordenar y filtrar por ellas, y resúmenes con condición.
 4. **Selección múltiple:** varios registros por celda.
 5. **Columnas calculadas:** por ejemplo, precio × stock.
 

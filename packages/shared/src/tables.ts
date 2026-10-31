@@ -58,4 +58,21 @@ export interface TableDetail extends TableSummary {
    * shows (to format its values). Others show nothing (ADR-030).
    */
   lookupTargets: Record<string, TableColumn>;
+  /**
+   * For each rollup whose source table the user can open, the column it sums
+   * up (null when it counts), to format its values. Others show nothing (ADR-031).
+   */
+  rollupTargets: Record<string, TableColumn | null>;
+  /**
+   * Relation columns of tables the user can open that link to this table:
+   * what a rollup can sum up through.
+   */
+  incomingRelations: IncomingRelation[];
+}
+
+export interface IncomingRelation {
+  columnId: string;
+  columnName: string;
+  tableId: string;
+  tableName: string;
 }

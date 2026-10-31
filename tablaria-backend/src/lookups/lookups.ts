@@ -76,13 +76,21 @@ export async function requireLookupSource(
   }
 }
 
-/** A lookup keeps its type: it is created as one, and stays one. */
+const COMPUTED_TYPES: ColumnType[] = ['lookup', 'rollup'];
+
+/**
+ * Lookups and rollups keep their type: they are created as such and stay so,
+ * and no column becomes one.
+ */
 export function requireSameLookupType(
   current: ColumnType,
   next: ColumnType,
 ): void {
-  if ((current === 'lookup') !== (next === 'lookup')) {
-    throw new BadRequestException("A lookup column can't change type");
+  if (
+    current !== next &&
+    (COMPUTED_TYPES.includes(current) || COMPUTED_TYPES.includes(next))
+  ) {
+    throw new BadRequestException("A computed column can't change type");
   }
 }
 
@@ -187,10 +195,12 @@ export async function fillLookups(
 }
 
 /**
- * Deletes the lookups that read through these relation columns or show
- * these columns; returns the tables they were in, so open pages refresh.
+ * Deletes the lookups and rollups (ADR-031) that read through these relation
+ * columns or show these columns; returns the tables they were in, so open
+ * pages refresh. Both keep `relationColumnId` and `targetColumnId` in their
+ * options.
  */
-export async function dropLookups(
+export async function dropComputedColumns(
   tx: Db,
   {
     relationColumnIds = [],
@@ -205,7 +215,7 @@ export async function dropLookups(
   }
   const lookups = await tx.column.findMany({
     where: {
-      type: 'lookup',
+      type: { in: ['lookup', 'rollup'] },
       OR: [
         ...relationColumnIds.map((id) => ({
           options: { path: ['relationColumnId'], equals: id },

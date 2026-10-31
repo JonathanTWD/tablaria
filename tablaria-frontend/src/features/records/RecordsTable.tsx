@@ -152,7 +152,9 @@ export function RecordsTable({ table }: { table: TableDetail }) {
             enableSorting:
               column.type === "relation"
                 ? (labelledRelations ?? []).includes(column.id)
-                : column.type !== "lookup" || column.id in table.lookupTargets,
+                : column.type === "lookup"
+                  ? column.id in table.lookupTargets
+                  : column.type !== "rollup",
           }),
         ),
       ),
@@ -239,7 +241,9 @@ export function RecordsTable({ table }: { table: TableDetail }) {
           columns={columns.filter((column) =>
             column.type === "relation"
               ? (labelledRelations ?? []).includes(column.id)
-              : column.type !== "lookup" || column.id in table.lookupTargets,
+              : column.type === "lookup"
+                ? column.id in table.lookupTargets
+                : column.type !== "rollup",
           )}
           filters={view.filters}
           onApply={(filters) => setView({ filters })}
@@ -307,7 +311,7 @@ export function RecordsTable({ table }: { table: TableDetail }) {
                   const sorted = header.column.getIsSorted();
                   const SortIcon =
                     sorted === "asc" ? ArrowUp : sorted === "desc" ? ArrowDown : ArrowUpDown;
-                  const shown = table.lookupTargets[column.id] ?? column;
+                  const shown = shownColumn(table, column);
                   const numeric = shown.type === "number" || shown.type === "currency";
                   return (
                     <th
@@ -427,11 +431,11 @@ export function RecordsTable({ table }: { table: TableDetail }) {
                             >
                               {/* On phones the fixed column must leave room for the cell being edited. */}
                               <div className={cn(index === 0 && "max-w-36 sm:max-w-56 lg:max-w-none")}>
-                                {column.type === "lookup" ? (
-                                  // Read from the linked record, never edited here (ADR-030).
-                                  table.lookupTargets[column.id] ? (
+                                {column.type === "lookup" || column.type === "rollup" ? (
+                                  // Computed from other records, never edited here (ADR-030, ADR-031).
+                                  column.id in table.lookupTargets || column.id in table.rollupTargets ? (
                                     <ReadOnlyCell
-                                      column={table.lookupTargets[column.id]}
+                                      column={shownColumn(table, column)}
                                       value={record.data[column.id]}
                                       format={format}
                                     />
@@ -553,8 +557,8 @@ export function RecordsTable({ table }: { table: TableDetail }) {
 
       <RecordDialog
         tableId={table.id}
-        // Lookups aren't filled by hand: the form leaves them out.
-        columns={columns.filter(({ type }) => type !== "lookup")}
+        // Lookups and rollups aren't filled by hand: the form leaves them out.
+        columns={columns.filter(({ type }) => type !== "lookup" && type !== "rollup")}
         linked={records.data?.linked}
         record={dialog.kind === "create" ? undefined : dialog.record}
         editingBy={
@@ -710,4 +714,22 @@ function EmptyState({
       {action && <div className="mt-5">{action}</div>}
     </div>
   );
+}
+
+/**
+ * The column whose type and settings format a cell: what a lookup shows, what
+ * a rollup sums up (a plain number when it counts), or the column itself.
+ */
+function shownColumn(table: TableDetail, column: TableColumn): TableColumn {
+  if (column.type === "lookup") {
+    return table.lookupTargets[column.id] ?? column;
+  }
+  if (column.type === "rollup") {
+    const target = table.rollupTargets[column.id];
+    // A low-stock threshold is per record: it means nothing for a sum or an average.
+    return target?.type === "currency" || target?.type === "date"
+      ? target
+      : { ...column, type: "number", stock: false, options: null, defaultValue: null };
+  }
+  return column;
 }

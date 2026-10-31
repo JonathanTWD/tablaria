@@ -36,6 +36,8 @@ const table: TableDetail = {
   createdAt: "2026-01-01T00:00:00.000Z",
   updatedAt: "2026-01-01T00:00:00.000Z",
   lookupTargets: {},
+  rollupTargets: {},
+  incomingRelations: [],
   columns: [
     column(NAME_ID, 0, { name: "Nombre", type: "text" }),
     column(PRICE_ID, 1, { name: "Precio", type: "currency", options: { currency: "EUR" } }),
@@ -63,6 +65,43 @@ function listRequests(fetchMock: ReturnType<typeof mockApi>) {
 }
 
 describe("RecordsTable", () => {
+  it("shows rollups read-only: a count as a number, a sum like the column it adds up", async () => {
+    const COUNT_ID = "4f5a6b7c-4444-4aaa-8bbb-000000000008";
+    const SUM_ID = "4f5a6b7c-5555-4aaa-8bbb-000000000009";
+    const salary = column("6a7b8c9d-3333-4aaa-8bbb-000000000010", 1, {
+      name: "Salario",
+      type: "currency",
+      options: { currency: "EUR" },
+    });
+    const options = (fn: string, targetColumnId: string | null) => ({
+      relationColumnId: "6a7b8c9d-4444-4aaa-8bbb-000000000011",
+      function: fn,
+      targetColumnId,
+    });
+    const withRollups: TableDetail = {
+      ...table,
+      columns: [
+        ...table.columns,
+        column(COUNT_ID, 2, { name: "Personas", type: "rollup", options: options("count", null) }),
+        column(SUM_ID, 3, { name: "Coste", type: "rollup", options: options("sum", salary.id) }),
+      ],
+      rollupTargets: { [COUNT_ID]: null, [SUM_ID]: salary },
+    };
+    mockApi(() => ({
+      ...page,
+      data: [{ ...page.data[0], data: { ...page.data[0].data, [COUNT_ID]: 12, [SUM_ID]: 25400 } }],
+      linked: {},
+      labelledRelations: [],
+      groups: [],
+    }));
+    renderWithProviders(<RecordsTable table={withRollups} />, { route: "/app/tables/x" });
+
+    expect(await screen.findByText("12")).toBeVisible();
+    expect(screen.getByText("25.400,00 €")).toBeVisible();
+    // Not a sort key yet: the header is plain text.
+    expect(screen.queryByRole("button", { name: "Personas" })).not.toBeInTheDocument();
+  });
+
   it("shows a lookup read-only, formatted like the column it shows", async () => {
     const LEAD_ID = "4f5a6b7c-3333-4aaa-8bbb-000000000006";
     const SUPPLIER_ID = "4f5a6b7c-1111-4aaa-8bbb-000000000003";

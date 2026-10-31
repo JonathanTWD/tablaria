@@ -2,6 +2,13 @@
 
 ## Sin publicar
 
+- **Columnas de resumen** (ADR-031):
+  - **Qué son:** cuentan o calculan desde los registros que enlazan con cada fila, por ejemplo, en Equipos, «Nº de empleados», «Coste en salarios» o «Última alta», o en Proveedores, «Productos» y «Stock total». Se crean en «Añadir columna → Resumen de otra tabla».
+  - **Cálculos:** contar, sumar, media, mínimo y máximo, con números, precios o fechas.
+  - **En la misma tabla:** también funcionan con una relación de una tabla consigo misma, como «Personas a su cargo» a partir de «Jefe».
+  - **Siempre al día:** se calculan cada vez y no se editan a mano. Salen en el CSV con su formato.
+  - **Permisos:** solo muestran datos de tablas que puedes abrir.
+  - **Limpieza:** desaparecen si se borra la relación o la columna que suman.
 - **Columnas de consulta** (ADR-030):
   - **Qué son:** muestran un dato del registro enlazado, por ejemplo «Teléfono del proveedor» en Productos. Se crean en «Añadir columna → Consulta de otra tabla», eligiendo la relación y la columna que se quiere ver.
   - **Siempre al día:** el valor se lee de la otra tabla cada vez, así que si cambia allí, cambia aquí. No se edita en esta tabla.

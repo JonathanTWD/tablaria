@@ -151,7 +151,15 @@
     "yes": "Sí",
     "no": "No",
     "lookup": "Muestra «{{target}}» a través de «{{relation}}»",
-    "lookupHidden": "A través de «{{relation}}», de una tabla que no puedes abrir"
+    "lookupHidden": "A través de «{{relation}}», de una tabla que no puedes abrir",
+    "rollup": {
+      "count": "Cuenta los registros de {{table}} (por «{{relation}}»)",
+      "sum": "Suma «{{target}}» de {{table}} (por «{{relation}}»)",
+      "avg": "Media de «{{target}}» de {{table}} (por «{{relation}}»)",
+      "min": "Mínimo de «{{target}}» de {{table}} (por «{{relation}}»)",
+      "max": "Máximo de «{{target}}» de {{table}} (por «{{relation}}»)"
+    },
+    "rollupHidden": "Resumen de una tabla que no puedes abrir"
   },
   "types": {
     "text": "Texto",
@@ -161,7 +169,8 @@
     "select": "Lista de opciones",
     "currency": "Precio",
     "relation": "Relación con otra tabla",
-    "lookup": "Consulta de otra tabla"
+    "lookup": "Consulta de otra tabla",
+    "rollup": "Resumen de otra tabla"
   },
   "typeHints": {
     "text": "Nombres, referencias, notas…",
@@ -171,7 +180,8 @@
     "select": "Estado, categoría… con colores",
     "currency": "Importes en la moneda que elijas",
     "relation": "Un registro de otra tabla de este espacio",
-    "lookup": "Muestra un dato del registro enlazado, como el teléfono del proveedor"
+    "lookup": "Muestra un dato del registro enlazado, como el teléfono del proveedor",
+    "rollup": "Cuenta o suma los registros que enlazan aquí, como los empleados de un equipo"
   },
   "colors": {
     "gray": "Gris",
@@ -225,7 +235,8 @@
       "defaultValue": "Este valor no encaja con el tipo de la columna.",
       "alertBelow": "Escribe un número igual o mayor que 0.",
       "linkedTable": "Elige la tabla con la que enlazar.",
-      "lookup": "Elige la relación y el dato que quieres mostrar."
+      "lookup": "Elige la relación y el dato que quieres mostrar.",
+      "rollup": "Elige la relación y, salvo para contar, la columna."
     },
     "linkedTable": "Tabla enlazada",
     "linkedTablePlaceholder": "Elige una tabla",
@@ -240,7 +251,16 @@
     "lookupNoRelations": "Primero añade una columna de tipo «Relación con otra tabla»: la consulta lee a través de ella.",
     "lookupTarget": "Dato que se muestra",
     "lookupTargetPlaceholder": "Elige una columna",
-    "lookupTargetHint": "Se lee del registro enlazado cada vez: si cambia allí, cambia aquí. No se puede editar en esta tabla."
+    "lookupTargetHint": "Se lee del registro enlazado cada vez: si cambia allí, cambia aquí. No se puede editar en esta tabla.",
+    "rollupRelation": "Registros que enlazan aquí",
+    "rollupRelationPlaceholder": "Elige una relación",
+    "rollupRelationItem": "{{tableName}} · {{columnName}}",
+    "rollupRelationHint": "La columna de relación, de otra tabla o de esta misma, que apunta a esta tabla.",
+    "rollupNoRelations": "Ninguna tabla enlaza todavía con esta: crea, en otra tabla, una columna de relación que apunte aquí.",
+    "rollupFunction": "Cálculo",
+    "rollupTarget": "Columna",
+    "rollupTargetHint": "Solo números y precios. Se calcula cada vez con los registros que enlazan aquí.",
+    "rollupTargetHintRange": "Números, precios o fechas. Se calcula cada vez con los registros que enlazan aquí."
   },
   "validation": {
     "tableName": "Escribe un nombre de hasta 80 caracteres.",
@@ -296,5 +316,12 @@
     "notFoundDescription": "Puede que esté mal copiado o que quien compartió la tabla lo haya desactivado.",
     "discover": "Conocer Tablaria",
     "madeWith": "Compartido con"
+  },
+  "rollupFunctions": {
+    "count": "Contar los registros",
+    "sum": "Sumar",
+    "avg": "Media",
+    "min": "Mínimo",
+    "max": "Máximo"
   }
 }

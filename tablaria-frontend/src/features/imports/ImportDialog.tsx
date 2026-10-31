@@ -116,7 +116,7 @@ function ImportWizard({ destination, onDone }: { destination: ImportDestination;
   // Lookups are read from another table, never filled (ADR-030).
   const tableColumns =
     destination.kind === "table"
-      ? destination.table.columns.filter(({ type }) => type !== "lookup")
+      ? destination.table.columns.filter(({ type }) => type !== "lookup" && type !== "rollup")
       : [];
   // Columns and choices change the table's structure: admins only (the API checks too).
   const canChangeColumns = destination.kind === "newTable" || hasRole(destination.table.role, "ADMIN");
