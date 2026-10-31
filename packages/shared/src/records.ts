@@ -40,8 +40,25 @@ export interface Paginated<T> {
  * to. Records of tables the user can't open are left out: the UI shows the
  * link without saying what it is.
  */
+/** Records sharing a value of the grouped column (ADR-029). */
+export interface RecordGroup {
+  /** The value as text: a select's label, "true"/"false", or a linked record's label. Null: empty. */
+  value: string | null;
+  /** Records in the group, with the search and filters applied. */
+  count: number;
+}
+
+/** Columns a listing can be grouped by: values that repeat across records. */
+export const GROUPABLE_COLUMN_TYPES = ["select", "boolean", "text", "relation"] as const;
+
+export function canGroupRecordsBy(type: ColumnType): boolean {
+  return (GROUPABLE_COLUMN_TYPES as readonly ColumnType[]).includes(type);
+}
+
 export interface RecordPage extends Paginated<TableRecord> {
   linked: Record<string, string>;
+  /** Every group of the whole listing (not only this page) when it is grouped; empty otherwise. */
+  groups: RecordGroup[];
   /**
    * Relation columns whose linked table the user can open: only these can be
    * searched, filtered and sorted by label (ADR-028).
@@ -160,6 +177,8 @@ export const recordListQuerySchema = z.object({
   search: z.string().trim().max(SEARCH_MAX_LENGTH).optional(),
   sort: z.uuid().optional(),
   order: z.enum(SORT_ORDERS).default("asc"),
+  /** Column whose values group the records; they come group by group (ADR-029). */
+  group: z.uuid().optional(),
   filters: z
     .string()
     .optional()

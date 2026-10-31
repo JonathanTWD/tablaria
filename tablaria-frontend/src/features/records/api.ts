@@ -23,6 +23,9 @@ function toQueryString(view: RecordsView): string {
   if (view.filters.length > 0) {
     params.set("filters", JSON.stringify(view.filters));
   }
+  if (view.group) {
+    params.set("group", view.group);
+  }
   return params.toString();
 }
 

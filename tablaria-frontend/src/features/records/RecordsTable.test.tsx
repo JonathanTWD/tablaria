@@ -62,6 +62,59 @@ function listRequests(fetchMock: ReturnType<typeof mockApi>) {
 }
 
 describe("RecordsTable", () => {
+  it("shows a header with the size of each group", async () => {
+    const STATUS_ID = "4f5a6b7c-2222-4aaa-8bbb-000000000005";
+    const grouped: TableDetail = {
+      ...table,
+      columns: [
+        ...table.columns,
+        column(STATUS_ID, 2, {
+          name: "Estado",
+          type: "select",
+          options: {
+            choices: [
+              { id: "d", label: "Disponible", color: "green" },
+              { id: "a", label: "Agotado", color: "red" },
+            ],
+          },
+        }),
+      ],
+    };
+    const record = (id: string, name: string, status: string | null) => ({
+      id,
+      data: { [NAME_ID]: name, ...(status && { [STATUS_ID]: status }) },
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    });
+    const fetchMock = mockApi(() => ({
+      data: [
+        record("3e1a9f5b-0000-4f60-9b1c-000000000001", "Sierra", "Disponible"),
+        record("3e1a9f5b-0000-4f60-9b1c-000000000002", "Cinta", "Disponible"),
+        record("3e1a9f5b-0000-4f60-9b1c-000000000003", "Taladro", "Agotado"),
+        record("3e1a9f5b-0000-4f60-9b1c-000000000004", "Martillo", null),
+      ],
+      meta: { page: 1, pageSize: 25, total: 4, pageCount: 1 },
+      linked: {},
+      labelledRelations: [],
+      groups: [
+        { value: "Disponible", count: 2 },
+        { value: "Agotado", count: 1 },
+        { value: null, count: 1 },
+      ],
+    }));
+    renderWithProviders(<RecordsTable table={grouped} />, {
+      route: `/app/tables/x?group=${STATUS_ID}`,
+    });
+
+    const headers = await screen.findAllByRole("columnheader", { name: /^Estado: / });
+    expect(headers.map((header) => header.textContent)).toEqual([
+      "Estado: Disponible · 2 registros",
+      "Estado: Agotado · 1 registro",
+      "Estado: sin valor · 1 registro",
+    ]);
+    expect(listRequests(fetchMock).at(-1)?.get("group")).toBe(STATUS_ID);
+  });
+
   it("sorts relations by name only when their table can be opened", async () => {
     const SUPPLIER_ID = "4f5a6b7c-1111-4aaa-8bbb-000000000003";
     const withSupplier: TableDetail = {

@@ -26,6 +26,7 @@ describe("useUpdateRecord", () => {
       meta: { page: 1, pageSize: 25, total: 1, pageCount: 1 },
       linked: {},
       labelledRelations: [],
+      groups: [],
     };
     const stats: RecordStats = { total: 1, groups: [], others: null };
     const pageKey = recordsQuery(TABLE, parseRecordsView(new URLSearchParams())).queryKey;

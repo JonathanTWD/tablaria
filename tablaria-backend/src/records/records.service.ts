@@ -6,6 +6,7 @@ import {
 import {
   MAX_RECORDS_PER_TABLE,
   type Paginated,
+  type RecordGroup,
   type RecordPage,
   type RecordColumn,
   type RecordData,
@@ -317,10 +318,15 @@ export async function queryRecordPage(
   columns: RecordColumn[],
   query: RecordListQuery,
   labels?: ReadonlyMap<string, LabelSource>,
-): Promise<Paginated<TableRecord>> {
-  const { where, orderBy } = buildRecordQuery(tableId, columns, query, labels);
+): Promise<Paginated<TableRecord> & { groups: RecordGroup[] }> {
+  const { where, orderBy, groupValue } = buildRecordQuery(
+    tableId,
+    columns,
+    query,
+    labels,
+  );
   const offset = (query.page - 1) * query.pageSize;
-  const [rows, [{ total }]] = await Promise.all([
+  const [rows, [{ total }], groups] = await Promise.all([
     db.$queryRaw<RecordRow[]>`
       SELECT r.id, r."tableId", r.data, r."createdAt", r."updatedAt"
       FROM records r
@@ -329,9 +335,16 @@ export async function queryRecordPage(
       LIMIT ${query.pageSize} OFFSET ${offset}`,
     db.$queryRaw<{ total: bigint }[]>`
       SELECT count(*) AS total FROM records r WHERE ${where}`,
+    // Counts for every group, so a group split across pages shows its real size.
+    groupValue
+      ? db.$queryRaw<RecordGroup[]>`
+          SELECT ${groupValue} AS value, count(*)::int AS count
+          FROM records r WHERE ${where} GROUP BY 1`
+      : Promise.resolve([]),
   ]);
   const count = Number(total);
   return {
+    groups,
     data: rows.map(toTableRecord),
     meta: {
       page: query.page,
