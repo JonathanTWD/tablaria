@@ -42,6 +42,11 @@ export interface Paginated<T> {
  */
 export interface RecordPage extends Paginated<TableRecord> {
   linked: Record<string, string>;
+  /**
+   * Relation columns whose linked table the user can open: only these can be
+   * searched, filtered and sorted by label (ADR-028).
+   */
+  labelledRelations: string[];
 }
 
 /** Any column with its id: what record validation needs from a table. */
@@ -115,7 +120,8 @@ export const FILTER_OPERATOR_BY_TYPE: Record<ColumnType, FilterOperator> = {
   date: "between",
   boolean: "is",
   select: "in",
-  relation: "in",
+  // By the linked record's label (ADR-028).
+  relation: "contains",
 };
 
 const rangeBoundSchema = z.union([z.number(), z.iso.date()]);

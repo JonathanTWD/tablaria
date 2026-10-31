@@ -62,6 +62,32 @@ function listRequests(fetchMock: ReturnType<typeof mockApi>) {
 }
 
 describe("RecordsTable", () => {
+  it("sorts relations by name only when their table can be opened", async () => {
+    const SUPPLIER_ID = "4f5a6b7c-1111-4aaa-8bbb-000000000003";
+    const withSupplier: TableDetail = {
+      ...table,
+      columns: [
+        ...table.columns,
+        column(SUPPLIER_ID, 2, {
+          name: "Proveedor",
+          type: "relation",
+          options: { tableId: "6a7b8c9d-1111-4aaa-8bbb-000000000004" },
+        }),
+      ],
+    };
+    mockApi(() => ({ ...page, linked: {}, labelledRelations: [SUPPLIER_ID] }));
+    const { unmount } = renderWithProviders(<RecordsTable table={withSupplier} />, {
+      route: "/app/tables/x",
+    });
+    expect(await screen.findByRole("button", { name: "Proveedor" })).toBeVisible();
+    unmount();
+
+    mockApi(() => ({ ...page, linked: {}, labelledRelations: [] }));
+    renderWithProviders(<RecordsTable table={withSupplier} />, { route: "/app/tables/x" });
+    expect(await screen.findByRole("button", { name: "Precio" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Proveedor" })).not.toBeInTheDocument();
+  });
+
   it("keeps the sort in the URL and asks the API for it", async () => {
     const user = userEvent.setup();
     const fetchMock = mockApi(() => page);

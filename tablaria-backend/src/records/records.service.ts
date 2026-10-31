@@ -29,6 +29,8 @@ import { PrismaService } from '../database/prisma.service';
 import { RealtimeService } from '../realtime/realtime.service';
 import { Prisma, type Record as RecordRow } from '../generated/prisma/client';
 import {
+  labelSources,
+  type LabelSource,
   linkedLabels,
   requireLinkedRecords,
   unlinkRecord,
@@ -68,7 +70,14 @@ export class RecordsService {
     }
 
     const columns = table.columns.map(toTableColumn);
-    const page = await queryRecordPage(this.prisma, tableId, columns, query);
+    const labels = await labelSources(this.prisma, userId, columns);
+    const page = await queryRecordPage(
+      this.prisma,
+      tableId,
+      columns,
+      query,
+      labels,
+    );
     return {
       ...page,
       linked: await linkedLabels(
@@ -77,6 +86,7 @@ export class RecordsService {
         columns,
         page.data.map(({ data }) => data),
       ),
+      labelledRelations: [...labels.keys()],
     };
   }
 
@@ -95,7 +105,12 @@ export class RecordsService {
     }
 
     const columns = table.columns.map(toTableColumn);
-    const { where, orderBy } = buildRecordQuery(tableId, columns, query);
+    const { where, orderBy } = buildRecordQuery(
+      tableId,
+      columns,
+      query,
+      await labelSources(this.prisma, userId, columns),
+    );
     const rows = await this.prisma.$queryRaw<{ data: RecordData }[]>`
       SELECT r.data FROM records r
       WHERE ${where}
@@ -301,8 +316,9 @@ export async function queryRecordPage(
   tableId: string,
   columns: RecordColumn[],
   query: RecordListQuery,
+  labels?: ReadonlyMap<string, LabelSource>,
 ): Promise<Paginated<TableRecord>> {
-  const { where, orderBy } = buildRecordQuery(tableId, columns, query);
+  const { where, orderBy } = buildRecordQuery(tableId, columns, query, labels);
   const offset = (query.page - 1) * query.pageSize;
   const [rows, [{ total }]] = await Promise.all([
     db.$queryRaw<RecordRow[]>`

@@ -1,5 +1,13 @@
 # Changelog
 
+## Sin publicar
+
+- **Relaciones por su nombre** (ADR-028):
+  - **Buscar:** la búsqueda encuentra registros por el nombre de lo que enlazan, por ejemplo los productos de «Bosch».
+  - **Filtrar:** el filtro «contiene» funciona en las columnas de relación.
+  - **Ordenar:** al pulsar su cabecera, por orden alfabético del registro enlazado.
+  - **Permisos:** solo con las tablas enlazadas que puedes abrir; en las demás, la cabecera ya no parece un botón.
+
 ## v1.5.1 — Tablaria
 
 - **Nuevo nombre: Tablaria** (ADR-027). Cambian la marca, las carpetas, el paquete compartido y los nombres internos. La app se publica en el nuevo dominio [tablaria.es](https://tablaria.es) y los correos salen desde `mail.tablaria.es`. Hay que volver a iniciar sesión una vez; los datos son los mismos.

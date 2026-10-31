@@ -8,7 +8,7 @@
   },
   "toolbar": {
     "search": "Buscar registros",
-    "searchPlaceholder": "Buscar en texto y opciones…",
+    "searchPlaceholder": "Buscar en texto, opciones y enlaces…",
     "filters": "Filtros",
     "filtersActive_one": "Filtros ({{count}} activo)",
     "filtersActive_other": "Filtros ({{count}} activos)",

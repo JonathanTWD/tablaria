@@ -486,6 +486,22 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 - Los datos no cambian: la base de datos de Neon es la misma.
 - Los correos salen desde `mail.tablaria.es` una vez verificado en Resend. Hasta entonces, desde el subdominio anterior.
 
+## ADR-028: Buscar, filtrar y ordenar relaciones por su nombre
+
+**Contexto**: una columna de relación guarda el id del registro enlazado (ADR-022). Hasta ahora no se podía filtrar ni ordenar por ella, y la búsqueda la ignoraba, así que «productos de Bosch» no tenía respuesta.
+
+**Decisión**:
+- **El nombre de un registro** es su primera columna (por posición), el mismo que ya muestra la tabla (`linked`). Si esa primera columna es otra relación, no hay nombre.
+- **Buscar:** la búsqueda general incluye el nombre del registro enlazado. **Filtrar:** el filtro de las relaciones pasa a ser «contiene», sobre ese nombre. Antes era por ids, y la interfaz no lo ofrecía. **Ordenar:** por ese nombre, sin distinguir mayúsculas; los registros sin enlace siempre van al final.
+- **Cómo se consulta:** una subconsulta correlacionada por la clave primaria del registro enlazado, dentro del mismo SQL parametrizado. Los ids de columna y de tabla salen de la base de datos, nunca del usuario.
+- **Permisos:** solo cuenta el nombre de las relaciones cuya tabla el usuario puede abrir (`labelSources`). Si no puede abrirla:
+  - la búsqueda no mira ese nombre;
+  - filtrar u ordenar por esa columna da 403. Así nadie puede averiguar nombres que no ve a base de probar filtros.
+- **`labelledRelations`:** la respuesta de la lista de registros dice qué relaciones admiten búsqueda, filtro y orden. La interfaz solo ofrece esas, y en las demás la cabecera deja de ser un botón.
+- **Exportar:** sigue las mismas reglas que la lista. Los enlaces públicos siguen sin mostrar relaciones (ADR-026).
+
+**Consecuencias**: ordenar por una relación hace una búsqueda por clave primaria por fila. Va bien hasta el límite de 10.000 registros por tabla; más allá convendría desnormalizar el nombre.
+
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
 Todas están especificadas en [MVP_PROMPT.md](MVP_PROMPT.md):
