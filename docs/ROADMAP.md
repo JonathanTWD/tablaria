@@ -88,7 +88,7 @@ Cada tarea indica qué modelo conviene: **Opus** para lo que toca seguridad, per
 - Integridad: tablas bloqueadas o archivadas de solo lectura.
 - Tipos de columna: selección múltiple, imágenes y adjuntos, columnas calculadas, relaciones entre tablas.
 - Inventario: códigos de barras y QR.
-- Productividad: vistas guardadas, edición en lote, navegación con teclado, deshacer, papelera recuperable.
+- Productividad: vistas guardadas, edición en lote, navegación con teclado, deshacer, papelera recuperable. (Hecho: agrupar registros por una columna, ADR-029.)
 - Cuenta: cambiar email y contraseña, borrar la cuenta, cerrar sesión en todos los dispositivos.
 - Notificaciones, API pública con webhooks, inglés y PWA.
 

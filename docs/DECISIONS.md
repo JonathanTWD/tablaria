@@ -502,6 +502,23 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 
 **Consecuencias**: ordenar por una relación hace una búsqueda por clave primaria por fila. Va bien hasta el límite de 10.000 registros por tabla; más allá convendría desnormalizar el nombre.
 
+## ADR-029: Agrupar los registros por una columna
+
+**Contexto**: en un inventario es habitual querer ver los registros por estado, categoría o proveedor, con cuántos hay en cada grupo. Los filtros solo enseñan un grupo cada vez.
+
+**Decisión**:
+- **Parámetro `group`** en la lista de registros (y en la URL, para compartir la vista). Se agrupa por listas de opciones, Sí/No, texto y relaciones; en las relaciones, por el nombre del registro enlazado y solo si se puede abrir su tabla (ADR-028).
+- **El servidor ordena por grupo antes que por el orden pedido,** así la paginación sigue funcionando y un grupo puede continuar en la página siguiente:
+  - las listas, en el orden de sus opciones;
+  - Sí/No, con No primero;
+  - el texto, alfabéticamente, y el valor exacto como desempate, para que dos formas de escribir lo mismo no se mezclen;
+  - los vacíos, al final.
+- **Recuento por grupo:** la respuesta trae en `groups` cuántos registros tiene cada grupo en toda la lista (con la búsqueda y los filtros), no solo en la página, para que la cabecera de un grupo partido diga su tamaño real.
+- **En la interfaz:** un selector «Agrupar por…» en la barra y una fila de cabecera (`th scope="colgroup"`) donde empieza cada grupo y al principio de cada página.
+- **Exportar y enlaces públicos:** respetan el orden por grupo. Sin plegar grupos ni subtotales por ahora.
+
+**Consecuencias**: una consulta más (`GROUP BY`) cuando se agrupa, sobre las mismas condiciones de la lista.
+
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
 Todas están especificadas en [MVP_PROMPT.md](MVP_PROMPT.md):

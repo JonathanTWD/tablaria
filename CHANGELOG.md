@@ -2,6 +2,7 @@
 
 ## Sin publicar
 
+- **Agrupar registros** (ADR-029): el selector «Agrupar por…» ordena la tabla por una lista de opciones, Sí/No, texto o relación, con una cabecera por grupo que dice cuántos registros tiene. Funciona con la búsqueda, los filtros, el orden, la paginación y la exportación, y queda en la URL para compartir la vista.
 - **Qué se ve de un registro enlazado:** al crear o editar una columna de relación, la ayuda dice qué columna de la tabla enlazada se mostrará (su primera columna, por ejemplo «Nombre») y cómo cambiarla.
 
 ## v1.5.1 — Tablaria

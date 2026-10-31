@@ -235,5 +235,14 @@
     "historyError": "No se pudo cargar el historial.",
     "historyLimit": "Se muestran los {{count}} más recientes de {{total}}.",
     "balance": "Queda {{value}}"
+  },
+  "group": {
+    "label": "Agrupar registros",
+    "none": "Sin agrupar",
+    "by": "Agrupar por {{column}}",
+    "header": "{{column}}: {{value}}",
+    "empty": "sin valor",
+    "count_one": "· {{count}} registro",
+    "count_other": "· {{count}} registros"
   }
 }

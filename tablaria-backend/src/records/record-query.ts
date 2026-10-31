@@ -1,5 +1,6 @@
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import {
+  canGroupRecordsBy,
   FILTER_OPERATOR_BY_TYPE,
   type RecordColumn,
   type RecordFilter,
@@ -11,6 +12,8 @@ import type { LabelSource } from '../relations/relations';
 export interface RecordQuerySql {
   where: Prisma.Sql;
   orderBy: Prisma.Sql;
+  /** The grouped column's value as text, when the listing is grouped. */
+  groupValue?: Prisma.Sql;
 }
 
 /**
@@ -24,7 +27,10 @@ export interface RecordQuerySql {
 export function buildRecordQuery(
   tableId: string,
   columns: RecordColumn[],
-  query: Pick<RecordListQuery, 'search' | 'sort' | 'order' | 'filters'>,
+  query: Pick<
+    RecordListQuery,
+    'search' | 'sort' | 'order' | 'filters' | 'group'
+  >,
   labels: ReadonlyMap<string, LabelSource> = new Map(),
 ): RecordQuerySql {
   const byId = new Map(columns.map((column) => [column.id, column]));
@@ -80,7 +86,20 @@ export function buildRecordQuery(
     ? Prisma.sql`${sortableValue(sortColumn, textOf(sortColumn))} ${direction} NULLS LAST, r."createdAt" ASC, r.id ASC`
     : Prisma.sql`r."createdAt" ${direction}, r.id ${direction}`;
 
-  return { where: Prisma.join(conditions, ' AND '), orderBy };
+  if (!query.group) {
+    return { where: Prisma.join(conditions, ' AND '), orderBy };
+  }
+  // Grouped: records come group by group, each group in the requested order.
+  const groupColumn = findColumn(query.group);
+  if (!canGroupRecordsBy(groupColumn.type)) {
+    throw new BadRequestException(`Can't group by ${groupColumn.type} columns`);
+  }
+  const groupValue = textOf(groupColumn);
+  return {
+    where: Prisma.join(conditions, ' AND '),
+    orderBy: Prisma.sql`${groupOrder(groupColumn, groupValue)}, ${orderBy}`,
+    groupValue,
+  };
 }
 
 function filterCondition(
@@ -151,6 +170,24 @@ function sortableValue(column: RecordColumn, text: Prisma.Sql): Prisma.Sql {
       return Prisma.sql`${text}::boolean`;
     default:
       return Prisma.sql`lower(${text})`;
+  }
+}
+
+/**
+ * Groups in a natural order, empty last: a list in the order of its choices,
+ * No before Yes, and text alphabetically. The exact value breaks ties, so two
+ * spellings of a word ("Sí", "sí") never interleave.
+ */
+function groupOrder(column: RecordColumn, value: Prisma.Sql): Prisma.Sql {
+  switch (column.type) {
+    case 'select': {
+      const labels = column.options.choices.map(({ label }) => label);
+      return Prisma.sql`array_position(${labels}::text[], ${value}) ASC NULLS LAST`;
+    }
+    case 'boolean':
+      return Prisma.sql`${value}::boolean ASC NULLS LAST`;
+    default:
+      return Prisma.sql`lower(${value}) ASC NULLS LAST, ${value} ASC`;
   }
 }
 

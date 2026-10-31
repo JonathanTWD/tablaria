@@ -1,4 +1,5 @@
 import {
+  canGroupRecordsBy,
   DEFAULT_PAGE_SIZE,
   FILTER_OPERATOR_BY_TYPE,
   SEARCH_MAX_LENGTH,
@@ -19,6 +20,8 @@ export interface RecordsView {
   sort?: string;
   order: SortOrder;
   filters: RecordFilter[];
+  /** Column whose values group the records (ADR-029). */
+  group?: string;
 }
 
 export const PAGE_SIZES = [10, 25, 50, 100] as const;
@@ -48,6 +51,7 @@ export function parseRecordsView(params: URLSearchParams): RecordsView {
     sort: param(shape.sort, params.get("sort"), undefined),
     order: param(shape.order, params.get("order"), DEFAULT_VIEW.order),
     filters: parseFilters(params.get("filters")),
+    group: param(shape.group, params.get("group"), undefined),
   };
 }
 
@@ -72,6 +76,10 @@ export function applicableView(view: RecordsView, columns: TableColumn[]): Recor
   return {
     ...view,
     sort: view.sort && byId.has(view.sort) ? view.sort : undefined,
+    group:
+      view.group && canGroupRecordsBy(byId.get(view.group)?.type ?? "number")
+        ? view.group
+        : undefined,
     filters: view.filters.filter((filter) => {
       const column = byId.get(filter.columnId);
       return column !== undefined && FILTER_OPERATOR_BY_TYPE[column.type] === filter.op;
@@ -87,6 +95,7 @@ function toSearchParams(view: RecordsView): URLSearchParams {
     ["sort", view.sort],
     ["order", view.sort && view.order],
     ["filters", view.filters.length > 0 && JSON.stringify(view.filters)],
+    ["group", view.group],
   ];
   return new URLSearchParams(
     entries.filter((entry): entry is [string, string] => Boolean(entry[1])),
