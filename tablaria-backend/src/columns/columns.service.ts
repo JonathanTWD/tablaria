@@ -8,6 +8,7 @@ import {
 import {
   type CellValue,
   type ColumnDefinition,
+  canBeLookedUp,
   canBeUnique,
   columnDefinitionSchema,
   MAX_COLUMNS_PER_TABLE,
@@ -21,7 +22,13 @@ import { PrismaService } from '../database/prisma.service';
 import { RealtimeService } from '../realtime/realtime.service';
 import { Prisma } from '../generated/prisma/client';
 import { requireNoRepeatedValues } from '../records/unique-values';
+import {
+  dropComputedColumns,
+  requireLookupSource,
+  requireSameLookupType,
+} from '../lookups/lookups';
 import { requireLinkableTable } from '../relations/relations';
+import { dropRollupsNotFitting, requireRollupSource } from '../rollups/rollups';
 import { accessibleTables, touchTable } from '../tables/table-access';
 import { toColumnData, toTableColumn } from './column-mapper';
 import { logActivity } from '../activity/activity-log';
@@ -63,6 +70,8 @@ export class ColumnsService {
           throw new UnprocessableEntityException('Column limit reached');
         }
         await requireLinkableTable(tx, tableId, definition);
+        await requireLookupSource(tx, userId, tableId, definition);
+        await requireRollupSource(tx, userId, tableId, definition);
 
         const column = await tx.column.create({
           data: {
@@ -98,6 +107,8 @@ export class ColumnsService {
     columnId: string,
     patch: UpdateColumnInput,
   ): Promise<UpdateColumnResponse> {
+    // Other tables whose lookups this change removes, to refresh them too.
+    let droppedIn: string[] = [];
     const result = await withUniqueColumnName(() =>
       this.prisma.$transaction(async (tx) => {
         await touchTable(tx, userId, tableId, 'ADMIN');
@@ -110,11 +121,49 @@ export class ColumnsService {
         }
 
         const current = toTableColumn(stored);
+        requireSameLookupType(current.type, patch.type ?? current.type);
         const next = parseOrThrow(
           columnDefinitionSchema,
           mergeColumnPatch(current, patch),
         );
         await requireLinkableTable(tx, tableId, next);
+        await requireLookupSource(tx, userId, tableId, next);
+        await requireRollupSource(tx, userId, tableId, next);
+        droppedIn = await dropComputedColumns(tx, {
+          // A relation that links elsewhere, or no longer links.
+          relationColumnIds:
+            current.type === 'relation' &&
+            (next.type !== 'relation' ||
+              next.options.tableId !== current.options.tableId)
+              ? [columnId]
+              : [],
+          // A column that stops being something a lookup can show.
+          targetColumnIds:
+            canBeLookedUp(current.type) && !canBeLookedUp(next.type)
+              ? [columnId]
+              : [],
+        });
+        if (next.type !== current.type) {
+          droppedIn = [
+            ...droppedIn,
+            ...(await dropRollupsNotFitting(tx, columnId, next.type)),
+          ];
+        }
+        // Lookups read through single relations only (ADR-032).
+        if (
+          current.type === 'relation' &&
+          next.type === 'relation' &&
+          next.options.multiple &&
+          !current.options.multiple
+        ) {
+          droppedIn = [
+            ...droppedIn,
+            ...(await dropComputedColumns(tx, {
+              relationColumnIds: [columnId],
+              types: ['lookup'],
+            })),
+          ];
+        }
         const clearedValues = await convertStoredValues(
           tx,
           tableId,
@@ -139,7 +188,9 @@ export class ColumnsService {
         return { column: toTableColumn(column), clearedValues };
       }),
     );
-    this.realtime.publish(tableId, 'columns');
+    for (const changed of new Set([tableId, ...droppedIn])) {
+      this.realtime.publish(changed, 'columns');
+    }
     return result;
   }
 
@@ -182,7 +233,7 @@ export class ColumnsService {
     tableId: string,
     columnId: string,
   ): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
+    const droppedIn = await this.prisma.$transaction(async (tx) => {
       await touchTable(tx, userId, tableId, 'ADMIN');
 
       const stored = await tx.column.findFirst({
@@ -202,8 +253,15 @@ export class ColumnsService {
         UPDATE records
         SET data = data - ${columnId}::text
         WHERE "tableId" = ${tableId}::uuid AND data ? ${columnId}::text`;
+      // Lookups reading through this relation, or showing this column (ADR-030).
+      return dropComputedColumns(tx, {
+        relationColumnIds: [columnId],
+        targetColumnIds: [columnId],
+      });
     });
-    this.realtime.publish(tableId, 'columns');
+    for (const changed of new Set([tableId, ...droppedIn])) {
+      this.realtime.publish(changed, 'columns');
+    }
   }
 }
 
@@ -296,9 +354,15 @@ async function convertStoredValues(
     current.type === 'relation' &&
     next.type === 'relation' &&
     current.options.tableId === next.options.tableId;
+  if (sameRelation) {
+    if (current.options.multiple !== next.options.multiple) {
+      await switchLinkList(tx, tableId, current.id, next.options.multiple);
+    }
+    return 0;
+  }
   if (
-    sameRelation ||
-    (current.type === next.type && !['select', 'relation'].includes(next.type))
+    current.type === next.type &&
+    !['select', 'relation'].includes(next.type)
   ) {
     return 0;
   }
@@ -338,6 +402,31 @@ async function convertStoredValues(
       WHERE r.id = c.id::uuid AND r."tableId" = ${tableId}::uuid`;
   }
   return cleared;
+}
+
+/**
+ * Turns single links into lists of one, or lists into their first record:
+ * a relation that stops being multiple keeps one link per record (ADR-032).
+ */
+async function switchLinkList(
+  tx: Prisma.TransactionClient,
+  tableId: string,
+  columnId: string,
+  multiple: boolean,
+): Promise<void> {
+  await (multiple
+    ? tx.$executeRaw`
+        UPDATE records
+        SET data = jsonb_set(data, ARRAY[${columnId}::text],
+                             jsonb_build_array(data -> ${columnId}::text))
+        WHERE "tableId" = ${tableId}::uuid
+          AND jsonb_typeof(data -> ${columnId}::text) = 'string'`
+    : tx.$executeRaw`
+        UPDATE records
+        SET data = jsonb_set(data, ARRAY[${columnId}::text],
+                             data -> ${columnId}::text -> 0)
+        WHERE "tableId" = ${tableId}::uuid
+          AND jsonb_typeof(data -> ${columnId}::text) = 'array'`);
 }
 
 async function withUniqueColumnName<T>(

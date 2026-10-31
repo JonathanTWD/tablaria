@@ -102,7 +102,11 @@ export class PublicLinksService {
     }
 
     const columns = link.table.columns
-      .filter(({ type }) => type !== 'relation')
+      // Relations and the lookups that read through them open other tables.
+      .filter(
+        ({ type }) =>
+          type !== 'relation' && type !== 'lookup' && type !== 'rollup',
+      )
       .map(toTableColumn);
     const visible = new Set(columns.map(({ id }) => id));
     const page = await queryRecordPage(

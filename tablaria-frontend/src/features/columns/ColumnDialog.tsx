@@ -1,8 +1,11 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery } from "@tanstack/react-query";
 import {
+  canBeLookedUp,
   canBeUnique,
+  canRollUp,
   COLUMN_TYPES,
+  ROLLUP_FUNCTIONS,
   MAX_SELECT_CHOICES,
   SELECT_COLORS,
   type ColumnType,
@@ -208,11 +211,15 @@ function ColumnForm({
               <Select
                 items={typeItems}
                 value={field.value}
+                disabled={column?.type === "lookup" || column?.type === "rollup"}
                 onValueChange={(value) => {
                   if (value) {
                     field.onChange(value);
-                    // A default typed for the previous type means something else now.
+                    // A default typed for the previous type means something else now,
+                    // and so do the settings of a lookup or a rollup.
                     form.setValue("defaultValue", "");
+                    form.setValue("relationColumnId", "");
+                    form.setValue("targetColumnId", "");
                   }
                 }}
               >
@@ -220,7 +227,10 @@ function ColumnForm({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {COLUMN_TYPES.map((value) => {
+                  {/* Computed columns are created as such and stay so (ADR-030, ADR-031). */}
+                  {COLUMN_TYPES.filter(
+                    (value) => !column || column.type === value || (value !== "lookup" && value !== "rollup"),
+                  ).map((value) => {
                     const Icon = COLUMN_TYPE_ICONS[value];
                     return (
                       <SelectItem key={value} value={value} className="py-1.5">
@@ -280,6 +290,12 @@ function ColumnForm({
         )}
 
         {type === "relation" && <LinkedTableField tableId={tableId} form={form} id={`${ids}-linked`} />}
+
+        {type === "relation" && <MultipleField column={column} form={form} id={`${ids}-multiple`} />}
+
+        {type === "lookup" && <LookupFields tableId={tableId} form={form} id={`${ids}-lookup`} />}
+
+        {type === "rollup" && <RollupFields tableId={tableId} form={form} id={`${ids}-rollup`} />}
 
         {type === "number" && (
           <FormField
@@ -383,6 +399,7 @@ function ColumnForm({
           </fieldset>
         )}
 
+        {type !== "lookup" && type !== "rollup" && (
         <Field orientation="horizontal">
           <FieldContent>
             <FieldLabel htmlFor={`${ids}-required`}>{t("columnForm.required")}</FieldLabel>
@@ -403,6 +420,7 @@ function ColumnForm({
             )}
           />
         </Field>
+        )}
 
         {type === "number" && !unique && (
           <Field orientation="horizontal">
@@ -450,7 +468,7 @@ function ColumnForm({
 
         {/* A default record would link every new record to the same one, and
             a unique column can't give the same value to every record. */}
-        {type !== "relation" && !unique && (
+        {type !== "relation" && type !== "lookup" && type !== "rollup" && !unique && (
           <DefaultValueField
             id={`${ids}-default`}
             type={type}
@@ -473,6 +491,53 @@ function ColumnForm({
   );
 }
 
+/**
+ * Whether each record links to several records (ADR-032), warning about what
+ * switching an existing relation changes.
+ */
+function MultipleField({
+  column,
+  form,
+  id,
+}: {
+  column: TableColumn | undefined;
+  form: ReturnType<typeof useForm<ColumnFormValues>>;
+  id: string;
+}) {
+  const { t } = useTranslation("tables");
+  const multiple = useWatch({ control: form.control, name: "multiple" });
+  const was = column?.type === "relation" ? column.options.multiple : multiple;
+  const hint =
+    multiple === was
+      ? t("columnForm.multipleHint")
+      : multiple
+        ? t("columnForm.multipleOn")
+        : t("columnForm.multipleOff");
+
+  return (
+    <Field orientation="horizontal">
+      <FieldContent>
+        <FieldLabel htmlFor={id}>{t("columnForm.multiple")}</FieldLabel>
+        <FieldDescription id={`${id}-hint`} className={cn(multiple !== was && "text-foreground")}>
+          {hint}
+        </FieldDescription>
+      </FieldContent>
+      <Controller
+        control={form.control}
+        name="multiple"
+        render={({ field }) => (
+          <Switch
+            id={id}
+            aria-describedby={`${id}-hint`}
+            checked={field.value}
+            onCheckedChange={field.onChange}
+          />
+        )}
+      />
+    </Field>
+  );
+}
+
 /** The table a relation links to: any table of the same space, this one included. */
 function LinkedTableField({
   tableId,
@@ -489,6 +554,20 @@ function LinkedTableField({
   const tables = useQuery({ ...tablesQuery(organizationId ?? ""), enabled: Boolean(organizationId) });
   const error = form.formState.errors.tableId;
   const items = Object.fromEntries((tables.data ?? []).map((item) => [item.id, item.name]));
+  // Linked records are named by the first column of their table (ADR-022): say which one.
+  const linkedId = useWatch({ control: form.control, name: "tableId" });
+  const linked = useQuery({ ...tableQuery(linkedId), enabled: linkedId !== "" });
+  const first = linked.data?.columns.reduce<TableColumn | undefined>(
+    (lowest, column) => (lowest === undefined || column.position < lowest.position ? column : lowest),
+    undefined,
+  );
+  const labelHint =
+    linked.data &&
+    (first === undefined
+      ? t("columnForm.linkedLabelNone", { table: linked.data.name })
+      : first.type === "relation"
+        ? t("columnForm.linkedLabelRelation", { table: linked.data.name })
+        : t("columnForm.linkedLabel", { column: first.name, table: linked.data.name }));
 
   return (
     <Field data-invalid={Boolean(error)}>
@@ -519,9 +598,270 @@ function LinkedTableField({
       {error ? (
         <FieldError id={`${id}-hint`}>{t("columnForm.errors.linkedTable")}</FieldError>
       ) : (
-        <FieldDescription id={`${id}-hint`}>{t("columnForm.linkedTableHint")}</FieldDescription>
+        <FieldDescription id={`${id}-hint`}>
+          {t("columnForm.linkedTableHint")}
+          {labelHint && (
+            <>
+              {" "}
+              <span className="text-foreground">{labelHint}</span>
+            </>
+          )}
+        </FieldDescription>
       )}
     </Field>
+  );
+}
+
+function LookupFields({
+  tableId,
+  form,
+  id,
+}: {
+  tableId: string;
+  form: ReturnType<typeof useForm<ColumnFormValues>>;
+  id: string;
+}) {
+  const { t } = useTranslation("tables");
+  const table = useQuery(tableQuery(tableId));
+  // A lookup shows one value: it reads through single relations only (ADR-032).
+  const relations = (table.data?.columns ?? []).filter(
+    (item) => item.type === "relation" && !item.options.multiple,
+  );
+  const relationColumnId = useWatch({ control: form.control, name: "relationColumnId" });
+  const relation = relations.find(({ id: columnId }) => columnId === relationColumnId);
+  const linkedTableId = relation?.type === "relation" ? relation.options.tableId : "";
+  const linked = useQuery({ ...tableQuery(linkedTableId), enabled: linkedTableId !== "" });
+  const targets = (linked.data?.columns ?? []).filter(({ type }) => canBeLookedUp(type));
+  const { errors } = form.formState;
+
+  if (table.data && relations.length === 0) {
+    return <FormAlert>{t("columnForm.lookupNoRelations")}</FormAlert>;
+  }
+
+  return (
+    <>
+      <Field data-invalid={Boolean(errors.relationColumnId)}>
+        <FieldLabel htmlFor={`${id}-relation`}>{t("columnForm.lookupRelation")}</FieldLabel>
+        <Controller
+          control={form.control}
+          name="relationColumnId"
+          render={({ field }) => (
+            <Select
+              items={Object.fromEntries(relations.map((item) => [item.id, item.name]))}
+              value={field.value}
+              onValueChange={(value) => {
+                if (value) {
+                  field.onChange(value);
+                  // Another relation links to another table: its columns differ.
+                  form.setValue("targetColumnId", "");
+                }
+              }}
+            >
+              <SelectTrigger
+                id={`${id}-relation`}
+                aria-invalid={Boolean(errors.relationColumnId)}
+                aria-describedby={`${id}-relation-hint`}
+                className="h-9 w-full"
+              >
+                <SelectValue placeholder={t("columnForm.lookupRelationPlaceholder")} />
+              </SelectTrigger>
+              <SelectContent>
+                {relations.map((item) => (
+                  <SelectItem key={item.id} value={item.id}>
+                    {item.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        />
+        {errors.relationColumnId ? (
+          <FieldError id={`${id}-relation-hint`}>{t("columnForm.errors.lookup")}</FieldError>
+        ) : (
+          <FieldDescription id={`${id}-relation-hint`}>{t("columnForm.lookupRelationHint")}</FieldDescription>
+        )}
+      </Field>
+      <Field data-invalid={Boolean(errors.targetColumnId)}>
+        <FieldLabel htmlFor={`${id}-target`}>{t("columnForm.lookupTarget")}</FieldLabel>
+        <Controller
+          control={form.control}
+          name="targetColumnId"
+          render={({ field }) => (
+            <Select
+              items={Object.fromEntries(targets.map((item) => [item.id, item.name]))}
+              value={field.value}
+              disabled={!relation}
+              onValueChange={(value) => value && field.onChange(value)}
+            >
+              <SelectTrigger
+                id={`${id}-target`}
+                aria-invalid={Boolean(errors.targetColumnId)}
+                aria-describedby={`${id}-target-hint`}
+                className="h-9 w-full"
+              >
+                <SelectValue placeholder={t("columnForm.lookupTargetPlaceholder")} />
+              </SelectTrigger>
+              <SelectContent>
+                {targets.map((item) => (
+                  <SelectItem key={item.id} value={item.id}>
+                    {item.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        />
+        {errors.targetColumnId ? (
+          <FieldError id={`${id}-target-hint`}>{t("columnForm.errors.lookup")}</FieldError>
+        ) : (
+          <FieldDescription id={`${id}-target-hint`}>{t("columnForm.lookupTargetHint")}</FieldDescription>
+        )}
+      </Field>
+    </>
+  );
+}
+
+function RollupFields({
+  tableId,
+  form,
+  id,
+}: {
+  tableId: string;
+  form: ReturnType<typeof useForm<ColumnFormValues>>;
+  id: string;
+}) {
+  const { t } = useTranslation("tables");
+  const table = useQuery(tableQuery(tableId));
+  const incoming = table.data?.incomingRelations ?? [];
+  const [relationColumnId, fn] = useWatch({
+    control: form.control,
+    name: ["relationColumnId", "rollupFunction"],
+  });
+  const source = incoming.find(({ columnId }) => columnId === relationColumnId);
+  const sourceTable = useQuery({ ...tableQuery(source?.tableId ?? ""), enabled: source !== undefined });
+  const targets = (sourceTable.data?.columns ?? []).filter(({ type }) => canRollUp(fn, type));
+  const { errors } = form.formState;
+
+  if (table.data && incoming.length === 0) {
+    return <FormAlert>{t("columnForm.rollupNoRelations")}</FormAlert>;
+  }
+
+  return (
+    <>
+      <Field data-invalid={Boolean(errors.relationColumnId)}>
+        <FieldLabel htmlFor={`${id}-relation`}>{t("columnForm.rollupRelation")}</FieldLabel>
+        <Controller
+          control={form.control}
+          name="relationColumnId"
+          render={({ field }) => (
+            <Select
+              items={Object.fromEntries(
+                incoming.map((item) => [item.columnId, t("columnForm.rollupRelationItem", { tableName: item.tableName, columnName: item.columnName })]),
+              )}
+              value={field.value}
+              onValueChange={(value) => {
+                if (value) {
+                  field.onChange(value);
+                  form.setValue("targetColumnId", "");
+                }
+              }}
+            >
+              <SelectTrigger
+                id={`${id}-relation`}
+                aria-invalid={Boolean(errors.relationColumnId)}
+                aria-describedby={`${id}-relation-hint`}
+                className="h-9 w-full"
+              >
+                <SelectValue placeholder={t("columnForm.rollupRelationPlaceholder")} />
+              </SelectTrigger>
+              <SelectContent>
+                {incoming.map((item) => (
+                  <SelectItem key={item.columnId} value={item.columnId}>
+                    {t("columnForm.rollupRelationItem", { tableName: item.tableName, columnName: item.columnName })}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        />
+        {errors.relationColumnId ? (
+          <FieldError id={`${id}-relation-hint`}>{t("columnForm.errors.rollup")}</FieldError>
+        ) : (
+          <FieldDescription id={`${id}-relation-hint`}>{t("columnForm.rollupRelationHint")}</FieldDescription>
+        )}
+      </Field>
+      <Field>
+        <FieldLabel htmlFor={`${id}-function`}>{t("columnForm.rollupFunction")}</FieldLabel>
+        <Controller
+          control={form.control}
+          name="rollupFunction"
+          render={({ field }) => (
+            <Select
+              items={Object.fromEntries(ROLLUP_FUNCTIONS.map((value) => [value, t(`rollupFunctions.${value}`)]))}
+              value={field.value}
+              onValueChange={(value) => {
+                if (value) {
+                  field.onChange(value);
+                  // A column that fits one function may not fit another.
+                  form.setValue("targetColumnId", "");
+                }
+              }}
+            >
+              <SelectTrigger id={`${id}-function`} className="h-9 w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {ROLLUP_FUNCTIONS.map((value) => (
+                  <SelectItem key={value} value={value}>
+                    {t(`rollupFunctions.${value}`)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        />
+      </Field>
+      {fn !== "count" && (
+        <Field data-invalid={Boolean(errors.targetColumnId)}>
+          <FieldLabel htmlFor={`${id}-target`}>{t("columnForm.rollupTarget")}</FieldLabel>
+          <Controller
+            control={form.control}
+            name="targetColumnId"
+            render={({ field }) => (
+              <Select
+                items={Object.fromEntries(targets.map((item) => [item.id, item.name]))}
+                value={field.value}
+                disabled={!source}
+                onValueChange={(value) => value && field.onChange(value)}
+              >
+                <SelectTrigger
+                  id={`${id}-target`}
+                  aria-invalid={Boolean(errors.targetColumnId)}
+                  aria-describedby={`${id}-target-hint`}
+                  className="h-9 w-full"
+                >
+                  <SelectValue placeholder={t("columnForm.lookupTargetPlaceholder")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {targets.map((item) => (
+                    <SelectItem key={item.id} value={item.id}>
+                      {item.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
+          {errors.targetColumnId ? (
+            <FieldError id={`${id}-target-hint`}>{t("columnForm.errors.rollup")}</FieldError>
+          ) : (
+            <FieldDescription id={`${id}-target-hint`}>
+              {t(fn === "min" || fn === "max" ? "columnForm.rollupTargetHintRange" : "columnForm.rollupTargetHint")}
+            </FieldDescription>
+          )}
+        </Field>
+      )}
+    </>
   );
 }
 

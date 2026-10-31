@@ -8,6 +8,7 @@ import {
   type Updater,
 } from "@tanstack/react-table";
 import {
+  canGroupRecordsBy,
   hasRole,
   type RecordFilter,
   type TableColumn,
@@ -28,7 +29,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { type FocusEvent, useEffect, useId, useMemo, useRef, useState } from "react";
+import { type FocusEvent, Fragment, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { toast } from "sonner";
@@ -55,6 +56,8 @@ import { EditableCell, ReadOnlyCell } from "./EditableCell";
 import { ExportButton } from "./ExportButton";
 import { ImportDialog } from "@/features/imports/ImportDialog";
 import { FiltersSheet } from "./FiltersSheet";
+import { GroupBySelect } from "./GroupBySelect";
+import { groupValueOf } from "./record-groups";
 import { RecordDialog } from "./RecordDialog";
 import { RecordsPagination } from "./RecordsPagination";
 import { recordsQuery, useUpdateRecord } from "./queries";
@@ -93,6 +96,7 @@ export function RecordsTable({ table }: { table: TableDetail }) {
   const [urlView, setView] = useRecordsView();
   const { columns } = table;
   const view = applicableView(urlView, columns);
+  const groupColumn = columns.find(({ id }) => id === view.group);
   const records = useQuery(recordsQuery(table.id, view));
   const update = useUpdateRecord(table.id);
   const { t: tTables } = useTranslation("tables");
@@ -137,18 +141,24 @@ export function RecordsTable({ table }: { table: TableDetail }) {
     setView({ sort: next?.id, order: next?.desc ? "desc" : "asc" });
   };
 
+  // Relations sort and filter by their linked record's label, when the user can open its table.
+  const labelledRelations = records.data?.labelledRelations;
   const tableColumns = useMemo(
     () =>
       columnHelper.columns(
         columns.map((column) =>
           columnHelper.accessor((record) => record.data[column.id], {
             id: column.id,
-            // A relation holds a record id: sorting by it would mean nothing.
-            enableSorting: column.type !== "relation",
+            enableSorting:
+              column.type === "relation"
+                ? (labelledRelations ?? []).includes(column.id)
+                : column.type === "lookup"
+                  ? column.id in table.lookupTargets
+                  : column.type !== "rollup",
           }),
         ),
       ),
-    [columns],
+    [columns, labelledRelations, table.lookupTargets],
   );
 
   const grid = useTable({
@@ -228,9 +238,24 @@ export function RecordsTable({ table }: { table: TableDetail }) {
           onSearch={(search) => setView({ search }, { replace: true })}
         />
         <FiltersSheet
-          columns={columns}
+          columns={columns.filter((column) =>
+            column.type === "relation"
+              ? (labelledRelations ?? []).includes(column.id)
+              : column.type === "lookup"
+                ? column.id in table.lookupTargets
+                : column.type !== "rollup",
+          )}
           filters={view.filters}
           onApply={(filters) => setView({ filters })}
+        />
+        <GroupBySelect
+          columns={columns.filter(
+            (column) =>
+              canGroupRecordsBy(column) &&
+              (column.type !== "relation" || (labelledRelations ?? []).includes(column.id)),
+          )}
+          value={view.group}
+          onChange={(group) => setView({ group })}
         />
         <ExportButton tableId={table.id} view={view} />
         {canEdit && (
@@ -286,7 +311,8 @@ export function RecordsTable({ table }: { table: TableDetail }) {
                   const sorted = header.column.getIsSorted();
                   const SortIcon =
                     sorted === "asc" ? ArrowUp : sorted === "desc" ? ArrowDown : ArrowUpDown;
-                  const numeric = column.type === "number" || column.type === "currency";
+                  const shown = shownColumn(table, column);
+                  const numeric = shown.type === "number" || shown.type === "currency";
                   return (
                     <th
                       key={header.id}
@@ -300,18 +326,25 @@ export function RecordsTable({ table }: { table: TableDetail }) {
                         index === 0 && cn(STICKY_CELL, "bg-[color-mix(in_oklab,var(--muted)_60%,var(--card))]"),
                       )}
                     >
-                      <button
-                        type="button"
-                        onClick={header.column.getToggleSortingHandler()}
-                        className={cn(
-                          "inline-flex h-8 items-center gap-1.5 rounded-md px-1.5 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring",
-                          numeric && "flex-row-reverse",
-                          sorted && "text-foreground",
-                        )}
-                      >
-                        {column.name}
-                        <SortIcon aria-hidden="true" className="size-3.5" />
-                      </button>
+                      {header.column.getCanSort() ? (
+                        <button
+                          type="button"
+                          onClick={header.column.getToggleSortingHandler()}
+                          className={cn(
+                            "inline-flex h-8 items-center gap-1.5 rounded-md px-1.5 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring",
+                            numeric && "flex-row-reverse",
+                            sorted && "text-foreground",
+                          )}
+                        >
+                          {column.name}
+                          <SortIcon aria-hidden="true" className="size-3.5" />
+                        </button>
+                      ) : (
+                        // Not a button: a relation to a table the user can't open doesn't sort.
+                        <span className="inline-flex h-8 items-center px-1.5 text-muted-foreground">
+                          {column.name}
+                        </span>
+                      )}
                     </th>
                   );
                 })}
@@ -334,116 +367,160 @@ export function RecordsTable({ table }: { table: TableDetail }) {
                       <td />
                     </tr>
                   ))
-                : grid.getRowModel().rows.map((row) => {
+                : grid.getRowModel().rows.map((row, index, rows) => {
                     const record = row.original;
                     const label = rowLabel(record);
+                    // A header row wherever a group starts, also atop each page.
+                    const group = groupColumn && groupValueOf(groupColumn, record, records.data?.linked ?? {});
+                    const startsGroup =
+                      groupColumn !== undefined &&
+                      (index === 0 ||
+                        group !== groupValueOf(groupColumn, rows[index - 1].original, records.data?.linked ?? {}));
                     return (
-                      <tr
-                        key={row.id}
-                        className={cn(
-                          "group border-b border-border last:border-b-0 hover:bg-muted/30",
-                          // Someone is editing this record: tinted, but nothing is locked.
-                          recordEditors.has(record.id) &&
-                            presenceColor(recordEditors.get(record.id)![0].userId).row,
-                        )}
-                      >
-                        {columns.map((column, index) => {
-                          const editor = editedByOthers.get(`${record.id}:${column.id}`);
-                          const editorName = editor && nameOf(editor);
-                          return (
-                          <td
-                            key={column.id}
-                            className={cn(
-                              "px-1.5 py-1 align-middle",
-                              editor && ["relative ring-2 ring-inset", presenceColor(editor.userId).ring],
-                              // Opaque, so scrolled cells never show through the fixed column.
-                              index === 0 &&
-                                cn(
-                                  STICKY_CELL,
-                                  "bg-card group-hover:bg-[color-mix(in_oklab,var(--muted)_30%,var(--card))]",
-                                ),
-                            )}
-                          >
-                            {/* On phones the fixed column must leave room for the cell being edited. */}
-                            <div className={cn(index === 0 && "max-w-36 sm:max-w-56 lg:max-w-none")}>
-                              {canEdit ? (
-                                <EditableCell
-                                  column={column}
-                                  value={record.data[column.id]}
-                                  label={t("cell.label", { column: column.name, row: label })}
-                                  format={format}
-                                  onSave={(value) => save(record, column, value)}
-                                  presence={{ recordId: record.id, setEditing }}
-                                  editedBy={editorName}
-                                  linked={records.data?.linked}
-                                />
-                              ) : (
-                                <ReadOnlyCell
-                                  column={column}
-                                  value={record.data[column.id]}
-                                  format={format}
-                                  linked={records.data?.linked}
-                                />
-                              )}
-                            </div>
-                            {editor && (
-                              <span
-                                className={cn(
-                                  "pointer-events-none absolute -top-2 right-1 z-20 max-w-24 truncate rounded px-1 text-[10px] leading-4 font-medium text-white",
-                                  presenceColor(editor.userId).avatar,
-                                )}
-                              >
-                                <span aria-hidden="true">{editorName}</span>
-                                <span className="sr-only">
-                                  {tTables("presence.editingCell", { name: editorName })}
-                                </span>
+                      <Fragment key={row.id}>
+                        {startsGroup && (
+                          <tr className="border-b border-border bg-muted/40">
+                            <th
+                              scope="colgroup"
+                              colSpan={columns.length + (hasRowActions ? 1 : 0)}
+                              className="px-3 py-2 text-left text-sm font-medium"
+                            >
+                              {t("group.header", {
+                                column: groupColumn.name,
+                                value:
+                                  group === null
+                                    ? t("group.empty")
+                                    : groupColumn.type === "boolean"
+                                      ? format(groupColumn, group === "true")
+                                      : group,
+                              })}{" "}
+                              <span className="font-normal text-muted-foreground">
+                                {t("group.count", {
+                                  count:
+                                    records.data?.groups.find(({ value }) => value === group)?.count ?? 0,
+                                })}
                               </span>
-                            )}
-                          </td>
-                          );
-                        })}
-                        {hasRowActions && (
-                          <td className="px-1.5 py-1 text-right">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger
-                                render={
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    aria-label={t("table.rowActions", { label })}
-                                  />
-                                }
-                              >
-                                <Ellipsis aria-hidden="true" />
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-52">
-                                {stockColumns.length > 0 && (
-                                  <DropdownMenuItem onClick={() => setDialog({ kind: "stock", record })}>
-                                    <ArrowDownUp aria-hidden="true" />
-                                    {t("table.stock")}
-                                  </DropdownMenuItem>
-                                )}
-                                {canEdit && (
-                                  <>
-                                    <DropdownMenuItem onClick={() => setDialog({ kind: "edit", record })}>
-                                      <Pencil aria-hidden="true" />
-                                      {t("table.edit")}
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem
-                                      variant="destructive"
-                                      onClick={() => setDialog({ kind: "delete", record })}
-                                    >
-                                      <Trash2 aria-hidden="true" />
-                                      {t("table.delete")}
-                                    </DropdownMenuItem>
-                                  </>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </td>
+                            </th>
+                          </tr>
                         )}
-                      </tr>
+                        <tr
+                          key={row.id}
+                          className={cn(
+                            "group border-b border-border last:border-b-0 hover:bg-muted/30",
+                            // Someone is editing this record: tinted, but nothing is locked.
+                            recordEditors.has(record.id) &&
+                              presenceColor(recordEditors.get(record.id)![0].userId).row,
+                          )}
+                        >
+                          {columns.map((column, index) => {
+                            const editor = editedByOthers.get(`${record.id}:${column.id}`);
+                            const editorName = editor && nameOf(editor);
+                            return (
+                            <td
+                              key={column.id}
+                              className={cn(
+                                "px-1.5 py-1 align-middle",
+                                editor && ["relative ring-2 ring-inset", presenceColor(editor.userId).ring],
+                                // Opaque, so scrolled cells never show through the fixed column.
+                                index === 0 &&
+                                  cn(
+                                    STICKY_CELL,
+                                    "bg-card group-hover:bg-[color-mix(in_oklab,var(--muted)_30%,var(--card))]",
+                                  ),
+                              )}
+                            >
+                              {/* On phones the fixed column must leave room for the cell being edited. */}
+                              <div className={cn(index === 0 && "max-w-36 sm:max-w-56 lg:max-w-none")}>
+                                {column.type === "lookup" || column.type === "rollup" ? (
+                                  // Computed from other records, never edited here (ADR-030, ADR-031).
+                                  column.id in table.lookupTargets || column.id in table.rollupTargets ? (
+                                    <ReadOnlyCell
+                                      column={shownColumn(table, column)}
+                                      value={record.data[column.id]}
+                                      format={format}
+                                    />
+                                  ) : (
+                                    <span className="block h-8" />
+                                  )
+                                ) : canEdit ? (
+                                  <EditableCell
+                                    column={column}
+                                    value={record.data[column.id]}
+                                    label={t("cell.label", { column: column.name, row: label })}
+                                    format={format}
+                                    onSave={(value) => save(record, column, value)}
+                                    presence={{ recordId: record.id, setEditing }}
+                                    editedBy={editorName}
+                                    linked={records.data?.linked}
+                                  />
+                                ) : (
+                                  <ReadOnlyCell
+                                    column={column}
+                                    value={record.data[column.id]}
+                                    format={format}
+                                    linked={records.data?.linked}
+                                  />
+                                )}
+                              </div>
+                              {editor && (
+                                <span
+                                  className={cn(
+                                    "pointer-events-none absolute -top-2 right-1 z-20 max-w-24 truncate rounded px-1 text-[10px] leading-4 font-medium text-white",
+                                    presenceColor(editor.userId).avatar,
+                                  )}
+                                >
+                                  <span aria-hidden="true">{editorName}</span>
+                                  <span className="sr-only">
+                                    {tTables("presence.editingCell", { name: editorName })}
+                                  </span>
+                                </span>
+                              )}
+                            </td>
+                            );
+                          })}
+                          {hasRowActions && (
+                            <td className="px-1.5 py-1 text-right">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger
+                                  render={
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      aria-label={t("table.rowActions", { label })}
+                                    />
+                                  }
+                                >
+                                  <Ellipsis aria-hidden="true" />
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-52">
+                                  {stockColumns.length > 0 && (
+                                    <DropdownMenuItem onClick={() => setDialog({ kind: "stock", record })}>
+                                      <ArrowDownUp aria-hidden="true" />
+                                      {t("table.stock")}
+                                    </DropdownMenuItem>
+                                  )}
+                                  {canEdit && (
+                                    <>
+                                      <DropdownMenuItem onClick={() => setDialog({ kind: "edit", record })}>
+                                        <Pencil aria-hidden="true" />
+                                        {t("table.edit")}
+                                      </DropdownMenuItem>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem
+                                        variant="destructive"
+                                        onClick={() => setDialog({ kind: "delete", record })}
+                                      >
+                                        <Trash2 aria-hidden="true" />
+                                        {t("table.delete")}
+                                      </DropdownMenuItem>
+                                    </>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </td>
+                          )}
+                        </tr>
+                      </Fragment>
                     );
                   })}
             </tbody>
@@ -480,7 +557,8 @@ export function RecordsTable({ table }: { table: TableDetail }) {
 
       <RecordDialog
         tableId={table.id}
-        columns={columns}
+        // Lookups and rollups aren't filled by hand: the form leaves them out.
+        columns={columns.filter(({ type }) => type !== "lookup" && type !== "rollup")}
         linked={records.data?.linked}
         record={dialog.kind === "create" ? undefined : dialog.record}
         editingBy={
@@ -636,4 +714,22 @@ function EmptyState({
       {action && <div className="mt-5">{action}</div>}
     </div>
   );
+}
+
+/**
+ * The column whose type and settings format a cell: what a lookup shows, what
+ * a rollup sums up (a plain number when it counts), or the column itself.
+ */
+function shownColumn(table: TableDetail, column: TableColumn): TableColumn {
+  if (column.type === "lookup") {
+    return table.lookupTargets[column.id] ?? column;
+  }
+  if (column.type === "rollup") {
+    const target = table.rollupTargets[column.id];
+    // A low-stock threshold is per record: it means nothing for a sum or an average.
+    return target?.type === "currency" || target?.type === "date"
+      ? target
+      : { ...column, type: "number", stock: false, options: null, defaultValue: null };
+  }
+  return column;
 }

@@ -4,6 +4,7 @@ import {
   type ColumnDefinition,
   type ColumnType,
   columnValueSchemas,
+  MAX_LINKS_PER_CELL,
 } from "./column-types.js";
 
 export const MAX_RECORDS_PER_TABLE = 10_000;
@@ -40,15 +41,59 @@ export interface Paginated<T> {
  * to. Records of tables the user can't open are left out: the UI shows the
  * link without saying what it is.
  */
+/** Records sharing a value of the grouped column (ADR-029). */
+export interface RecordGroup {
+  /** The value as text: a select's label, "true"/"false", or a linked record's label. Null: empty. */
+  value: string | null;
+  /** Records in the group, with the search and filters applied. */
+  count: number;
+}
+
+/** Columns a listing can be grouped by: values that repeat across records. */
+export const GROUPABLE_COLUMN_TYPES = ["select", "boolean", "text", "relation"] as const;
+
+/** A multiple relation isn't one value per record: it doesn't group (ADR-032). */
+export function canGroupRecordsBy(column: ColumnDefinition): boolean {
+  return (
+    (GROUPABLE_COLUMN_TYPES as readonly ColumnType[]).includes(column.type) &&
+    !(column.type === "relation" && column.options.multiple)
+  );
+}
+
+/** The ids of the records a relation cell links to: one, several or none. */
+export function linkedRecordIds(value: CellValue | undefined): string[] {
+  if (typeof value === "string") {
+    return [value];
+  }
+  return Array.isArray(value) ? value : [];
+}
+
 export interface RecordPage extends Paginated<TableRecord> {
   linked: Record<string, string>;
+  /** Every group of the whole listing (not only this page) when it is grouped; empty otherwise. */
+  groups: RecordGroup[];
+  /**
+   * Relation columns whose linked table the user can open: only these can be
+   * searched, filtered and sorted by label (ADR-028).
+   */
+  labelledRelations: string[];
 }
 
 /** Any column with its id: what record validation needs from a table. */
 export type RecordColumn = ColumnDefinition & { id: string };
 
 const blankToNull = (value: unknown) =>
-  typeof value === "string" && value.trim() === "" ? null : value;
+  (typeof value === "string" && value.trim() === "") ||
+  (Array.isArray(value) && value.length === 0)
+    ? null
+    : value;
+
+/** The records a multiple relation links to, each once (ADR-032). */
+const linkedRecordsSchema = z
+  .array(columnValueSchemas.relation)
+  .min(1)
+  .max(MAX_LINKS_PER_CELL)
+  .refine((ids) => new Set(ids).size === ids.length, "Repeated record");
 
 /** Valid value (or null) for one column, including its select choices. */
 export function cellValueSchema(column: ColumnDefinition): z.ZodType<CellValue> {
@@ -58,7 +103,9 @@ export function cellValueSchema(column: ColumnDefinition): z.ZodType<CellValue> 
           (label) => column.options.choices.some((choice) => choice.label === label),
           "Not one of the column's choices",
         )
-      : columnValueSchemas[column.type];
+      : column.type === "relation" && column.options.multiple
+        ? linkedRecordsSchema
+        : columnValueSchemas[column.type];
   return z.preprocess(blankToNull, base.nullable());
 }
 
@@ -69,8 +116,11 @@ export function cellValueSchema(column: ColumnDefinition): z.ZodType<CellValue> 
  * cells it sends. Null means "empty the cell".
  */
 export function recordDataSchema(columns: RecordColumn[], { partial }: { partial: boolean }) {
+  // Lookups and rollups are computed, never written: sending one is an unknown key.
   const shape = Object.fromEntries(
-    columns.map((column) => [column.id, cellValueSchema(column).optional()]),
+    columns
+      .filter((column) => column.type !== "lookup" && column.type !== "rollup")
+      .map((column) => [column.id, cellValueSchema(column).optional()]),
   );
   return z
     .strictObject(shape)
@@ -115,7 +165,12 @@ export const FILTER_OPERATOR_BY_TYPE: Record<ColumnType, FilterOperator> = {
   date: "between",
   boolean: "is",
   select: "in",
-  relation: "in",
+  // By the linked record's label (ADR-028).
+  relation: "contains",
+  // By the value it shows, as text (ADR-030).
+  lookup: "contains",
+  // Not filterable yet: the API refuses it (ADR-031).
+  rollup: "between",
 };
 
 const rangeBoundSchema = z.union([z.number(), z.iso.date()]);
@@ -154,6 +209,8 @@ export const recordListQuerySchema = z.object({
   search: z.string().trim().max(SEARCH_MAX_LENGTH).optional(),
   sort: z.uuid().optional(),
   order: z.enum(SORT_ORDERS).default("asc"),
+  /** Column whose values group the records; they come group by group (ADR-029). */
+  group: z.uuid().optional(),
   filters: z
     .string()
     .optional()

@@ -49,6 +49,8 @@ function toFilter(column: TableColumn, draft: FilterDraft): RecordFilter | null 
   const columnId = column.id;
   switch (column.type) {
     case "text":
+    case "relation":
+    case "lookup":
       return draft.value.trim() ? { columnId, op: "contains", value: draft.value.trim() } : null;
     case "boolean":
       return draft.is ? { columnId, op: "is", value: draft.is === "true" } : null;
@@ -72,6 +74,7 @@ function toFilter(column: TableColumn, draft: FilterDraft): RecordFilter | null 
 }
 
 interface FiltersSheetProps {
+  /** The columns that can be filtered: relations only when their table can be opened. */
   columns: TableColumn[];
   filters: RecordFilter[];
   onApply: (filters: RecordFilter[]) => void;
@@ -116,17 +119,14 @@ export function FiltersSheet({ columns, filters, onApply }: FiltersSheetProps) {
             <SheetDescription>{t("filters.description")}</SheetDescription>
           </div>
           <div className="flex-1 space-y-5 overflow-y-auto p-4">
-            {/* Relations would filter by record ids: not offered until it can be by name. */}
-            {columns
-              .filter((column) => column.type !== "relation")
-              .map((column) => (
-                <ColumnFilter
-                  key={column.id}
-                  column={column}
-                  draft={drafts[column.id] ?? EMPTY_DRAFT}
-                  onChange={(draft) => setDrafts((current) => ({ ...current, [column.id]: draft }))}
-                />
-              ))}
+            {columns.map((column) => (
+              <ColumnFilter
+                key={column.id}
+                column={column}
+                draft={drafts[column.id] ?? EMPTY_DRAFT}
+                onChange={(draft) => setDrafts((current) => ({ ...current, [column.id]: draft }))}
+              />
+            ))}
           </div>
           <div className="flex gap-2 border-t border-border p-4">
             <Button type="button" variant="outline" className="h-9 flex-1" onClick={() => setDrafts({})}>
@@ -155,7 +155,8 @@ function ColumnFilter({
   const id = useId();
   const set = (patch: Partial<FilterDraft>) => onChange({ ...draft, ...patch });
 
-  if (column.type === "text") {
+  // A relation matches by its linked record's name.
+  if (column.type === "text" || column.type === "relation" || column.type === "lookup") {
     return (
       <div className="space-y-1.5">
         <label htmlFor={id} className="text-sm font-medium">

@@ -35,6 +35,9 @@ const table: TableDetail = {
   recordCount: 1,
   createdAt: "2026-01-01T00:00:00.000Z",
   updatedAt: "2026-01-01T00:00:00.000Z",
+  lookupTargets: {},
+  rollupTargets: {},
+  incomingRelations: [],
   columns: [
     column(NAME_ID, 0, { name: "Nombre", type: "text" }),
     column(PRICE_ID, 1, { name: "Precio", type: "currency", options: { currency: "EUR" } }),
@@ -62,6 +65,158 @@ function listRequests(fetchMock: ReturnType<typeof mockApi>) {
 }
 
 describe("RecordsTable", () => {
+  it("shows rollups read-only: a count as a number, a sum like the column it adds up", async () => {
+    const COUNT_ID = "4f5a6b7c-4444-4aaa-8bbb-000000000008";
+    const SUM_ID = "4f5a6b7c-5555-4aaa-8bbb-000000000009";
+    const salary = column("6a7b8c9d-3333-4aaa-8bbb-000000000010", 1, {
+      name: "Salario",
+      type: "currency",
+      options: { currency: "EUR" },
+    });
+    const options = (fn: string, targetColumnId: string | null) => ({
+      relationColumnId: "6a7b8c9d-4444-4aaa-8bbb-000000000011",
+      function: fn,
+      targetColumnId,
+    });
+    const withRollups: TableDetail = {
+      ...table,
+      columns: [
+        ...table.columns,
+        column(COUNT_ID, 2, { name: "Personas", type: "rollup", options: options("count", null) }),
+        column(SUM_ID, 3, { name: "Coste", type: "rollup", options: options("sum", salary.id) }),
+      ],
+      rollupTargets: { [COUNT_ID]: null, [SUM_ID]: salary },
+    };
+    mockApi(() => ({
+      ...page,
+      data: [{ ...page.data[0], data: { ...page.data[0].data, [COUNT_ID]: 12, [SUM_ID]: 25400 } }],
+      linked: {},
+      labelledRelations: [],
+      groups: [],
+    }));
+    renderWithProviders(<RecordsTable table={withRollups} />, { route: "/app/tables/x" });
+
+    expect(await screen.findByText("12")).toBeVisible();
+    expect(screen.getByText("25.400,00 €")).toBeVisible();
+    // Not a sort key yet: the header is plain text.
+    expect(screen.queryByRole("button", { name: "Personas" })).not.toBeInTheDocument();
+  });
+
+  it("shows a lookup read-only, formatted like the column it shows", async () => {
+    const LEAD_ID = "4f5a6b7c-3333-4aaa-8bbb-000000000006";
+    const SUPPLIER_ID = "4f5a6b7c-1111-4aaa-8bbb-000000000003";
+    const days = column("6a7b8c9d-2222-4aaa-8bbb-000000000007", 1, { name: "Plazo", type: "currency", options: { currency: "EUR" } });
+    const withLookup: TableDetail = {
+      ...table,
+      columns: [
+        ...table.columns,
+        column(SUPPLIER_ID, 2, {
+          name: "Proveedor",
+          type: "relation",
+          options: { tableId: "6a7b8c9d-1111-4aaa-8bbb-000000000004" },
+        }),
+        column(LEAD_ID, 3, {
+          name: "Coste de envío",
+          type: "lookup",
+          options: { relationColumnId: SUPPLIER_ID, targetColumnId: days.id },
+        }),
+      ],
+      lookupTargets: { [LEAD_ID]: days },
+    };
+    mockApi(() => ({
+      ...page,
+      data: [{ ...page.data[0], data: { ...page.data[0].data, [LEAD_ID]: 4.5 } }],
+      linked: {},
+      labelledRelations: [],
+      groups: [],
+    }));
+    renderWithProviders(<RecordsTable table={withLookup} />, { route: "/app/tables/x" });
+
+    // Formatted as the currency it shows, and not an editable cell.
+    expect(await screen.findByText("4,50 €")).toBeVisible();
+    expect(screen.queryByRole("button", { name: /^Coste de envío de Taladro/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Coste de envío" })).toBeVisible();
+  });
+
+  it("shows a header with the size of each group", async () => {
+    const STATUS_ID = "4f5a6b7c-2222-4aaa-8bbb-000000000005";
+    const grouped: TableDetail = {
+      ...table,
+      columns: [
+        ...table.columns,
+        column(STATUS_ID, 2, {
+          name: "Estado",
+          type: "select",
+          options: {
+            choices: [
+              { id: "d", label: "Disponible", color: "green" },
+              { id: "a", label: "Agotado", color: "red" },
+            ],
+          },
+        }),
+      ],
+    };
+    const record = (id: string, name: string, status: string | null) => ({
+      id,
+      data: { [NAME_ID]: name, ...(status && { [STATUS_ID]: status }) },
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    });
+    const fetchMock = mockApi(() => ({
+      data: [
+        record("3e1a9f5b-0000-4f60-9b1c-000000000001", "Sierra", "Disponible"),
+        record("3e1a9f5b-0000-4f60-9b1c-000000000002", "Cinta", "Disponible"),
+        record("3e1a9f5b-0000-4f60-9b1c-000000000003", "Taladro", "Agotado"),
+        record("3e1a9f5b-0000-4f60-9b1c-000000000004", "Martillo", null),
+      ],
+      meta: { page: 1, pageSize: 25, total: 4, pageCount: 1 },
+      linked: {},
+      labelledRelations: [],
+      groups: [
+        { value: "Disponible", count: 2 },
+        { value: "Agotado", count: 1 },
+        { value: null, count: 1 },
+      ],
+    }));
+    renderWithProviders(<RecordsTable table={grouped} />, {
+      route: `/app/tables/x?group=${STATUS_ID}`,
+    });
+
+    const headers = await screen.findAllByRole("columnheader", { name: /^Estado: / });
+    expect(headers.map((header) => header.textContent)).toEqual([
+      "Estado: Disponible · 2 registros",
+      "Estado: Agotado · 1 registro",
+      "Estado: sin valor · 1 registro",
+    ]);
+    expect(listRequests(fetchMock).at(-1)?.get("group")).toBe(STATUS_ID);
+  });
+
+  it("sorts relations by name only when their table can be opened", async () => {
+    const SUPPLIER_ID = "4f5a6b7c-1111-4aaa-8bbb-000000000003";
+    const withSupplier: TableDetail = {
+      ...table,
+      columns: [
+        ...table.columns,
+        column(SUPPLIER_ID, 2, {
+          name: "Proveedor",
+          type: "relation",
+          options: { tableId: "6a7b8c9d-1111-4aaa-8bbb-000000000004" },
+        }),
+      ],
+    };
+    mockApi(() => ({ ...page, linked: {}, labelledRelations: [SUPPLIER_ID] }));
+    const { unmount } = renderWithProviders(<RecordsTable table={withSupplier} />, {
+      route: "/app/tables/x",
+    });
+    expect(await screen.findByRole("button", { name: "Proveedor" })).toBeVisible();
+    unmount();
+
+    mockApi(() => ({ ...page, linked: {}, labelledRelations: [] }));
+    renderWithProviders(<RecordsTable table={withSupplier} />, { route: "/app/tables/x" });
+    expect(await screen.findByRole("button", { name: "Precio" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Proveedor" })).not.toBeInTheDocument();
+  });
+
   it("keeps the sort in the URL and asks the API for it", async () => {
     const user = userEvent.setup();
     const fetchMock = mockApi(() => page);

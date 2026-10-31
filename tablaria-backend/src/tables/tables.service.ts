@@ -16,6 +16,9 @@ import {
   type updateTableSchema,
 } from '@tablaria/shared';
 import type { z } from 'zod';
+import { dropComputedColumns, lookupSources } from '../lookups/lookups';
+import { incomingRelations } from '../relations/relations';
+import { rollupSources } from '../rollups/rollups';
 import { toColumnData, toTableColumn } from '../columns/column-mapper';
 import { PrismaService } from '../database/prisma.service';
 import type { InventoryTable, Prisma } from '../generated/prisma/client';
@@ -127,11 +130,21 @@ export class TablesService {
       },
       select: { role: true },
     });
+    const columns = table.columns.map(toTableColumn);
+    const lookups = await lookupSources(this.prisma, userId, columns);
+    const rollups = await rollupSources(this.prisma, userId, columns);
     return {
       ...toTableSummary(table, role),
       organizationId: table.organizationId,
       member: membership !== null,
-      columns: table.columns.map(toTableColumn),
+      columns,
+      lookupTargets: Object.fromEntries(
+        [...lookups].map(([id, { target }]) => [id, target]),
+      ),
+      rollupTargets: Object.fromEntries(
+        [...rollups].map(([id, { target }]) => [id, target]),
+      ),
+      incomingRelations: await incomingRelations(this.prisma, userId, tableId),
     };
   }
 
@@ -176,6 +189,16 @@ export class TablesService {
     const linking = await this.prisma.$transaction(async (tx) => {
       // Relation columns elsewhere would link to nothing: they go too.
       const tables = await dropRelationsTo(tx, tableId);
+      // Rollups elsewhere that sum up through this table's relations (ADR-031).
+      const ownColumns = await tx.column.findMany({
+        where: { tableId },
+        select: { id: true },
+      });
+      tables.push(
+        ...(await dropComputedColumns(tx, {
+          relationColumnIds: ownColumns.map(({ id }) => id),
+        })),
+      );
       // Columns, records and shares go with it (ON DELETE CASCADE).
       await tx.inventoryTable.delete({ where: { id: tableId } });
       return tables;

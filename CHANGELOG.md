@@ -1,5 +1,41 @@
 # Changelog
 
+## v1.6.0 — Relaciones avanzadas
+
+- **Seguridad** (auditoría OWASP Top 10:2025 de la release):
+  - **Código:** sin hallazgos. Se revisaron las etiquetas de las relaciones, la agrupación, las consultas, los resúmenes y las relaciones múltiples.
+    - Todo el SQL va parametrizado, y las columnas se comprueban contra la tabla.
+    - Los datos de otra tabla solo se muestran, buscan, filtran, ordenan o agrupan si puedes abrirla.
+    - Los enlaces públicos siguen sin mostrar relaciones ni nada calculado a partir de ellas.
+  - **Dependencias:** siguen los avisos de la v1.5.0 (body-parser, ya mitigado) y aparecen otros nuevos, ninguno alcanzable en producción:
+    - nodemailer solo se usa con SMTP; producción envía con Resend.
+    - multer no se usa: no hay subidas de archivos.
+    - minimatch solo está en la CLI de shadcn.
+    - Todos se actualizan hacia el 6 de noviembre.
+- **Relaciones con varios registros** (ADR-032):
+  - **Qué son:** una relación puede enlazar cada registro con varios de otra tabla, por ejemplo los miembros de un proyecto o los proveedores de un producto. Se activan con «Varios registros» al crear o editar la columna de relación.
+  - **Elegir:** el selector deja la lista abierta para añadir o quitar registros uno a uno, y muestra arriba los que ya están enlazados.
+  - **Funciones:** se buscan, filtran y ordenan por los nombres de los registros enlazados, y salen en el CSV separados por comas. No se puede agrupar por ellas.
+  - **Resúmenes:** funcionan a través de ellas, así que en Empleados se puede contar en cuántos proyectos está cada persona.
+  - **Consultas:** solo a través de relaciones de un registro. Al activar «Varios registros» se borran las consultas que leían a través de esa relación; el formulario lo avisa antes de guardar.
+  - **Cambiar la opción:** al activarla, cada enlace actual se convierte en una lista de uno; al desactivarla, cada registro conserva el primero de su lista.
+  - **Limpieza:** si se borra un registro enlazado, desaparece de las listas que lo tenían.
+- **Columnas de resumen** (ADR-031):
+  - **Qué son:** cuentan o calculan desde los registros que enlazan con cada fila, por ejemplo, en Equipos, «Nº de empleados», «Coste en salarios» o «Última alta», o en Proveedores, «Productos» y «Stock total». Se crean en «Añadir columna → Resumen de otra tabla».
+  - **Cálculos:** contar, sumar, media, mínimo y máximo, con números, precios o fechas.
+  - **En la misma tabla:** también funcionan con una relación de una tabla consigo misma, como «Personas a su cargo» a partir de «Jefe».
+  - **Siempre al día:** se calculan cada vez y no se editan a mano. Salen en el CSV con su formato.
+  - **Permisos:** solo muestran datos de tablas que puedes abrir.
+  - **Limpieza:** desaparecen si se borra la relación o la columna que suman.
+- **Columnas de consulta** (ADR-030):
+  - **Qué son:** muestran un dato del registro enlazado, por ejemplo «Teléfono del proveedor» en Productos. Se crean en «Añadir columna → Consulta de otra tabla», eligiendo la relación y la columna que se quiere ver.
+  - **Siempre al día:** el valor se lee de la otra tabla cada vez, así que si cambia allí, cambia aquí. No se edita en esta tabla.
+  - **Funciones:** se pueden ordenar (por valor, si es un número o una fecha), filtrar y buscar, y salen en el CSV con el mismo formato que en su tabla.
+  - **Permisos:** solo muestran datos de tablas que puedes abrir.
+  - **Limpieza:** si se borra la relación o la columna que muestran, la consulta se borra con ellas.
+- **Agrupar registros** (ADR-029): el selector «Agrupar por…» ordena la tabla por una lista de opciones, Sí/No, texto o relación, con una cabecera por grupo que dice cuántos registros tiene. Funciona con la búsqueda, los filtros, el orden, la paginación y la exportación, y queda en la URL para compartir la vista.
+- **Qué se ve de un registro enlazado:** al crear o editar una columna de relación, la ayuda dice qué columna de la tabla enlazada se mostrará (su primera columna, por ejemplo «Nombre») y cómo cambiarla.
+
 ## v1.5.1 — Tablaria
 
 - **Nuevo nombre: Tablaria** (ADR-027). Cambian la marca, las carpetas, el paquete compartido y los nombres internos. La app se publica en el nuevo dominio [tablaria.es](https://tablaria.es) y los correos salen desde `mail.tablaria.es`. Hay que volver a iniciar sesión una vez; los datos son los mismos.

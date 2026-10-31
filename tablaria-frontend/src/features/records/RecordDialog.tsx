@@ -190,10 +190,10 @@ function RecordForm({
                     <RelationPicker
                       id={id}
                       column={column}
-                      value={field.value || null}
+                      value={fromDraft(column, field.value ?? "")}
                       linked={linked}
                       label={column.name}
-                      onChange={(next) => field.onChange(next ?? "")}
+                      onChange={(next) => field.onChange(toDraft(next))}
                       className="h-9 border border-input"
                     />
                   )}

@@ -8,7 +8,7 @@
   },
   "toolbar": {
     "search": "Buscar registros",
-    "searchPlaceholder": "Buscar en texto y opciones…",
+    "searchPlaceholder": "Buscar en texto, opciones y enlaces…",
     "filters": "Filtros",
     "filtersActive_one": "Filtros ({{count}} activo)",
     "filtersActive_other": "Filtros ({{count}} activos)",
@@ -102,7 +102,9 @@
       "date": "Elige una fecha válida.",
       "select": "Elige una de las opciones.",
       "boolean": "Elige Sí o No.",
-      "relation": "Elige un registro de la tabla enlazada."
+      "relation": "Elige un registro de la tabla enlazada.",
+      "lookup": "Este dato se lee de otra tabla.",
+      "rollup": "Este dato se calcula con otros registros."
     }
   },
   "delete": {
@@ -167,7 +169,9 @@
         "date": "no es una fecha (usa 31/12/2026 o 2026-12-31)",
         "boolean": "no es Sí o No",
         "select": "no es una opción de la lista",
-        "relation": "no se puede importar en una relación: enlázala después en la tabla"
+        "relation": "no se puede importar en una relación: enlázala después en la tabla",
+        "lookup": "se lee de otra tabla",
+        "rollup": "se calcula con otros registros"
       }
     },
     "submit_one": "Importar {{count}} registro",
@@ -194,7 +198,10 @@
     "searchPlaceholder": "Buscar…",
     "noResults": "Ningún registro coincide.",
     "noAccess": "No tienes acceso a la tabla enlazada. Pide a quien la administra que te la comparta.",
-    "clear": "Quitar el enlace"
+    "clear": "Quitar el enlace",
+    "clearAll": "Quitar todos los enlaces",
+    "selected": "Enlazados",
+    "remove": "Quitar {{label}}"
   },
   "stock": {
     "title": "Stock de «{{label}}»",
@@ -235,5 +242,14 @@
     "historyError": "No se pudo cargar el historial.",
     "historyLimit": "Se muestran los {{count}} más recientes de {{total}}.",
     "balance": "Queda {{value}}"
+  },
+  "group": {
+    "label": "Agrupar registros",
+    "none": "Sin agrupar",
+    "by": "Agrupar por {{column}}",
+    "header": "{{column}}: {{value}}",
+    "empty": "sin valor",
+    "count_one": "· {{count}} registro",
+    "count_other": "· {{count}} registros"
   }
 }

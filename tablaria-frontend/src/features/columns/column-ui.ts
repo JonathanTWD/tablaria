@@ -5,6 +5,8 @@ import {
   Hash,
   Link2,
   ListChecks,
+  Sigma,
+  TextSearch,
   ToggleLeft,
   Type,
   type LucideIcon,
@@ -18,6 +20,8 @@ export const COLUMN_TYPE_ICONS: Record<ColumnType, LucideIcon> = {
   select: ListChecks,
   currency: Coins,
   relation: Link2,
+  lookup: TextSearch,
+  rollup: Sigma,
 };
 
 /** Chip colors for select choices; every pair keeps 4.5:1 contrast in both themes. */

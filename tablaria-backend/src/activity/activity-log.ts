@@ -44,9 +44,16 @@ export function changedColumns(
   before: RecordData,
   after: RecordData,
 ): string[] {
-  return columns
-    .filter(({ id }) => (before[id] ?? null) !== (after[id] ?? null))
-    .map(({ name }) => name);
+  return (
+    columns
+      // Lists (multiple relations) compare by their contents.
+      .filter(
+        ({ id }) =>
+          JSON.stringify(before[id] ?? null) !==
+          JSON.stringify(after[id] ?? null),
+      )
+      .map(({ name }) => name)
+  );
 }
 
 /**

@@ -93,7 +93,7 @@ function RelationCell({ column, value, label, onSave, presence, linked = {} }: E
       linked={linked}
       label={label}
       onOpenChange={setOpen}
-      onChange={(next) => next !== value && onSave(next)}
+      onChange={(next) => toDraft(next) !== toDraft(value) && onSave(next)}
     />
   );
 }

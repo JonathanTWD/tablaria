@@ -31,17 +31,21 @@ export default defineConfig(({ mode }) => {
       environment: "jsdom",
       setupFiles: ["./src/test/setup.ts"],
     },
-    server: {
-      // Same-origin API in development so httpOnly auth cookies behave as in production.
-      proxy: {
-        "/api": {
-          target: API_PROXY_TARGET,
-          changeOrigin: true,
-          xfwd: true,
-          // Realtime updates use a WebSocket under /api.
-          ws: true,
-        },
-      },
-    },
+    // Same-origin API so httpOnly auth cookies behave as in production. `preview`
+    // serves the production build the same way (the browser tests use it in CI).
+    server: { proxy: apiProxy(API_PROXY_TARGET) },
+    preview: { proxy: apiProxy(API_PROXY_TARGET) },
   };
 });
+
+function apiProxy(target: string) {
+  return {
+    "/api": {
+      target,
+      changeOrigin: true,
+      xfwd: true,
+      // Realtime updates use a WebSocket under /api.
+      ws: true,
+    },
+  };
+}

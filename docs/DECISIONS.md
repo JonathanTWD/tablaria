@@ -486,6 +486,109 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 - Los datos no cambian: la base de datos de Neon es la misma.
 - Los correos salen desde `mail.tablaria.es` una vez verificado en Resend. Hasta entonces, desde el subdominio anterior.
 
+## ADR-028: Buscar, filtrar y ordenar relaciones por su nombre
+
+**Contexto**: una columna de relación guarda el id del registro enlazado (ADR-022). Hasta ahora no se podía filtrar ni ordenar por ella, y la búsqueda la ignoraba, así que «productos de Bosch» no tenía respuesta.
+
+**Decisión**:
+- **El nombre de un registro** es su primera columna (por posición), el mismo que ya muestra la tabla (`linked`). Si esa primera columna es otra relación, no hay nombre.
+- **Buscar:** la búsqueda general incluye el nombre del registro enlazado. **Filtrar:** el filtro de las relaciones pasa a ser «contiene», sobre ese nombre. Antes era por ids, y la interfaz no lo ofrecía. **Ordenar:** por ese nombre, sin distinguir mayúsculas; los registros sin enlace siempre van al final.
+- **Cómo se consulta:** una subconsulta correlacionada por la clave primaria del registro enlazado, dentro del mismo SQL parametrizado. Los ids de columna y de tabla salen de la base de datos, nunca del usuario.
+- **Permisos:** solo cuenta el nombre de las relaciones cuya tabla el usuario puede abrir (`labelSources`). Si no puede abrirla:
+  - la búsqueda no mira ese nombre;
+  - filtrar u ordenar por esa columna da 403. Así nadie puede averiguar nombres que no ve a base de probar filtros.
+- **`labelledRelations`:** la respuesta de la lista de registros dice qué relaciones admiten búsqueda, filtro y orden. La interfaz solo ofrece esas, y en las demás la cabecera deja de ser un botón.
+- **Exportar:** sigue las mismas reglas que la lista. Los enlaces públicos siguen sin mostrar relaciones (ADR-026).
+
+**Consecuencias**: ordenar por una relación hace una búsqueda por clave primaria por fila. Va bien hasta el límite de 10.000 registros por tabla; más allá convendría desnormalizar el nombre.
+
+## ADR-029: Agrupar los registros por una columna
+
+**Contexto**: en un inventario es habitual querer ver los registros por estado, categoría o proveedor, con cuántos hay en cada grupo. Los filtros solo enseñan un grupo cada vez.
+
+**Decisión**:
+- **Parámetro `group`** en la lista de registros (y en la URL, para compartir la vista). Se agrupa por listas de opciones, Sí/No, texto y relaciones; en las relaciones, por el nombre del registro enlazado y solo si se puede abrir su tabla (ADR-028).
+- **El servidor ordena por grupo antes que por el orden pedido,** así la paginación sigue funcionando y un grupo puede continuar en la página siguiente:
+  - las listas, en el orden de sus opciones;
+  - Sí/No, con No primero;
+  - el texto, alfabéticamente, y el valor exacto como desempate, para que dos formas de escribir lo mismo no se mezclen;
+  - los vacíos, al final.
+- **Recuento por grupo:** la respuesta trae en `groups` cuántos registros tiene cada grupo en toda la lista (con la búsqueda y los filtros), no solo en la página, para que la cabecera de un grupo partido diga su tamaño real.
+- **En la interfaz:** un selector «Agrupar por…» en la barra y una fila de cabecera (`th scope="colgroup"`) donde empieza cada grupo y al principio de cada página.
+- **Exportar y enlaces públicos:** respetan el orden por grupo. Sin plegar grupos ni subtotales por ahora.
+
+**Consecuencias**: una consulta más (`GROUP BY`) cuando se agrupa, sobre las mismas condiciones de la lista.
+
+## ADR-030: Columnas de consulta (lookup)
+
+**Contexto**: con una relación (ADR-022), cada producto enlaza con su proveedor, pero para ver el teléfono del proveedor había que copiarlo en Productos, y la copia se quedaba desfasada al cambiar el original.
+
+**Decisión**:
+- **Tipo de columna `lookup`,** con dos opciones: `relationColumnId` (una relación de la misma tabla) y `targetColumnId` (una columna de la tabla enlazada). El valor de la celda es el de esa columna en el registro enlazado.
+- **No se guarda nunca:** se lee al listar o exportar (`fillLookups`, una consulta por relación). Así siempre está al día. Escribirlo da 400, porque la clave no existe en el esquema de datos del registro. Una importación no puede rellenarlo ni crearlo.
+- **Qué puede mostrar:** texto, número, fecha, Sí/No, lista y precio. Ni relaciones ni otras consultas, para que no haya cadenas.
+- **Tipo fijo:** una consulta se crea como tal y no cambia de tipo, y ninguna otra columna se convierte en consulta. No puede ser obligatoria ni tener valor por defecto.
+- **Permisos:**
+  - para crearla hay que poder abrir la tabla enlazada (403 si no);
+  - para ver sus valores también: quien no puede abrirla ve la columna vacía, y `TableDetail.lookupTargets` no la incluye;
+  - buscar, filtrar u ordenar por ella sigue las mismas reglas que las relaciones (ADR-028): 403 si no hay acceso.
+- **Búsqueda, filtro y orden:** reutilizan la subconsulta de los nombres enlazados (ADR-028), generalizada para leer cualquier columna:
+  - el orden respeta el tipo de la columna mostrada (números por valor, fechas por fecha);
+  - el filtro es «contiene» sobre su texto;
+  - la búsqueda general incluye las que muestran texto o listas.
+- **Formato:** `lookupTargets` da a la interfaz la definición de la columna mostrada, para formatear igual que en su tabla (precio con su moneda, chips de lista…). El CSV hace lo mismo.
+- **Limpieza** (`dropLookups`): una consulta se borra con su relación, con la columna que muestra, cuando la relación pasa a enlazar otra tabla o deja de ser relación, cuando la columna mostrada pasa a un tipo que no se puede mostrar y cuando se borra la tabla enlazada.
+- **Enlaces públicos:** no muestran consultas, igual que no muestran relaciones (ADR-026).
+- **Fuera de esta versión:** agrupar por una consulta y mostrar en una lista desplegable los valores posibles de su filtro.
+
+**Consecuencias**: leer una página con consultas añade una consulta por relación usada. Ordenar o filtrar por una consulta hace una búsqueda por clave primaria por fila, como con los nombres enlazados.
+
+## ADR-031: Columnas de resumen (rollup)
+
+**Contexto**: una relación (ADR-022) une, por ejemplo, cada empleado con su equipo, y una consulta (ADR-030) lee datos en esa dirección. Faltaba la contraria: desde el equipo, cuántos empleados tiene o cuánto suman sus salarios.
+
+**Decisión**:
+- **Tipo de columna `rollup`,** con las opciones `relationColumnId`, `function` y `targetColumnId`:
+  - la relación es una columna, de cualquier tabla del espacio o de esta misma, que apunta a esta tabla, como «Jefe» en Empleados para contar las personas a cargo;
+  - las funciones son contar, sumar, media, mínimo y máximo;
+  - contar no lleva columna. Sumar y media necesitan un número o un precio; mínimo y máximo, además, admiten fechas.
+- **Genérico:** no hay nada específico de ningún caso (productos y proveedores, equipos y empleados, clientes y pedidos). Lo decide quien crea la columna.
+- **Calculado al leer, nunca guardado** (`fillRollups`): una consulta `GROUP BY` por resumen y página sobre los registros que enlazan con los de la página.
+  - Sin registros que enlacen, contar y sumar dan 0, y media, mínimo y máximo quedan vacíos.
+  - La media se redondea a 6 decimales.
+  - Solo cuentan las celdas del tipo JSON correcto, así que un valor raro no rompe la conversión.
+- **Validación:** la relación tiene que apuntar a esta tabla; la columna, estar en la tabla de esa relación y encajar con la función; hay que poder abrir esa tabla (403). No puede ser obligatoria, y el tipo no cambia, ni a resumen ni desde resumen.
+- **Permisos:** quien no puede abrir la tabla de la relación ve la columna vacía. `TableDetail.rollupTargets` y `incomingRelations` (las relaciones que apuntan aquí, para el formulario) solo incluyen tablas que puede abrir.
+- **Limpieza** (`dropComputedColumns`, compartida con las consultas):
+  - el resumen se borra con su relación (al borrarla, o si deja de apuntar aquí) o con la columna que suma, y al borrar la tabla que enlaza;
+  - si la columna sumada cambia a un tipo que no encaja con su función, se borra (`dropRollupsNotFitting`).
+- **Formato:** contar se muestra como número; sumar y media, como la columna sumada (precio con moneda), pero sin el aviso de stock bajo, que tiene sentido por registro y no para un total; mínimo y máximo, como su columna (fechas).
+- **Fuera de esta versión:**
+  - ordenar y filtrar por un resumen (400), porque hoy se calcula por página y no en el SQL de la lista;
+  - resúmenes con condición («tareas pendientes»);
+  - la selección múltiple, que cambiará qué cuenta como «enlaza aquí» (hecha en ADR-032).
+
+**Consecuencias**: cada página con resúmenes hace una consulta agrupada por resumen sobre la tabla que enlaza, acotada por `tableId`. Va bien con 10.000 registros por tabla. Si hiciera falta ordenar por resumen, la vía es un índice sobre la celda de la relación.
+
+## ADR-032: Relaciones con varios registros
+
+**Contexto**: una relación (ADR-022) enlaza cada registro con uno solo de otra tabla. Muchos casos reales son de muchos a muchos: los miembros de un proyecto, los proveedores de un producto, las etiquetas de una tarea.
+
+**Decisión**:
+- **Opción `multiple` de la relación** (por defecto `false`), no un tipo nuevo: es la misma relación, con los mismos permisos, la misma tabla enlazada y la misma etiqueta (primera columna).
+  - La migración `multiple_relations` añade `multiple: false` a las relaciones que ya existían.
+  - Sin tabla intermedia: la celda guarda una lista JSON de ids, coherente con el resto de valores en JSONB.
+- **Valor:** `CellValue` admite `string[]` solo para esto. La lista tiene entre 1 y 100 ids, sin repetidos; una lista vacía es una celda vacía. Cada id tiene que existir en la tabla enlazada y hay que poder abrirla (`requireLinkedRecords`, igual que antes).
+- **Buscar, filtrar y ordenar** por las etiquetas, unidas por comas en orden alfabético en el SQL (`labelText`). Ordenar compara ese texto. **No se agrupa** por una relación múltiple (400): un registro estaría en varios grupos.
+- **Resúmenes (ADR-031):** funcionan a través de una relación múltiple. Cada registro cuenta en todos los que lista (`jsonb_array_elements_text`), así que «Proyectos» en Empleados cuenta los proyectos en los que está cada persona.
+- **Consultas (ADR-030):** solo a través de relaciones de un registro (422). Una consulta muestra un valor con el formato de su columna, y una lista de valores necesitaría otro formato. Al pasar una relación a múltiple se borran las consultas que leen a través de ella; el formulario lo avisa antes de guardar.
+- **Cambiar la opción:** al activarla, cada enlace pasa a ser una lista de uno; al desactivarla, cada lista conserva su primer registro. El formulario avisa de ambas cosas.
+- **Borrar un registro enlazado** lo quita de las listas que lo tenían (`unlinkRecord`); si era el último, la celda queda vacía.
+- **Otros:** el CSV exporta las etiquetas separadas por comas; el historial compara las listas por contenido; la importación no rellena relaciones, como antes.
+- **Interfaz:** el selector deja abierta la lista y cada elección añade o quita un registro (`aria-pressed`). Encima muestra los enlazados, cada uno con su botón para quitarlo. En una relación obligatoria no se puede quitar el último.
+
+**Consecuencias**: buscar y ordenar por una relación múltiple hace una subconsulta por fila sobre la tabla enlazada, acotada por `tableId` y por clave primaria. Va bien con 10.000 registros por tabla. Las consultas a través de listas y agrupar por cada registro enlazado quedan para más adelante.
+
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
 Todas están especificadas en [MVP_PROMPT.md](MVP_PROMPT.md):

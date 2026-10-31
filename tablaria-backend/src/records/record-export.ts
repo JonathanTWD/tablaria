@@ -1,4 +1,9 @@
-import type { CellValue, RecordData, TableColumn } from '@tablaria/shared';
+import {
+  type CellValue,
+  linkedRecordIds,
+  type RecordData,
+  type TableColumn,
+} from '@tablaria/shared';
 
 // Tells Excel the file is UTF-8, so accents and € display correctly.
 const BYTE_ORDER_MARK = String.fromCharCode(0xfeff);
@@ -34,8 +39,13 @@ function cellText(
     return '';
   }
   if (column.type === 'relation') {
-    // The linked record's label; empty when the user can't open its table.
-    return neutralize(linked[String(value)] ?? '');
+    // The linked records' labels; empty when the user can't open their table.
+    return neutralize(
+      linkedRecordIds(value)
+        .map((id) => linked[id] ?? '')
+        .filter((label) => label !== '')
+        .join(', '),
+    );
   }
   if (column.type === 'boolean') {
     return value ? 'Sí' : 'No';
@@ -61,12 +71,19 @@ export function toCsv(
   columns: TableColumn[],
   rows: RecordData[],
   linked: Record<string, string> = {},
+  lookupTargets: ReadonlyMap<string, TableColumn> = new Map(),
 ): string {
   const lines = [
     columns.map((column) => csvField(headerText(column))),
     ...rows.map((row) =>
       columns.map((column) =>
-        csvField(cellText(column, row[column.id], linked)),
+        csvField(
+          cellText(
+            lookupTargets.get(column.id) ?? column,
+            row[column.id],
+            linked,
+          ),
+        ),
       ),
     ),
   ];

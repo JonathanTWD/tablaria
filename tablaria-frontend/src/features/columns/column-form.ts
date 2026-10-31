@@ -2,6 +2,8 @@ import {
   canBeUnique,
   COLUMN_TYPES,
   columnDefinitionSchema,
+  ROLLUP_FUNCTIONS,
+  type RollupFunction,
   columnNameSchema,
   SELECT_COLORS,
   type CellValue,
@@ -28,8 +30,17 @@ export interface ColumnFormValues {
   /** Number columns: warn when a value drops below this. Empty for no warning. */
   alertBelow: string;
   choices: { id: string; label: string; color: SelectColor }[];
-  /** Relation columns: the table they link to. */
+  /** Relation columns: the table they link to, and whether to several of its records. */
   tableId: string;
+  multiple: boolean;
+  /**
+   * Lookups: the relation they read through and the column they show.
+   * Rollups: the relation that links here and the column they sum up.
+   */
+  relationColumnId: string;
+  targetColumnId: string;
+  /** Rollup columns: how they sum up the linking records. */
+  rollupFunction: RollupFunction;
   /** Typed text, "true"/"false" for booleans, or the choice id for selects. */
   defaultValue: string;
 }
@@ -53,6 +64,10 @@ export function columnFormDefaults(column?: TableColumn): ColumnFormValues {
     alertBelow: "",
     choices: [newChoice(0)],
     tableId: "",
+    multiple: false,
+    relationColumnId: "",
+    targetColumnId: "",
+    rollupFunction: "count",
     defaultValue: "",
   };
   if (!column) {
@@ -66,6 +81,16 @@ export function columnFormDefaults(column?: TableColumn): ColumnFormValues {
   }
   if (column.type === "relation") {
     values.tableId = column.options.tableId;
+    values.multiple = column.options.multiple;
+  }
+  if (column.type === "lookup") {
+    values.relationColumnId = column.options.relationColumnId;
+    values.targetColumnId = column.options.targetColumnId;
+  }
+  if (column.type === "rollup") {
+    values.relationColumnId = column.options.relationColumnId;
+    values.targetColumnId = column.options.targetColumnId ?? "";
+    values.rollupFunction = column.options.function;
   }
   if (column.type === "number" && column.options) {
     values.alertBelow = String(column.options.alertBelow);
@@ -123,7 +148,32 @@ function toDraft(values: ColumnFormValues) {
     case "currency":
       return { ...base, type: "currency", options: { currency: values.currency } };
     case "relation":
-      return { ...base, type: "relation", options: { tableId: values.tableId }, defaultValue: null };
+      return {
+        ...base,
+        type: "relation",
+        options: { tableId: values.tableId, multiple: values.multiple },
+        defaultValue: null,
+      };
+    case "lookup":
+      return {
+        ...base,
+        type: "lookup",
+        required: false,
+        options: { relationColumnId: values.relationColumnId, targetColumnId: values.targetColumnId },
+        defaultValue: null,
+      };
+    case "rollup":
+      return {
+        ...base,
+        type: "rollup",
+        required: false,
+        options: {
+          relationColumnId: values.relationColumnId,
+          function: values.rollupFunction,
+          targetColumnId: values.rollupFunction === "count" ? null : values.targetColumnId,
+        },
+        defaultValue: null,
+      };
     case "number": {
       const alertBelow = values.alertBelow.trim();
       return {
@@ -163,6 +213,10 @@ export const columnFormSchema = z
       z.object({ id: z.string(), label: z.string(), color: z.enum(SELECT_COLORS) }),
     ),
     tableId: z.string(),
+    multiple: z.boolean(),
+    relationColumnId: z.string(),
+    targetColumnId: z.string(),
+    rollupFunction: z.enum(ROLLUP_FUNCTIONS),
     defaultValue: z.string(),
   })
   .superRefine((values, ctx) => {
