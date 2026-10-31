@@ -10,6 +10,7 @@ import {
   type ColumnType,
   type RecordColumn,
   type RecordData,
+  type RelationOptions,
   type TableColumn,
 } from '@tablaria/shared';
 import { toTableColumn } from '../columns/column-mapper';
@@ -41,9 +42,9 @@ export interface LookupSource {
 }
 
 /**
- * A lookup must read through a relation column of its own table, from a
- * plain column of the table that relation links to, and whoever defines it
- * must be able to open that table.
+ * A lookup must read through a single relation column of its own table
+ * (ADR-032), from a plain column of the table that relation links to, and
+ * whoever defines it must be able to open that table.
  */
 export async function requireLookupSource(
   db: Db,
@@ -62,7 +63,13 @@ export async function requireLookupSource(
       'A lookup reads through a relation column of the same table',
     );
   }
-  const linkedTableId = (relation.options as { tableId: string }).tableId;
+  const { tableId: linkedTableId, multiple } =
+    relation.options as RelationOptions;
+  if (multiple) {
+    throw new UnprocessableEntityException(
+      "A lookup can't read through a multiple relation",
+    );
+  }
   if (!(await tableRole(db, userId, linkedTableId))) {
     throw new ForbiddenException('No access to the linked table');
   }
@@ -109,7 +116,7 @@ export async function lookupSources(
     const relation = columns.find(
       ({ id }) => id === lookup.options.relationColumnId,
     );
-    if (relation?.type !== 'relation') {
+    if (relation?.type !== 'relation' || relation.options.multiple) {
       continue;
     }
     const tableId = relation.options.tableId;
@@ -144,6 +151,7 @@ export function lookupLabelSources(
         columnId: source.target.id,
         viaColumnId: source.relationColumnId,
         type: source.target.type,
+        multiple: false,
       },
     ]),
   );
@@ -198,16 +206,18 @@ export async function fillLookups(
  * Deletes the lookups and rollups (ADR-031) that read through these relation
  * columns or show these columns; returns the tables they were in, so open
  * pages refresh. Both keep `relationColumnId` and `targetColumnId` in their
- * options.
+ * options. `types` narrows it to one of them.
  */
 export async function dropComputedColumns(
   tx: Db,
   {
     relationColumnIds = [],
     targetColumnIds = [],
+    types = COMPUTED_TYPES,
   }: {
     relationColumnIds?: string[];
     targetColumnIds?: string[];
+    types?: ColumnType[];
   },
 ): Promise<string[]> {
   if (relationColumnIds.length === 0 && targetColumnIds.length === 0) {
@@ -215,7 +225,7 @@ export async function dropComputedColumns(
   }
   const lookups = await tx.column.findMany({
     where: {
-      type: { in: ['lookup', 'rollup'] },
+      type: { in: types },
       OR: [
         ...relationColumnIds.map((id) => ({
           options: { path: ['relationColumnId'], equals: id },

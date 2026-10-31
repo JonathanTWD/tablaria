@@ -2,6 +2,14 @@
 
 ## Sin publicar
 
+- **Relaciones con varios registros** (ADR-032):
+  - **Qué son:** una relación puede enlazar cada registro con varios de otra tabla, por ejemplo los miembros de un proyecto o los proveedores de un producto. Se activan con «Varios registros» al crear o editar la columna de relación.
+  - **Elegir:** el selector deja la lista abierta para añadir o quitar registros uno a uno, y muestra arriba los que ya están enlazados.
+  - **Funciones:** se buscan, filtran y ordenan por los nombres de los registros enlazados, y salen en el CSV separados por comas. No se puede agrupar por ellas.
+  - **Resúmenes:** funcionan a través de ellas, así que en Empleados se puede contar en cuántos proyectos está cada persona.
+  - **Consultas:** solo a través de relaciones de un registro. Al activar «Varios registros» se borran las consultas que leían a través de esa relación; el formulario lo avisa antes de guardar.
+  - **Cambiar la opción:** al activarla, cada enlace actual se convierte en una lista de uno; al desactivarla, cada registro conserva el primero de su lista.
+  - **Limpieza:** si se borra un registro enlazado, desaparece de las listas que lo tenían.
 - **Columnas de resumen** (ADR-031):
   - **Qué son:** cuentan o calculan desde los registros que enlazan con cada fila, por ejemplo, en Equipos, «Nº de empleados», «Coste en salarios» o «Última alta», o en Proveedores, «Productos» y «Stock total». Se crean en «Añadir columna → Resumen de otra tabla».
   - **Cálculos:** contar, sumar, media, mínimo y máximo, con números, precios o fechas.

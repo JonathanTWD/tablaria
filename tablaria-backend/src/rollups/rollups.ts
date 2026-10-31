@@ -8,6 +8,7 @@ import {
   type ColumnType,
   type RecordColumn,
   type RecordData,
+  type RelationOptions,
   type RollupFunction,
   type TableColumn,
 } from '@tablaria/shared';
@@ -41,6 +42,8 @@ export interface RollupSource {
   tableId: string;
   /** The relation column, in that table, that links to this one. */
   relationColumnId: string;
+  /** That relation links each record to a list of these (ADR-032). */
+  multiple: boolean;
   function: RollupFunction;
   /** The column it sums up; null when it counts. */
   target: TableColumn | null;
@@ -128,6 +131,7 @@ export async function rollupSources(
     sources.set(rollup.id, {
       tableId: relation.tableId,
       relationColumnId: relation.id,
+      multiple: (relation.options as RelationOptions).multiple,
       function: fn,
       target: target && toTableColumn(target),
     });
@@ -163,6 +167,20 @@ function aggregateSql(source: RollupSource): Prisma.Sql {
 }
 
 /**
+ * The linking records `b` with, as `link`, the id of each record they link
+ * to: one row per link, so a multiple relation counts in every record it
+ * lists (ADR-032).
+ */
+function linksSql(source: RollupSource): Prisma.Sql {
+  const column = source.relationColumnId;
+  return source.multiple
+    ? Prisma.sql`records b CROSS JOIN LATERAL jsonb_array_elements_text(
+        CASE WHEN jsonb_typeof(b.data -> ${column}::text) = 'array'
+             THEN b.data -> ${column}::text END) AS l(link)`
+    : Prisma.sql`(SELECT b.*, b.data ->> ${column}::text AS link FROM records b) b`;
+}
+
+/**
  * Writes each rollup's value into the records' data, as if it were stored:
  * one grouped query per rollup over the records that link to these.
  */
@@ -179,11 +197,10 @@ export async function fillRollups(
     const rows = await db.$queryRaw<
       { id: string; value: number | string | null }[]
     >`
-      SELECT b.data ->> ${source.relationColumnId}::text AS id,
-             ${aggregateSql(source)} AS value
-      FROM records b
+      SELECT link AS id, ${aggregateSql(source)} AS value
+      FROM ${linksSql(source)}
       WHERE b."tableId" = ${source.tableId}::uuid
-        AND b.data ->> ${source.relationColumnId}::text = ANY(${ids}::text[])
+        AND link = ANY(${ids}::text[])
       GROUP BY 1`;
     const byId = new Map(rows.map(({ id, value }) => [id, value]));
     // Nothing links here: none counted and nothing added up.

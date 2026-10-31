@@ -73,13 +73,11 @@ function parseFilters(raw: string | null): RecordFilter[] {
  */
 export function applicableView(view: RecordsView, columns: TableColumn[]): RecordsView {
   const byId = new Map(columns.map((column) => [column.id, column]));
+  const groupColumn = view.group ? byId.get(view.group) : undefined;
   return {
     ...view,
     sort: view.sort && byId.has(view.sort) ? view.sort : undefined,
-    group:
-      view.group && canGroupRecordsBy(byId.get(view.group)?.type ?? "number")
-        ? view.group
-        : undefined,
+    group: groupColumn && canGroupRecordsBy(groupColumn) ? view.group : undefined,
     filters: view.filters.filter((filter) => {
       const column = byId.get(filter.columnId);
       return column !== undefined && FILTER_OPERATOR_BY_TYPE[column.type] === filter.op;

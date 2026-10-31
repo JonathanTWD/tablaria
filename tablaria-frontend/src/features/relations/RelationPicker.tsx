@@ -1,8 +1,8 @@
 import { Popover } from "@base-ui/react/popover";
 import { useQuery } from "@tanstack/react-query";
-import type { CellValue, TableColumn } from "@tablaria/shared";
-import { Link2, Loader2, X } from "lucide-react";
-import { useDeferredValue, useId, useState } from "react";
+import { type CellValue, linkedRecordIds, type TableColumn } from "@tablaria/shared";
+import { Check, Link2, Loader2, X } from "lucide-react";
+import { type RefObject, useDeferredValue, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Input } from "@/components/ui/input";
 import { recordsQuery } from "@/features/records/queries";
@@ -19,7 +19,8 @@ interface RelationPickerProps {
   value: CellValue | undefined;
   /** Labels the records list brought for the current values. */
   linked: Record<string, string>;
-  onChange: (value: string | null) => void;
+  /** A record id, a list of them for a multiple relation (ADR-032), or null. */
+  onChange: (value: string | string[] | null) => void;
   /** Accessible name of the trigger, e.g. "Proveedor de Taladro". */
   label: string;
   id?: string;
@@ -27,7 +28,11 @@ interface RelationPickerProps {
   onOpenChange?: (open: boolean) => void;
 }
 
-/** Chooses a record of the linked table, searching by its contents. */
+/**
+ * Chooses a record of the linked table, searching by its contents, or
+ * several when the relation is multiple: then each pick adds or removes one
+ * and the list stays open.
+ */
 export function RelationPicker({
   column,
   value,
@@ -43,11 +48,29 @@ export function RelationPicker({
   const [open, setOpen] = useState(false);
   // Shown until the records list refetches with the new label.
   const [picked, setPicked] = useState<Record<string, string>>({});
-  const shown = linkedText(value, { ...linked, ...picked });
+  const searchRef = useRef<HTMLInputElement>(null);
+  const labels = { ...linked, ...picked };
+  const shown = linkedText(value, labels);
 
   if (column.type !== "relation") {
     return null;
   }
+  const multiple = column.options.multiple;
+  const selected = linkedRecordIds(value);
+  // A required relation keeps at least one link.
+  const canRemove = !column.required || selected.length > 1;
+
+  const close = () => {
+    setOpen(false);
+    onOpenChange?.(false);
+  };
+  const toggle = (recordId: string) => {
+    const next = selected.includes(recordId)
+      ? selected.filter((item) => item !== recordId)
+      : [...selected, recordId];
+    onChange(next.length > 0 ? next : null);
+  };
+
   return (
     <Popover.Root
       open={open}
@@ -70,17 +93,38 @@ export function RelationPicker({
       <Popover.Portal>
         <Popover.Positioner className="isolate z-50 outline-none" align="start" sideOffset={4}>
           <Popover.Popup className="w-72 max-w-[calc(100vw-2rem)] rounded-lg bg-popover p-2 text-popover-foreground shadow-md ring-1 ring-foreground/10 outline-none">
+            {multiple && selected.length > 0 && (
+              <SelectedList
+                ids={selected}
+                labelOf={(recordId) => linkedText(recordId, labels)}
+                canRemove={canRemove}
+                onRemove={(recordId) => {
+                  toggle(recordId);
+                  // Its button goes away: keep the focus in the popup.
+                  searchRef.current?.focus();
+                }}
+              />
+            )}
             <PickerList
               tableId={column.options.tableId}
-              required={column.required}
-              hasValue={typeof value === "string"}
+              searchRef={searchRef}
+              multiple={multiple}
+              selected={multiple ? selected : []}
+              canClear={selected.length > 0 && !column.required}
+              clearLabel={multiple ? t("relation.clearAll") : t("relation.clear")}
+              isLocked={(recordId) => !canRemove && selected.includes(recordId)}
               onPick={(recordId, recordLabel) => {
-                if (recordId) {
-                  setPicked((current) => ({ ...current, [recordId]: recordLabel }));
+                setPicked((current) => ({ ...current, [recordId]: recordLabel }));
+                if (multiple) {
+                  toggle(recordId);
+                } else {
+                  onChange(recordId);
+                  close();
                 }
-                onChange(recordId);
-                setOpen(false);
-                onOpenChange?.(false);
+              }}
+              onClear={() => {
+                onChange(null);
+                close();
               }}
             />
           </Popover.Popup>
@@ -90,16 +134,73 @@ export function RelationPicker({
   );
 }
 
+/** The records a multiple relation links to, each removable on its own. */
+function SelectedList({
+  ids,
+  labelOf,
+  canRemove,
+  onRemove,
+}: {
+  ids: string[];
+  labelOf: (recordId: string) => string;
+  canRemove: boolean;
+  onRemove: (recordId: string) => void;
+}) {
+  const { t } = useTranslation("records");
+  const headingId = useId();
+  return (
+    <div className="mb-2 flex flex-col gap-1.5 border-b pb-2">
+      <p id={headingId} className="px-1 text-xs font-medium text-muted-foreground">
+        {t("relation.selected")}
+      </p>
+      <ul aria-labelledby={headingId} className="flex flex-wrap gap-1">
+        {ids.map((recordId) => {
+          const text = labelOf(recordId);
+          return (
+            <li key={recordId}>
+              <span className="flex max-w-60 items-center gap-0.5 rounded-md bg-muted py-0.5 pr-0.5 pl-2 text-sm">
+                <span className="truncate">{text}</span>
+                {canRemove && (
+                  <button
+                    type="button"
+                    aria-label={t("relation.remove", { label: text })}
+                    onClick={() => onRemove(recordId)}
+                    className="flex size-6 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-background hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+                  >
+                    <X aria-hidden="true" className="size-3.5" />
+                  </button>
+                )}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
 function PickerList({
   tableId,
-  required,
-  hasValue,
+  searchRef,
+  multiple,
+  selected,
+  canClear,
+  clearLabel,
+  isLocked,
   onPick,
+  onClear,
 }: {
   tableId: string;
-  required: boolean;
-  hasValue: boolean;
-  onPick: (recordId: string | null, label: string) => void;
+  searchRef: RefObject<HTMLInputElement | null>;
+  multiple: boolean;
+  /** Records already linked, for a multiple relation: picking one removes it. */
+  selected: string[];
+  canClear: boolean;
+  clearLabel: string;
+  /** A linked record that can't be removed: the last of a required relation. */
+  isLocked: (recordId: string) => boolean;
+  onPick: (recordId: string, label: string) => void;
+  onClear: () => void;
 }) {
   const { t } = useTranslation("records");
   const ids = useId();
@@ -125,6 +226,7 @@ function PickerList({
       <Input
         // The popup opens to search: the field takes the focus.
         autoFocus
+        ref={searchRef}
         aria-label={t("relation.search", { name: table.data?.name ?? "" })}
         aria-controls={`${ids}-results`}
         placeholder={t("relation.searchPlaceholder")}
@@ -143,14 +245,19 @@ function PickerList({
           )}
           {records.data?.data.map((record) => {
             const text = firstColumn ? String(record.data[firstColumn.id] ?? "") : "";
+            const isSelected = selected.includes(record.id);
             return (
               <li key={record.id}>
                 <button
                   type="button"
+                  // Only a multiple relation toggles: say whether each is linked.
+                  aria-pressed={multiple ? isSelected : undefined}
+                  disabled={isLocked(record.id)}
                   onClick={() => onPick(record.id, text)}
-                  className="w-full truncate rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted focus-visible:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
+                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted focus-visible:bg-muted focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {text || t("relation.untitled")}
+                  <span className="truncate">{text || t("relation.untitled")}</span>
+                  {isSelected && <Check aria-hidden="true" className="ml-auto size-3.5 shrink-0" />}
                 </button>
               </li>
             );
@@ -160,14 +267,14 @@ function PickerList({
           )}
         </ul>
       )}
-      {hasValue && !required && (
+      {canClear && (
         <button
           type="button"
-          onClick={() => onPick(null, "")}
+          onClick={onClear}
           className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-sm text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
         >
           <X aria-hidden="true" className="size-3.5" />
-          {t("relation.clear")}
+          {clearLabel}
         </button>
       )}
     </div>

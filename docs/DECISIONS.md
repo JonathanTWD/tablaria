@@ -566,9 +566,28 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 - **Fuera de esta versión:**
   - ordenar y filtrar por un resumen (400), porque hoy se calcula por página y no en el SQL de la lista;
   - resúmenes con condición («tareas pendientes»);
-  - la selección múltiple, que cambiará qué cuenta como «enlaza aquí».
+  - la selección múltiple, que cambiará qué cuenta como «enlaza aquí» (hecha en ADR-032).
 
 **Consecuencias**: cada página con resúmenes hace una consulta agrupada por resumen sobre la tabla que enlaza, acotada por `tableId`. Va bien con 10.000 registros por tabla. Si hiciera falta ordenar por resumen, la vía es un índice sobre la celda de la relación.
+
+## ADR-032: Relaciones con varios registros
+
+**Contexto**: una relación (ADR-022) enlaza cada registro con uno solo de otra tabla. Muchos casos reales son de muchos a muchos: los miembros de un proyecto, los proveedores de un producto, las etiquetas de una tarea.
+
+**Decisión**:
+- **Opción `multiple` de la relación** (por defecto `false`), no un tipo nuevo: es la misma relación, con los mismos permisos, la misma tabla enlazada y la misma etiqueta (primera columna).
+  - La migración `multiple_relations` añade `multiple: false` a las relaciones que ya existían.
+  - Sin tabla intermedia: la celda guarda una lista JSON de ids, coherente con el resto de valores en JSONB.
+- **Valor:** `CellValue` admite `string[]` solo para esto. La lista tiene entre 1 y 100 ids, sin repetidos; una lista vacía es una celda vacía. Cada id tiene que existir en la tabla enlazada y hay que poder abrirla (`requireLinkedRecords`, igual que antes).
+- **Buscar, filtrar y ordenar** por las etiquetas, unidas por comas en orden alfabético en el SQL (`labelText`). Ordenar compara ese texto. **No se agrupa** por una relación múltiple (400): un registro estaría en varios grupos.
+- **Resúmenes (ADR-031):** funcionan a través de una relación múltiple. Cada registro cuenta en todos los que lista (`jsonb_array_elements_text`), así que «Proyectos» en Empleados cuenta los proyectos en los que está cada persona.
+- **Consultas (ADR-030):** solo a través de relaciones de un registro (422). Una consulta muestra un valor con el formato de su columna, y una lista de valores necesitaría otro formato. Al pasar una relación a múltiple se borran las consultas que leen a través de ella; el formulario lo avisa antes de guardar.
+- **Cambiar la opción:** al activarla, cada enlace pasa a ser una lista de uno; al desactivarla, cada lista conserva su primer registro. El formulario avisa de ambas cosas.
+- **Borrar un registro enlazado** lo quita de las listas que lo tenían (`unlinkRecord`); si era el último, la celda queda vacía.
+- **Otros:** el CSV exporta las etiquetas separadas por comas; el historial compara las listas por contenido; la importación no rellena relaciones, como antes.
+- **Interfaz:** el selector deja abierta la lista y cada elección añade o quita un registro (`aria-pressed`). Encima muestra los enlazados, cada uno con su botón para quitarlo. En una relación obligatoria no se puede quitar el último.
+
+**Consecuencias**: buscar y ordenar por una relación múltiple hace una subconsulta por fila sobre la tabla enlazada, acotada por `tableId` y por clave primaria. Va bien con 10.000 registros por tabla. Las consultas a través de listas y agrupar por cada registro enlazado quedan para más adelante.
 
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 

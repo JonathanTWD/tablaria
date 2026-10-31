@@ -4,6 +4,7 @@ import {
   type ColumnDefinition,
   type ColumnType,
   columnValueSchemas,
+  MAX_LINKS_PER_CELL,
 } from "./column-types.js";
 
 export const MAX_RECORDS_PER_TABLE = 10_000;
@@ -51,8 +52,20 @@ export interface RecordGroup {
 /** Columns a listing can be grouped by: values that repeat across records. */
 export const GROUPABLE_COLUMN_TYPES = ["select", "boolean", "text", "relation"] as const;
 
-export function canGroupRecordsBy(type: ColumnType): boolean {
-  return (GROUPABLE_COLUMN_TYPES as readonly ColumnType[]).includes(type);
+/** A multiple relation isn't one value per record: it doesn't group (ADR-032). */
+export function canGroupRecordsBy(column: ColumnDefinition): boolean {
+  return (
+    (GROUPABLE_COLUMN_TYPES as readonly ColumnType[]).includes(column.type) &&
+    !(column.type === "relation" && column.options.multiple)
+  );
+}
+
+/** The ids of the records a relation cell links to: one, several or none. */
+export function linkedRecordIds(value: CellValue | undefined): string[] {
+  if (typeof value === "string") {
+    return [value];
+  }
+  return Array.isArray(value) ? value : [];
 }
 
 export interface RecordPage extends Paginated<TableRecord> {
@@ -70,7 +83,17 @@ export interface RecordPage extends Paginated<TableRecord> {
 export type RecordColumn = ColumnDefinition & { id: string };
 
 const blankToNull = (value: unknown) =>
-  typeof value === "string" && value.trim() === "" ? null : value;
+  (typeof value === "string" && value.trim() === "") ||
+  (Array.isArray(value) && value.length === 0)
+    ? null
+    : value;
+
+/** The records a multiple relation links to, each once (ADR-032). */
+const linkedRecordsSchema = z
+  .array(columnValueSchemas.relation)
+  .min(1)
+  .max(MAX_LINKS_PER_CELL)
+  .refine((ids) => new Set(ids).size === ids.length, "Repeated record");
 
 /** Valid value (or null) for one column, including its select choices. */
 export function cellValueSchema(column: ColumnDefinition): z.ZodType<CellValue> {
@@ -80,7 +103,9 @@ export function cellValueSchema(column: ColumnDefinition): z.ZodType<CellValue> 
           (label) => column.options.choices.some((choice) => choice.label === label),
           "Not one of the column's choices",
         )
-      : columnValueSchemas[column.type];
+      : column.type === "relation" && column.options.multiple
+        ? linkedRecordsSchema
+        : columnValueSchemas[column.type];
   return z.preprocess(blankToNull, base.nullable());
 }
 

@@ -52,7 +52,7 @@ Cada tarea indica qué modelo conviene: **Opus** para lo que toca seguridad, per
 - Enlaces públicos de solo lectura (hecho, ADR-026). Pendiente: caducidad opcional y elegir qué columnas se ven.
 - Imágenes y adjuntos: aparcado por ahora; diseño propuesto en «Imágenes y adjuntos (aparcado)», más abajo.
 - API pública con tokens y webhooks.
-- Relaciones entre tablas (hechas las básicas, ADR-022; buscar, filtrar y ordenar por nombre, ADR-028; columnas de consulta, ADR-030; columnas de resumen, ADR-031): ordenar y filtrar por resumen, resúmenes con condición, selección múltiple y columnas calculadas.
+- Relaciones entre tablas (hechas las básicas, ADR-022; buscar, filtrar y ordenar por nombre, ADR-028; columnas de consulta, ADR-030; columnas de resumen, ADR-031; relaciones con varios registros, ADR-032): ordenar y filtrar por resumen, resúmenes con condición, consultas a través de relaciones múltiples y columnas calculadas.
 - Preguntas sobre los datos con IA (necesita una API key de pago).
 - Tiempo real con varias instancias (Redis), solo si hace falta escalar.
 
