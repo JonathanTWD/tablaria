@@ -30,6 +30,8 @@ Gestión de inventario flexible: cada usuario crea sus propias tablas, define co
 
 Los valores de los registros se guardan en JSONB, indexados por el id de la columna. Las consultas de búsqueda, filtro y orden son SQL parametrizado, construido solo con columnas que existen en la tabla. Las decisiones de diseño están explicadas en [docs/DECISIONS.md](docs/DECISIONS.md).
 
+El diagrama [docs/arquitectura.html](docs/arquitectura.html) muestra cómo encajan la web, la API, la base de datos y los servicios externos (descárgalo y ábrelo en el navegador).
+
 ## Probarlo con Docker (todo incluido)
 
 Solo necesitas Docker. Levanta la base de datos, aplica las migraciones y arranca la API y la web detrás de nginx:
@@ -128,5 +130,6 @@ GitHub Actions ejecuta en cada pull request el lint, el typecheck, el build y lo
 
 - [docs/ROADMAP.md](docs/ROADMAP.md): fases del MVP y funcionalidad futura.
 - [docs/DECISIONS.md](docs/DECISIONS.md): decisiones de arquitectura (ADR).
+- [docs/arquitectura.html](docs/arquitectura.html): diagrama interactivo de la arquitectura.
 - [docs/TRASPASO.md](docs/TRASPASO.md): guía de traspaso: trabajo en local, releases, producción y tareas pendientes.
 - [AGENTS.md](AGENTS.md): reglas y convenciones del proyecto.
