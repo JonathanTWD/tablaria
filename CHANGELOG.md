@@ -2,11 +2,7 @@
 
 ## Sin publicar
 
-- **Relaciones por su nombre** (ADR-028):
-  - **Buscar:** la búsqueda encuentra registros por el nombre de lo que enlazan, por ejemplo los productos de «Bosch».
-  - **Filtrar:** el filtro «contiene» funciona en las columnas de relación.
-  - **Ordenar:** al pulsar su cabecera, por orden alfabético del registro enlazado.
-  - **Permisos:** solo con las tablas enlazadas que puedes abrir; en las demás, la cabecera ya no parece un botón.
+- **Qué se ve de un registro enlazado:** al crear o editar una columna de relación, la ayuda dice qué columna de la tabla enlazada se mostrará (su primera columna, por ejemplo «Nombre») y cómo cambiarla.
 
 ## v1.5.1 — Tablaria
 
