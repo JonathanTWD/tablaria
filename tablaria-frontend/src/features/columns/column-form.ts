@@ -9,6 +9,7 @@ import {
   type CellValue,
   type ColumnDefinition,
   type ColumnType,
+  renameFormulaColumns,
   type SelectColor,
   type TableColumn,
 } from "@tablaria/shared";
@@ -41,6 +42,9 @@ export interface ColumnFormValues {
   targetColumnId: string;
   /** Rollup columns: how they sum up the linking records. */
   rollupFunction: RollupFunction;
+  /** Formula columns: the expression, citing columns by name, and an optional currency. */
+  expression: string;
+  formulaCurrency: string;
   /** Typed text, "true"/"false" for booleans, or the choice id for selects. */
   defaultValue: string;
 }
@@ -53,7 +57,14 @@ export function newChoice(index: number): ColumnFormValues["choices"][number] {
   };
 }
 
-export function columnFormDefaults(column?: TableColumn): ColumnFormValues {
+/**
+ * Form values for a new column or for editing one. `columns` are the
+ * table's, to show a formula with names instead of the ids it is stored with.
+ */
+export function columnFormDefaults(
+  column?: TableColumn,
+  columns: TableColumn[] = [],
+): ColumnFormValues {
   const values: ColumnFormValues = {
     name: column?.name ?? "",
     type: column?.type ?? "text",
@@ -68,6 +79,8 @@ export function columnFormDefaults(column?: TableColumn): ColumnFormValues {
     relationColumnId: "",
     targetColumnId: "",
     rollupFunction: "count",
+    expression: "",
+    formulaCurrency: "",
     defaultValue: "",
   };
   if (!column) {
@@ -91,6 +104,13 @@ export function columnFormDefaults(column?: TableColumn): ColumnFormValues {
     values.relationColumnId = column.options.relationColumnId;
     values.targetColumnId = column.options.targetColumnId ?? "";
     values.rollupFunction = column.options.function;
+  }
+  if (column.type === "formula") {
+    values.expression = renameFormulaColumns(
+      column.options.expression,
+      (ref) => columns.find(({ id }) => id === ref)?.name,
+    );
+    values.formulaCurrency = column.options.currency ?? "";
   }
   if (column.type === "number" && column.options) {
     values.alertBelow = String(column.options.alertBelow);
@@ -174,6 +194,16 @@ function toDraft(values: ColumnFormValues) {
         },
         defaultValue: null,
       };
+    case "formula":
+      return {
+        ...base,
+        type: "formula",
+        required: false,
+        unique: false,
+        // The API cites columns by id and works out the result type.
+        options: { expression: values.expression, currency: values.formulaCurrency || null },
+        defaultValue: null,
+      };
     case "number": {
       const alertBelow = values.alertBelow.trim();
       return {
@@ -217,6 +247,8 @@ export const columnFormSchema = z
     relationColumnId: z.string(),
     targetColumnId: z.string(),
     rollupFunction: z.enum(ROLLUP_FUNCTIONS),
+    expression: z.string(),
+    formulaCurrency: z.string(),
     defaultValue: z.string(),
   })
   .superRefine((values, ctx) => {

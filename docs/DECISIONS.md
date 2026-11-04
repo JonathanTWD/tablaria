@@ -589,6 +589,35 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 
 **Consecuencias**: buscar y ordenar por una relación múltiple hace una subconsulta por fila sobre la tabla enlazada, acotada por `tableId` y por clave primaria. Va bien con 10.000 registros por tabla. Las consultas a través de listas y agrupar por cada registro enlazado quedan para más adelante.
 
+## ADR-033: Columnas de fórmula
+
+**Contexto**: con consultas (ADR-030) y resúmenes (ADR-031) una fila ya tiene el precio, el stock o el total de pedidos, pero no se podía combinar: el valor del inventario (precio × stock), los días hasta caducar o un aviso «Pedir» cuando el stock baja.
+
+**Decisión**:
+- **Tipo de columna `formula`,** con las opciones `expression`, `currency` y `resultType`. Las columnas se citan entre llaves, `{Precio} * {Stock}`.
+- **Lenguaje propio, sin `eval` ni SQL:** un analizador escrito a mano en `@tablaria/shared` (`parseFormula`, `checkFormula`, `evaluateFormula`). Lo usan la API, que es la que valida y calcula, y el formulario, que muestra los errores mientras se escribe.
+  - Números con coma decimal (`2,5`; el punto también vale), textos entre comillas, `VERDADERO` y `FALSO`.
+  - Los datos de una función se separan con `;`, como en una hoja de cálculo en español. La coma también separa cuando no puede ser decimal (`MAX(2, 5)`).
+  - Las columnas se citan entre llaves; una llave dentro del nombre se escribe doble (`{Talla {EU}}}`).
+  - Operadores `+ - * /`, `&` para unir textos y las comparaciones `= <> < > <= >=`.
+  - Funciones: `SI`, `Y`, `O`, `NO`, `ESVACIO`, `REDONDEAR`, `ABS`, `MIN`, `MAX`, `MAYUSC`, `MINUSC`, `LARGO`, `HOY` y `DIAS`. Los nombres van en español, como el resto de la aplicación; sus equivalentes en inglés (`IF`, `AND`…) también valen, para no rehacerlo al traducir la interfaz.
+  - Como máximo 1.000 caracteres y 100 nodos, para que nadie haga trabajar al servidor con una expresión enorme.
+- **Tipos comprobados al guardar:** cada expresión da un número, un texto, un Sí/No o una fecha (`resultType`), calculado por la API y no por el cliente. Lo que no encaja da 422 con el motivo (`SI` con ramas de tipos distintos, sumar un texto…).
+  - Puede citar texto, número, precio (como número), fecha, Sí/No, lista (como texto), consultas y resúmenes, con el tipo de lo que muestran.
+  - No puede citar relaciones ni otras fórmulas, para que no haya cadenas.
+- **`HOY`** es la fecha en España (Europe/Madrid), no la de UTC, para que no cambie de día a medianoche.
+- **Celdas vacías:** una cuenta con una celda vacía queda vacía; dividir por cero, también. `&` toma lo vacío como texto vacío. `ESVACIO` lo comprueba de forma explícita.
+- **Moneda opcional** (`currency`): una fórmula numérica puede mostrarse como precio (precio × stock en euros).
+- **En la base de datos, por id:** la expresión se guarda como `{id}` y la interfaz la muestra con los nombres. Renombrar una columna no rompe nada.
+- **Calculada al leer, nunca guardada** (`fillFormulas`): después de las consultas y los resúmenes, en la lista y en el CSV. Escribirla da 400, igual que con las demás columnas calculadas.
+- **Tipo fijo:** se crea como fórmula y no cambia de tipo. No puede ser obligatoria, única ni tener valor por defecto.
+- **Limpieza** (`syncFormulas`): al borrar o cambiar una columna, se vuelven a comprobar las fórmulas de las tablas afectadas, que son la propia y las que tienen consultas o resúmenes que leen de ella. Si una fórmula ya no encaja se borra, como las consultas; si cambia su tipo de resultado, se actualiza, y si deja de dar un número pierde la moneda en vez de borrarse.
+- **Permisos:** una consulta o un resumen que el usuario no puede ver llega vacío, así que la fórmula se calcula con ese hueco y no revela nada.
+- **Enlaces públicos:** no muestran fórmulas, igual que no muestran consultas ni resúmenes (ADR-026).
+- **Fuera de esta versión:** ordenar, filtrar, buscar y agrupar por una fórmula (400), porque se calcula en la página y no en el SQL; fórmulas que citen otras fórmulas; más funciones.
+
+**Consecuencias**: calcular una fórmula cuesta muy poco frente a leer la página, y no añade consultas a la base de datos. Para ordenar por ella habría que traducir la expresión a SQL o guardar el resultado.
+
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
 Todas están especificadas en [MVP_PROMPT.md](MVP_PROMPT.md):

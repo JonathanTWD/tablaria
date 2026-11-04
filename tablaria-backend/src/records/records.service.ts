@@ -39,6 +39,7 @@ import {
 import { accessibleTables, touchTable } from '../tables/table-access';
 import { buildRecordQuery } from './record-query';
 import { fillRollups, rollupSources } from '../rollups/rollups';
+import { fillFormulas } from '../formulas/formulas';
 import {
   fillLookups,
   lookupLabelSources,
@@ -89,6 +90,7 @@ export class RecordsService {
       await rollupSources(this.prisma, userId, columns),
       page.data,
     );
+    fillFormulas(columns, page.data);
     return {
       ...page,
       linked: await linkedLabels(
@@ -136,6 +138,7 @@ export class RecordsService {
     await fillLookups(this.prisma, lookups, rows);
     const rollups = await rollupSources(this.prisma, userId, columns);
     await fillRollups(this.prisma, rollups, rows);
+    fillFormulas(columns, rows);
 
     return {
       fileName: exportFileName(table.name, 'csv'),

@@ -25,8 +25,13 @@ import { requireNoRepeatedValues } from '../records/unique-values';
 import {
   dropComputedColumns,
   requireLookupSource,
-  requireSameLookupType,
+  requireSameComputedType,
 } from '../lookups/lookups';
+import {
+  prepareFormula,
+  syncFormulas,
+  tablesReading,
+} from '../formulas/formulas';
 import { requireLinkableTable } from '../relations/relations';
 import { dropRollupsNotFitting, requireRollupSource } from '../rollups/rollups';
 import { accessibleTables, touchTable } from '../tables/table-access';
@@ -55,7 +60,7 @@ export class ColumnsService {
   async create(
     userId: string,
     tableId: string,
-    definition: ColumnDefinition,
+    input: ColumnDefinition,
   ): Promise<TableColumn> {
     const result = await withUniqueColumnName(() =>
       this.prisma.$transaction(async (tx) => {
@@ -69,9 +74,10 @@ export class ColumnsService {
         if (_count >= MAX_COLUMNS_PER_TABLE) {
           throw new UnprocessableEntityException('Column limit reached');
         }
-        await requireLinkableTable(tx, tableId, definition);
-        await requireLookupSource(tx, userId, tableId, definition);
-        await requireRollupSource(tx, userId, tableId, definition);
+        await requireLinkableTable(tx, tableId, input);
+        await requireLookupSource(tx, userId, tableId, input);
+        await requireRollupSource(tx, userId, tableId, input);
+        const definition = await prepareFormula(tx, tableId, input);
 
         const column = await tx.column.create({
           data: {
@@ -107,7 +113,7 @@ export class ColumnsService {
     columnId: string,
     patch: UpdateColumnInput,
   ): Promise<UpdateColumnResponse> {
-    // Other tables whose lookups this change removes, to refresh them too.
+    // Other tables whose computed columns this change removes or retypes, to refresh them too.
     let droppedIn: string[] = [];
     const result = await withUniqueColumnName(() =>
       this.prisma.$transaction(async (tx) => {
@@ -121,10 +127,15 @@ export class ColumnsService {
         }
 
         const current = toTableColumn(stored);
-        requireSameLookupType(current.type, patch.type ?? current.type);
-        const next = parseOrThrow(
-          columnDefinitionSchema,
-          mergeColumnPatch(current, patch),
+        requireSameComputedType(current.type, patch.type ?? current.type);
+        const next = await prepareFormula(
+          tx,
+          tableId,
+          parseOrThrow(
+            columnDefinitionSchema,
+            mergeColumnPatch(current, patch),
+          ),
+          columnId,
         );
         await requireLinkableTable(tx, tableId, next);
         await requireLookupSource(tx, userId, tableId, next);
@@ -177,6 +188,16 @@ export class ColumnsService {
           where: { id: columnId },
           data: toColumnData(next),
         });
+        // Formulas citing this column, or a lookup or rollup that reads it (ADR-033).
+        droppedIn = [
+          ...droppedIn,
+          ...(await syncFormulas(tx, [
+            tableId,
+            ...(next.type === current.type
+              ? []
+              : await tablesReading(tx, columnId)),
+          ])),
+        ];
         await logActivity(tx, {
           tableId,
           userId,
@@ -254,10 +275,12 @@ export class ColumnsService {
         SET data = data - ${columnId}::text
         WHERE "tableId" = ${tableId}::uuid AND data ? ${columnId}::text`;
       // Lookups reading through this relation, or showing this column (ADR-030).
-      return dropComputedColumns(tx, {
+      const dropped = await dropComputedColumns(tx, {
         relationColumnIds: [columnId],
         targetColumnIds: [columnId],
       });
+      // Formulas citing it (ADR-033).
+      return [...dropped, ...(await syncFormulas(tx, [tableId]))];
     });
     for (const changed of new Set([tableId, ...droppedIn])) {
       this.realtime.publish(changed, 'columns');
