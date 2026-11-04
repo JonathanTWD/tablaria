@@ -98,8 +98,8 @@ describe("RecordsTable", () => {
 
     expect(await screen.findByText("12")).toBeVisible();
     expect(screen.getByText("25.400,00 €")).toBeVisible();
-    // Not a sort key yet: the header is plain text.
-    expect(screen.queryByRole("button", { name: "Personas" })).not.toBeInTheDocument();
+    // Sorted by its value (ADR-034): the header is a button.
+    expect(screen.getByRole("button", { name: "Personas" })).toBeVisible();
   });
 
   it("shows a lookup read-only, formatted like the column it shows", async () => {

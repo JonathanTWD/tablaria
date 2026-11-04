@@ -38,7 +38,11 @@ import {
 } from '../relations/relations';
 import { accessibleTables, touchTable } from '../tables/table-access';
 import { buildRecordQuery } from './record-query';
-import { fillRollups, rollupSources } from '../rollups/rollups';
+import {
+  fillRollups,
+  type RollupSource,
+  rollupSources,
+} from '../rollups/rollups';
 import { fillFormulas } from '../formulas/formulas';
 import {
   fillLookups,
@@ -80,16 +84,17 @@ export class RecordsService {
     const columns = table.columns.map(toTableColumn);
     const relations = await labelSources(this.prisma, userId, columns);
     const lookups = await lookupSources(this.prisma, userId, columns);
-    const page = await queryRecordPage(this.prisma, tableId, columns, query, [
-      ...relations,
-      ...lookupLabelSources(lookups),
-    ]);
-    await fillLookups(this.prisma, lookups, page.data);
-    await fillRollups(
+    const rollups = await rollupSources(this.prisma, userId, columns);
+    const page = await queryRecordPage(
       this.prisma,
-      await rollupSources(this.prisma, userId, columns),
-      page.data,
+      tableId,
+      columns,
+      query,
+      [...relations, ...lookupLabelSources(lookups)],
+      rollups,
     );
+    await fillLookups(this.prisma, lookups, page.data);
+    await fillRollups(this.prisma, rollups, page.data);
     fillFormulas(columns, page.data);
     return {
       ...page,
@@ -119,7 +124,8 @@ export class RecordsService {
 
     const columns = table.columns.map(toTableColumn);
     const lookups = await lookupSources(this.prisma, userId, columns);
-    const { where, orderBy } = buildRecordQuery(
+    const rollups = await rollupSources(this.prisma, userId, columns);
+    const { from, where, orderBy } = buildRecordQuery(
       tableId,
       columns,
       query,
@@ -127,16 +133,16 @@ export class RecordsService {
         ...(await labelSources(this.prisma, userId, columns)),
         ...lookupLabelSources(lookups),
       ]),
+      rollups,
     );
     const rows = await this.prisma.$queryRaw<
       { id: string; data: RecordData }[]
     >`
-      SELECT r.id, r.data FROM records r
+      SELECT r.id, r.data FROM ${from}
       WHERE ${where}
       ORDER BY ${orderBy}
       LIMIT ${MAX_RECORDS_PER_TABLE}`;
     await fillLookups(this.prisma, lookups, rows);
-    const rollups = await rollupSources(this.prisma, userId, columns);
     await fillRollups(this.prisma, rollups, rows);
     fillFormulas(columns, rows);
 
@@ -347,28 +353,30 @@ export async function queryRecordPage(
   columns: RecordColumn[],
   query: RecordListQuery,
   labels?: Iterable<[string, LabelSource]>,
+  rollups?: ReadonlyMap<string, RollupSource>,
 ): Promise<Paginated<TableRecord> & { groups: RecordGroup[] }> {
-  const { where, orderBy, groupValue } = buildRecordQuery(
+  const { from, where, orderBy, groupValue } = buildRecordQuery(
     tableId,
     columns,
     query,
     new Map(labels),
+    rollups,
   );
   const offset = (query.page - 1) * query.pageSize;
   const [rows, [{ total }], groups] = await Promise.all([
     db.$queryRaw<RecordRow[]>`
       SELECT r.id, r."tableId", r.data, r."createdAt", r."updatedAt"
-      FROM records r
+      FROM ${from}
       WHERE ${where}
       ORDER BY ${orderBy}
       LIMIT ${query.pageSize} OFFSET ${offset}`,
     db.$queryRaw<{ total: bigint }[]>`
-      SELECT count(*) AS total FROM records r WHERE ${where}`,
+      SELECT count(*) AS total FROM ${from} WHERE ${where}`,
     // Counts for every group, so a group split across pages shows its real size.
     groupValue
       ? db.$queryRaw<RecordGroup[]>`
           SELECT ${groupValue} AS value, count(*)::int AS count
-          FROM records r WHERE ${where} GROUP BY 1`
+          FROM ${from} WHERE ${where} GROUP BY 1`
       : Promise.resolve([]),
   ]);
   const count = Number(total);

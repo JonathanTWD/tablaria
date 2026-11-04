@@ -170,7 +170,7 @@ export const FILTER_OPERATOR_BY_TYPE: Record<ColumnType, FilterOperator> = {
   relation: "contains",
   // By the value it shows, as text (ADR-030).
   lookup: "contains",
-  // Not filterable yet: the API refuses it (ADR-031).
+  // By its value, as a number or a date (ADR-034).
   rollup: "between",
   // Not filterable yet: the API refuses it (ADR-033).
   formula: "contains",
