@@ -2,6 +2,12 @@
 
 ## Sin publicar
 
+- **Importar relaciones por nombre** (ADR-036): al importar un CSV, una columna de relación se rellena con el nombre del registro enlazado, el que se ve en la tabla (su primera columna).
+  - **Varios registros:** en una relación múltiple, los nombres van separados por comas («Makita, Bosch»).
+  - **Sin distinguir mayúsculas** ni espacios de más. Un nombre repetido en la misma celda enlaza una sola vez.
+  - **Errores claros:** si ningún registro se llama así, o se llaman así varios, la fila sale en el informe de errores y no se importa nada hasta corregirlo.
+  - **Ida y vuelta:** el CSV que exporta Tablaria, que ya escribe las relaciones por nombre, se puede volver a importar tal cual.
+  - **Permisos:** hay que poder abrir la tabla enlazada, como al enlazar a mano.
 - **Ordenar y filtrar por resumen** (ADR-034): los resúmenes se ordenan con su cabecera y se filtran por rango en «Filtros».
   - **Ejemplos:** «los clientes que más facturan», «los proveedores con 10 productos o más» o «los equipos con una incorporación desde enero».
   - **Valores:** un conteo o una suma se filtran como número, y el mínimo o el máximo de unas fechas, como fecha.

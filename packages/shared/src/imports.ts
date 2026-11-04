@@ -70,7 +70,17 @@ export interface ImportCellError {
   /** Position of the column in the file, from 0. */
   column: number;
   value: string;
-  reason: "invalid" | "required" | "unknownChoice" | "duplicate";
+  /**
+   * `unknownRecord`: no record of the linked table has that name;
+   * `ambiguousRecord`: several have it (ADR-036).
+   */
+  reason:
+    | "invalid"
+    | "required"
+    | "unknownChoice"
+    | "duplicate"
+    | "unknownRecord"
+    | "ambiguousRecord";
 }
 
 export interface ImportCheck {

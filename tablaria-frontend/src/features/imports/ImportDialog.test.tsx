@@ -152,6 +152,55 @@ describe("ImportDialog", () => {
     expect(screen.getByRole("button", { name: "Importar 1 registro" })).toBeDisabled();
   });
 
+  it("links relations by name, and says which names match no record or several", async () => {
+    const user = userEvent.setup();
+    const SUPPLIER_ID = "1a2b3c4d-3333-4aaa-8bbb-000000000003";
+    const withSupplier: TableDetail = {
+      ...table,
+      columns: [
+        ...table.columns,
+        column(SUPPLIER_ID, 2, {
+          name: "Proveedor",
+          type: "relation",
+          options: { tableId: "1a2b3c4d-4444-4aaa-8bbb-000000000004" },
+        }),
+      ],
+    };
+    const sent: unknown[] = [];
+    mockApi((_url, init) => {
+      sent.push(JSON.parse(String(init.body)));
+      return {
+        rows: 2,
+        validRows: 0,
+        errorCount: 2,
+        errors: [
+          { row: 1, column: 1, value: "Dewalt", reason: "unknownRecord" },
+          { row: 2, column: 1, value: "Stanley", reason: "ambiguousRecord" },
+        ],
+        missingChoices: [],
+        missingRequired: [],
+      };
+    });
+    renderWithProviders(
+      <ImportDialog destination={{ kind: "table", table: withSupplier }} open onOpenChange={() => undefined} />,
+    );
+
+    await user.upload(
+      screen.getByLabelText("Archivo CSV"),
+      csvFile("Producto;Proveedor\nTaladro;Dewalt\nSierra;Stanley\n"),
+    );
+    await user.click(await screen.findByRole("button", { name: "Comprobar" }));
+
+    // Matched by name to the relation column, like any other.
+    expect(sent[0]).toMatchObject({ columns: [PRODUCT_ID, SUPPLIER_ID] });
+    expect(await screen.findByText("ningún registro de la tabla enlazada se llama así")).toBeVisible();
+    expect(
+      screen.getByText(
+        "varios registros de la tabla enlazada se llaman así: cambia el nombre de uno para distinguirlos",
+      ),
+    ).toBeVisible();
+  });
+
   it("creates a new table with columns typed from the file", async () => {
     const user = userEvent.setup();
     const sent: { path: string; body: unknown }[] = [];
