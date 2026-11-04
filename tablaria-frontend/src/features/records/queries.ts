@@ -8,7 +8,6 @@ import {
 import type {
   Paginated,
   RecordData,
-  RecordStatsQuery,
   TableRecord,
 } from "@tablaria/shared";
 import { tableKeys } from "@/features/tables/queries";
@@ -24,20 +23,11 @@ export function recordsQuery(tableId: string, view: RecordsView) {
   });
 }
 
-export function recordStatsQuery(tableId: string, query: RecordStatsQuery) {
-  return queryOptions({
-    queryKey: [...tableKeys.stats(tableId), query],
-    queryFn: () => recordsApi.stats(tableId, query),
-    // Keeps the current chart on screen while another grouping loads.
-    placeholderData: keepPreviousData,
-  });
-}
-
 /** Record counts and "last edited" live on the table, so they change too. */
 export function refreshAfterWrite(queryClient: QueryClient, tableId: string) {
   return Promise.all([
     queryClient.invalidateQueries({ queryKey: tableKeys.records(tableId) }),
-    queryClient.invalidateQueries({ queryKey: tableKeys.stats(tableId) }),
+    queryClient.invalidateQueries({ queryKey: tableKeys.metrics(tableId) }),
     queryClient.invalidateQueries({ queryKey: tableKeys.detail(tableId) }),
     queryClient.invalidateQueries({ queryKey: tableKeys.list() }),
   ]);
@@ -100,7 +90,7 @@ export function useUpdateRecord(tableId: string) {
     onSettled: () =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: key }),
-        queryClient.invalidateQueries({ queryKey: tableKeys.stats(tableId) }),
+        queryClient.invalidateQueries({ queryKey: tableKeys.metrics(tableId) }),
         queryClient.invalidateQueries({ queryKey: tableKeys.list() }),
       ]),
   });

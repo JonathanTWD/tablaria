@@ -635,6 +635,47 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 
 **Consecuencias**: ordenar por un resumen agrupa toda la tabla que enlaza en cada consulta, con un máximo de 10.000 registros, en lugar de una subconsulta por fila, y PostgreSQL lo resuelve con un hash join. Si las tablas crecieran mucho, la vía sería un índice sobre la celda de la relación o guardar el valor.
 
+## ADR-035: Métricas de cada tabla
+
+**Contexto**: Inicio mezclaba la lista «Bajo mínimo» de todas las tablas con un gráfico «Resumen» en el que primero había que elegir la tabla. Las dos cosas se entienden mejor dentro de la tabla a la que pertenecen, y con las relaciones, consultas y resúmenes había mucho más que medir.
+
+**Decisión**:
+- **Una pestaña «Métricas» por tabla** (`/app/tables/:tableId/metrics`), con:
+  - tarjetas de resumen;
+  - la lista de bajo mínimo de la tabla;
+  - un gráfico por grupos (barras o dona);
+  - un gráfico de evolución.
+  Las métricas cuentan todos los registros de la tabla, sin la búsqueda ni los filtros de la vista de registros.
+- **Inicio** se queda con las cifras generales, la lista de tablas y un aviso breve con cuántos registros están bajo mínimo y enlaces a las métricas de cada tabla afectada.
+- **API de solo lectura en un módulo propio** (`metrics`), bajo `/tables/:tableId/metrics`. Sustituye a `GET /records/stats`, que solo usaba el gráfico de Inicio.
+  - `summary`: total, media, mínimo y máximo de cada columna numérica o de precio, en una sola consulta (`unnest` de las columnas).
+  - `groups`: agrupa por lista de opciones, Sí/No, texto o relación simple, y mide contando o con suma, media, mínimo o máximo de una columna.
+    - Devuelve los 8 grupos mayores y junta el resto. La media de ese resto se pondera por cuántos valores tenía cada grupo.
+    - Por relación, los nombres salen de `linkedLabels`. Si no se puede abrir la tabla enlazada, devuelve 403, como al ordenar por ella (ADR-028).
+    - Una relación múltiple no agrupa (ADR-032).
+  - `timeline`: registros por día, semana (empieza en lunes) o mes, según la fecha de creación o una columna de fecha, con la misma medida.
+    - Devuelve los 36 periodos más recientes con registros. El navegador rellena los vacíos, para que se vean los huecos.
+  - **Seguridad:**
+    - los ids de columna se comprueban contra la tabla y cada valor va como parámetro;
+    - la función de la medida sale de una lista cerrada (`METRIC_FUNCTIONS`);
+    - una celda que no es un número o una fecha ISO no rompe la conversión.
+- **Avisos de stock:** `GET /stock-alerts` admite `tableId` para la lista de una tabla y devuelve el recuento por tabla para el aviso de Inicio, con las mismas reglas de acceso.
+- **Gráficos con los charts de shadcn/ui (Recharts):**
+  - un `ChartContainer` y un tooltip propios en `components/ui/chart.tsx`;
+  - los colores salen de los tokens del tema y de los de cada opción de lista;
+  - Recharts solo se carga con la página de métricas (`lazy`), así que el paquete inicial no crece.
+- **Accesibilidad:** el dibujo se oculta a los lectores de pantalla y cada gráfico lleva sus datos en una tabla (`ChartData`), con título y leyenda visibles. El cambio barras/dona usa `aria-pressed`.
+- **Fuera por ahora:**
+  - medir resúmenes y fórmulas, que se calculan al leer;
+  - métricas que sigan los filtros de la vista;
+  - guardar la configuración de los gráficos;
+  - un dashboard con varias tablas.
+
+**Consecuencias**:
+- Cada gráfico es una consulta agrupada sobre la tabla, con un máximo de 10.000 registros.
+- Las métricas se invalidan con cada cambio de registros o columnas (tiempo real incluido), igual que hacía el gráfico de Inicio.
+- Se añade una dependencia: Recharts 3, con más de 14 días, como exige pnpm. Para instalarla se excluye `rolldown` de `minimumReleaseAge`, igual que `@rolldown/*`, porque la versión del lockfile ya pasa el CI.
+
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
 Todas están especificadas en [MVP_PROMPT.md](MVP_PROMPT.md):

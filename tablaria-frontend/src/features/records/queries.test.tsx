@@ -1,10 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
-import type { RecordPage, RecordStats, TableRecord } from "@tablaria/shared";
+import type { MetricsSummary, RecordPage, TableRecord } from "@tablaria/shared";
+import { metricsSummaryQuery } from "@/features/metrics/queries";
 import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import { mockApi } from "@/test/render";
-import { recordStatsQuery, recordsQuery, useUpdateRecord } from "./queries";
+import { recordsQuery, useUpdateRecord } from "./queries";
 import { parseRecordsView } from "./records-view";
 
 const TABLE = "table-1";
@@ -16,7 +17,7 @@ const record: TableRecord = {
 };
 
 describe("useUpdateRecord", () => {
-  it("saves an edit while the dashboard chart of the same table is cached", async () => {
+  it("saves an edit while the metrics of the same table are cached", async () => {
     const fetchMock = mockApi(() => ({ ...record, data: { quantity: 8 } }));
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false, staleTime: Infinity } },
@@ -28,10 +29,10 @@ describe("useUpdateRecord", () => {
       labelledRelations: [],
       groups: [],
     };
-    const stats: RecordStats = { total: 1, groups: [], others: null };
+    const summary: MetricsSummary = { total: 1, columns: [] };
     const pageKey = recordsQuery(TABLE, parseRecordsView(new URLSearchParams())).queryKey;
     queryClient.setQueryData(pageKey, page);
-    queryClient.setQueryData(recordStatsQuery(TABLE, { groupBy: "status" }).queryKey, stats);
+    queryClient.setQueryData(metricsSummaryQuery(TABLE).queryKey, summary);
 
     const { result } = renderHook(() => useUpdateRecord(TABLE), {
       wrapper: ({ children }: { children: ReactNode }) => (

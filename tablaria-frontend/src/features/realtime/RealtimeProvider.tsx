@@ -22,7 +22,7 @@ function refresh(queryClient: QueryClient, tableId: string, scope: RealtimeScope
   if (scope === "records" || scope === "columns") {
     keys.push(
       tableKeys.records(tableId),
-      tableKeys.stats(tableId),
+      tableKeys.metrics(tableId),
       tableKeys.movements(tableId),
       tableKeys.activity(tableId),
       stockAlertsQuery.queryKey,

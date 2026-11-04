@@ -37,23 +37,11 @@
       "low_other": "Quedan {{value}} (mín. {{min}})",
       "out": "Agotado",
       "more": "Y {{count}} más. Ábrelos desde sus tablas.",
-      "loadError": "No se pudieron cargar los avisos de stock."
-    },
-    "charts": {
-      "title": "Resumen",
-      "description": "Agrupa los registros de una tabla por una columna y compáralos de un vistazo.",
-      "table": "Tabla",
-      "groupBy": "Agrupar por",
-      "measure": "Medir",
-      "count": "Número de registros",
-      "sum": "Suma de {{name}}",
-      "empty": "Sin valor",
-      "others_one": "Otro valor",
-      "others_other": "Otros {{count}} valores",
-      "caption": "{{measure}} por {{group}} en {{table}}",
-      "noGroupable": "Esta tabla no tiene columnas para agrupar. Añade una lista de opciones, una columna Sí / No o de texto.",
-      "noRecords": "Esta tabla aún no tiene registros.",
-      "loadError": "No se pudo cargar el resumen."
+      "loadError": "No se pudieron cargar los avisos de stock.",
+      "notice_one": "{{count}} registro bajo mínimo",
+      "notice_other": "{{count}} registros bajo mínimo",
+      "noticeTable": "{{table}} ({{count}})",
+      "noticeHint": "Ábrelos en las métricas de cada tabla:"
     },
     "tablesTitle": "Tus tablas",
     "organizationTablesTitle": "Tablas de la organización",

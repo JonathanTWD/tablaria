@@ -50,8 +50,11 @@ describe('Stock alerts (e2e)', () => {
     return { table, id, add };
   }
 
-  async function alerts(client: TestClient): Promise<StockAlerts> {
-    return (await client.get('/api/stock-alerts').expect(200))
+  async function alerts(
+    client: TestClient,
+    query: Record<string, string> = {},
+  ): Promise<StockAlerts> {
+    return (await client.get('/api/stock-alerts').query(query).expect(200))
       .body as StockAlerts;
   }
 
@@ -80,6 +83,7 @@ describe('Stock alerts (e2e)', () => {
         },
         expect.objectContaining({ label: 'Guantes', value: 4 }) as unknown,
       ],
+      tables: [{ tableId: table.id, tableName: 'Almacén', count: 2 }],
     });
   });
 
@@ -117,15 +121,30 @@ describe('Stock alerts (e2e)', () => {
     expect(result.total).toBe(STOCK_ALERTS_LIMIT * 2);
     expect(result.items).toHaveLength(STOCK_ALERTS_LIMIT);
     expect(result.items.every(({ value }) => value === 1)).toBe(true);
+    expect(result.tables).toEqual([
+      { tableId: first.table.id, tableName: 'Almacén A', count: 8 },
+      { tableId: second.table.id, tableName: 'Almacén B', count: 8 },
+    ]);
+
+    // A table's metrics ask only for its own (ADR-035).
+    const own = await alerts(client, { tableId: second.table.id });
+    expect(own.total).toBe(STOCK_ALERTS_LIMIT);
+    expect(own.items.every(({ label }) => label?.startsWith('B'))).toBe(true);
+    await client
+      .get('/api/stock-alerts')
+      .query({ tableId: 'not-a-table' })
+      .expect(400);
   });
 
   it("never shows another user's alerts", async () => {
     const owner = await createSignedInClient(app);
-    const { add } = await createInventory(owner);
+    const { table, add } = await createInventory(owner);
     await add('Guantes', 1);
 
     const other = await createSignedInClient(app);
-    expect(await alerts(other)).toEqual({ total: 0, items: [] });
+    expect(await alerts(other)).toEqual({ total: 0, items: [], tables: [] });
+    // Not even when asking for that table.
+    expect((await alerts(other, { tableId: table.id })).total).toBe(0);
     await createClient(app).get('/api/stock-alerts').expect(401);
   });
 

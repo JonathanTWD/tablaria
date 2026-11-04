@@ -7,9 +7,12 @@ import { cn } from "@/lib/utils";
 /** Records running low; hidden when nothing is below its threshold. */
 export function StockAlertsCard({
   alerts,
+  showTable = true,
   className,
 }: {
   alerts: StockAlerts | undefined;
+  /** Off inside a table, where every alert is of that table. */
+  showTable?: boolean;
   className?: string;
 }) {
   const { t } = useTranslation("app");
@@ -42,7 +45,11 @@ export function StockAlertsCard({
       </div>
       <ul className="divide-y divide-border">
         {items.map((alert) => (
-          <AlertRow key={`${alert.recordId}-${alert.columnName}`} alert={alert} />
+          <AlertRow
+            key={`${alert.recordId}-${alert.columnName}`}
+            alert={alert}
+            showTable={showTable}
+          />
         ))}
       </ul>
       {total > items.length && (
@@ -54,7 +61,7 @@ export function StockAlertsCard({
   );
 }
 
-function AlertRow({ alert }: { alert: StockAlert }) {
+function AlertRow({ alert, showTable }: { alert: StockAlert; showTable: boolean }) {
   const { t, i18n } = useTranslation(["app", "records"]);
   const number = new Intl.NumberFormat(i18n.language);
   const out = stockLevelFor(alert.value, alert.alertBelow) === "out";
@@ -71,7 +78,7 @@ function AlertRow({ alert }: { alert: StockAlert }) {
             {alert.label || t("records:table.untitled")}
           </span>
           <span className="block truncate text-xs text-muted-foreground">
-            {alert.tableName} · {alert.columnName}
+            {showTable ? `${alert.tableName} · ${alert.columnName}` : alert.columnName}
           </span>
         </span>
         <span

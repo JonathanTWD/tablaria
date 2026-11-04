@@ -2,6 +2,13 @@
 
 ## Sin publicar
 
+- **Métricas de cada tabla** (ADR-035): una pestaña nueva, «Métricas», junto a Registros, Columnas y Actividad.
+  - **De un vistazo:** total de registros, cuántos están bajo mínimo y, por cada columna numérica o de precio, su total, media, mínimo y máximo.
+  - **Bajo mínimo:** la lista de la tabla, con enlace a cada registro.
+  - **Por grupos:** barras o dona por una lista de opciones, Sí/No, texto o una relación (con el nombre del registro enlazado). Se mide el número de registros o la suma, la media, el mínimo o el máximo de una columna. Por ejemplo, «Coste en salarios por equipo» o «Stock por proveedor».
+  - **Evolución:** registros por día, semana o mes, según su fecha de creación o una columna de fecha, con los periodos sin registros también, y la misma medida a elegir.
+  - **Accesibles:** cada gráfico lleva sus datos en una tabla para lectores de pantalla, y los colores son los de las opciones de cada lista.
+  - **Inicio, más limpio:** el gráfico «Resumen» y la lista «Bajo mínimo» pasan a las métricas de cada tabla. En Inicio queda un aviso breve, «5 registros bajo mínimo», con enlaces a las tablas afectadas.
 - **Ordenar y filtrar por resumen** (ADR-034): los resúmenes se ordenan con su cabecera y se filtran por rango en «Filtros».
   - **Ejemplos:** «los clientes que más facturan», «los proveedores con 10 productos o más» o «los equipos con una incorporación desde enero».
   - **Valores:** un conteo o una suma se filtran como número, y el mínimo o el máximo de unas fechas, como fecha.

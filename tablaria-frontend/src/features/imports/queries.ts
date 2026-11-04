@@ -31,7 +31,7 @@ export function useRunImport(destination: ImportDestination) {
     onSuccess: ({ tableId }) =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: tableKeys.records(tableId) }),
-        queryClient.invalidateQueries({ queryKey: tableKeys.stats(tableId) }),
+        queryClient.invalidateQueries({ queryKey: tableKeys.metrics(tableId) }),
         queryClient.invalidateQueries({ queryKey: tableKeys.detail(tableId) }),
         queryClient.invalidateQueries({ queryKey: tableKeys.list() }),
       ]),

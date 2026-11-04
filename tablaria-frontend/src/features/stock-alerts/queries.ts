@@ -7,3 +7,12 @@ export const stockAlertsQuery = queryOptions({
   queryKey: ["stock-alerts"],
   queryFn: () => apiRequest<StockAlerts>("/stock-alerts"),
 });
+
+/** The same for one table, as its metrics show them (ADR-035). Refreshed with the above. */
+export function tableStockAlertsQuery(tableId: string) {
+  return queryOptions({
+    queryKey: [...stockAlertsQuery.queryKey, tableId],
+    queryFn: () =>
+      apiRequest<StockAlerts>(`/stock-alerts?${new URLSearchParams({ tableId })}`),
+  });
+}

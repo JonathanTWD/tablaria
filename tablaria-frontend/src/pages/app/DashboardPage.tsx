@@ -8,11 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { displayName } from "@/features/auth/display-name";
 import { useSession } from "@/features/auth/session";
-import { RecordsChart } from "@/features/charts/RecordsChart";
 import { useSpace, useSpaceName } from "@/features/organizations/space-context";
 import { stockAlertsQuery } from "@/features/stock-alerts/queries";
 import { SharedTablesSection } from "@/features/sharing/SharedTablesSection";
-import { StockAlertsCard } from "@/features/stock-alerts/StockAlertsCard";
+import { StockAlertsNotice } from "@/features/stock-alerts/StockAlertsNotice";
 import { CreateTableDialog } from "@/features/tables/CreateTableDialog";
 import { tablesQuery } from "@/features/tables/queries";
 import { apiErrorMessage } from "@/lib/error-message";
@@ -76,15 +75,12 @@ export default function DashboardPage() {
       {loading && (
         <div aria-busy="true" className="mt-8">
           <Skeleton className="h-24 w-full rounded-xl" />
-          <div className="mt-8 grid gap-8 @5xl:grid-cols-[minmax(0,1fr)_26rem] @7xl:grid-cols-[minmax(0,1fr)_30rem]">
-            <div>
-              <Skeleton className="h-6 w-40" />
-              <div className="mt-4 grid gap-3 @xl:grid-cols-2 @7xl:grid-cols-3">
-                <Skeleton className="h-28 rounded-xl" />
-                <Skeleton className="h-28 rounded-xl" />
-              </div>
+          <div className="mt-8">
+            <Skeleton className="h-6 w-40" />
+            <div className="mt-4 grid gap-3 @xl:grid-cols-2 @5xl:grid-cols-3">
+              <Skeleton className="h-28 rounded-xl" />
+              <Skeleton className="h-28 rounded-xl" />
             </div>
-            <Skeleton className="hidden h-64 rounded-xl @5xl:block" />
           </div>
         </div>
       )}
@@ -129,7 +125,7 @@ export default function DashboardPage() {
       {/* People with no tables of their own may still have some shared with them. */}
       {ready && tables.data.length === 0 && (
         <>
-          <StockAlertsCard alerts={alerts.data} className="mt-8" />
+          <StockAlertsNotice alerts={alerts.data} className="mt-8" />
           {space?.personal && <SharedTablesSection className="mt-10" />}
         </>
       )}
@@ -184,14 +180,10 @@ function TablesOverview({
         ))}
       </dl>
 
-      {/*
-        Wide pages put the alerts and the chart in a side column next to the tables.
-        The DOM order (alerts, tables, chart) is also the reading order on narrow pages.
-      */}
-      <div className="mt-8 grid gap-8 @5xl:grid-cols-[minmax(0,1fr)_26rem] @5xl:grid-rows-[auto_1fr] @7xl:grid-cols-[minmax(0,1fr)_30rem]">
-        <StockAlertsCard alerts={alerts} className="@5xl:col-start-2 @5xl:self-start" />
+      {/* Each table's metrics list its alerts and charts; here, only what needs a look (ADR-035). */}
+      <StockAlertsNotice alerts={alerts} className="mt-6" />
 
-        <div className="flex flex-col gap-10 @5xl:col-start-1 @5xl:row-span-2 @5xl:row-start-1">
+      <div className="mt-8 flex flex-col gap-10">
           <section aria-labelledby="tables-title" className="@container/tables">
             <h2 id="tables-title" className="text-lg font-semibold tracking-tight">
               {personal ? t("dashboard.tablesTitle") : t("dashboard.organizationTablesTitle")}
@@ -227,9 +219,6 @@ function TablesOverview({
             </ul>
           </section>
           {personal && <SharedTablesSection />}
-        </div>
-
-        <RecordsChart tables={tables} className="@5xl:col-start-2 @5xl:self-start" />
       </div>
     </>
   );
