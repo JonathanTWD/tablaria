@@ -9,8 +9,16 @@ import {
 } from '@tablaria/shared';
 import { Prisma } from '../generated/prisma/client';
 import type { LabelSource } from '../relations/relations';
+import {
+  emptyRollupValue,
+  type RollupSource,
+  rollupValuesSql,
+  rollupValueType,
+} from '../rollups/rollups';
 
 export interface RecordQuerySql {
+  /** `records r`, joined with the rollups the query sorts or filters by. */
+  from: Prisma.Sql;
   where: Prisma.Sql;
   orderBy: Prisma.Sql;
   /** The grouped column's value as text, when the listing is grouped. */
@@ -23,7 +31,8 @@ export interface RecordQuerySql {
  * the table's own columns, so user input never becomes SQL text.
  *
  * Relation columns are searched, filtered and sorted by the label of the
- * record they link to, and only those in `labels` (ADR-028).
+ * record they link to, and only those in `labels` (ADR-028). Rollups are
+ * filtered and sorted by their value, and only those in `rollups` (ADR-034).
  */
 export function buildRecordQuery(
   tableId: string,
@@ -33,6 +42,7 @@ export function buildRecordQuery(
     'search' | 'sort' | 'order' | 'filters' | 'group'
   >,
   labels: ReadonlyMap<string, LabelSource> = new Map(),
+  rollups: ReadonlyMap<string, RollupSource> = new Map(),
 ): RecordQuerySql {
   const byId = new Map(columns.map((column) => [column.id, column]));
   const findColumn = (columnId: string) => {
@@ -40,19 +50,47 @@ export function buildRecordQuery(
     if (!column) {
       throw new BadRequestException(`Unknown column ${columnId}`);
     }
-    // Computed per page in the API, not in SQL: not a filter or sort key yet (ADR-031, ADR-033).
-    if (column.type === 'rollup' || column.type === 'formula') {
-      throw new BadRequestException(
-        "Rollups and formulas can't be filtered or sorted yet",
-      );
+    // Computed per page in the API, not in SQL: not a filter or sort key yet (ADR-033).
+    if (column.type === 'formula') {
+      throw new BadRequestException("Formulas can't be filtered or sorted yet");
     }
     return column;
   };
+  // One join per rollup the query uses, however many times it uses it.
+  const rollupJoins = new Map<
+    string,
+    { join: Prisma.Sql; value: Prisma.Sql }
+  >();
+  const rollupText = (column: RecordColumn): Prisma.Sql => {
+    const source = rollups.get(column.id);
+    if (!source) {
+      throw new ForbiddenException('No access to the linking table');
+    }
+    let joined = rollupJoins.get(column.id);
+    if (!joined) {
+      // A constant alias: only its index varies.
+      const alias = Prisma.raw(`ru${rollupJoins.size}`);
+      const empty = emptyRollupValue(source);
+      joined = {
+        join: Prisma.sql`LEFT JOIN ${rollupValuesSql(source)} AS ${alias}
+          ON ${alias}.link = r.id::text`,
+        value:
+          empty === null
+            ? Prisma.sql`${alias}.value`
+            : Prisma.sql`COALESCE(${alias}.value, 0)`,
+      };
+      rollupJoins.set(column.id, joined);
+    }
+    return Prisma.sql`(${joined.value})::text`;
+  };
   /**
-   * The cell as text: a relation's is its linked record's label, and a
-   * lookup's the column it shows of that record.
+   * The cell as text: a relation's is its linked record's label, a lookup's
+   * the column it shows of that record, and a rollup's its value.
    */
   const textOf = (column: RecordColumn): Prisma.Sql => {
+    if (column.type === 'rollup') {
+      return rollupText(column);
+    }
     if (column.type !== 'relation' && column.type !== 'lookup') {
       return cellText(column);
     }
@@ -62,8 +100,20 @@ export function buildRecordQuery(
     }
     return labelText(source);
   };
-  const typeOf = (column: RecordColumn) =>
-    labels.get(column.id)?.type ?? column.type;
+  const typeOf = (column: RecordColumn): ColumnType => {
+    const rollup = rollups.get(column.id);
+    return rollup
+      ? rollupValueType(rollup)
+      : (labels.get(column.id)?.type ?? column.type);
+  };
+  const from = () =>
+    Prisma.join(
+      [
+        Prisma.sql`records r`,
+        ...[...rollupJoins.values()].map(({ join }) => join),
+      ],
+      ' ',
+    );
 
   const conditions = [Prisma.sql`r."tableId" = ${tableId}::uuid`];
 
@@ -91,7 +141,9 @@ export function buildRecordQuery(
 
   for (const filter of query.filters) {
     const column = findColumn(filter.columnId);
-    conditions.push(filterCondition(column, filter, textOf(column)));
+    conditions.push(
+      filterCondition(column, filter, textOf(column), typeOf(column)),
+    );
   }
 
   const direction = Prisma.raw(query.order === 'desc' ? 'DESC' : 'ASC');
@@ -101,7 +153,7 @@ export function buildRecordQuery(
     : Prisma.sql`r."createdAt" ${direction}, r.id ${direction}`;
 
   if (!query.group) {
-    return { where: Prisma.join(conditions, ' AND '), orderBy };
+    return { from: from(), where: Prisma.join(conditions, ' AND '), orderBy };
   }
   // Grouped: records come group by group, each group in the requested order.
   const groupColumn = findColumn(query.group);
@@ -112,16 +164,19 @@ export function buildRecordQuery(
   }
   const groupValue = textOf(groupColumn);
   return {
+    from: from(),
     where: Prisma.join(conditions, ' AND '),
     orderBy: Prisma.sql`${groupOrder(groupColumn, groupValue)}, ${orderBy}`,
     groupValue,
   };
 }
 
+/** `type` is how the value compares: a rollup's is that of what it sums up. */
 function filterCondition(
   column: RecordColumn,
   filter: RecordFilter,
   text: Prisma.Sql,
+  type: ColumnType,
 ): Prisma.Sql {
   if (FILTER_OPERATOR_BY_TYPE[column.type] !== filter.op) {
     throw new BadRequestException(
@@ -137,14 +192,14 @@ function filterCondition(
     case 'in':
       return Prisma.sql`${text} IN (${Prisma.join(filter.values)})`;
     case 'between': {
-      const cast = Prisma.raw(column.type === 'date' ? 'date' : 'numeric');
+      const cast = Prisma.raw(type === 'date' ? 'date' : 'numeric');
       const bounds = [filter.min, filter.max];
-      const expected = column.type === 'date' ? 'string' : 'number';
+      const expected = type === 'date' ? 'string' : 'number';
       if (
         bounds.some((bound) => bound !== undefined && typeof bound !== expected)
       ) {
         throw new BadRequestException(
-          `Range bounds of ${column.type} columns must be ${column.type === 'date' ? 'ISO dates' : 'numbers'}`,
+          `Range bounds of ${column.type} columns must be ${type === 'date' ? 'ISO dates' : 'numbers'}`,
         );
       }
       const value = Prisma.sql`${text}::${cast}`;

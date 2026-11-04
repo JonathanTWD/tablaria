@@ -1,5 +1,14 @@
 # Changelog
 
+## Sin publicar
+
+- **Ordenar y filtrar por resumen** (ADR-034): los resúmenes se ordenan con su cabecera y se filtran por rango en «Filtros».
+  - **Ejemplos:** «los clientes que más facturan», «los proveedores con 10 productos o más» o «los equipos con una incorporación desde enero».
+  - **Valores:** un conteo o una suma se filtran como número, y el mínimo o el máximo de unas fechas, como fecha.
+  - **Vacíos:** un registro sin nada que enlace con él cuenta 0 en conteos y sumas. En medias, mínimos y máximos queda vacío y se ordena al final.
+  - **Exportación:** el CSV sale en el mismo orden.
+  - **Permisos:** solo con resúmenes de tablas que puedes abrir.
+
 ## v1.6.0 — Relaciones avanzadas
 
 - **Seguridad** (auditoría OWASP Top 10:2025 de la release):

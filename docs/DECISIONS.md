@@ -564,7 +564,7 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
   - si la columna sumada cambia a un tipo que no encaja con su función, se borra (`dropRollupsNotFitting`).
 - **Formato:** contar se muestra como número; sumar y media, como la columna sumada (precio con moneda), pero sin el aviso de stock bajo, que tiene sentido por registro y no para un total; mínimo y máximo, como su columna (fechas).
 - **Fuera de esta versión:**
-  - ordenar y filtrar por un resumen (400), porque hoy se calcula por página y no en el SQL de la lista;
+  - ordenar y filtrar por un resumen (400), porque hoy se calcula por página y no en el SQL de la lista (hecho en ADR-034);
   - resúmenes con condición («tareas pendientes»);
   - la selección múltiple, que cambiará qué cuenta como «enlaza aquí» (hecha en ADR-032).
 
@@ -617,6 +617,23 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 - **Fuera de esta versión:** ordenar, filtrar, buscar y agrupar por una fórmula (400), porque se calcula en la página y no en el SQL; fórmulas que citen otras fórmulas; más funciones.
 
 **Consecuencias**: calcular una fórmula cuesta muy poco frente a leer la página, y no añade consultas a la base de datos. Para ordenar por ella habría que traducir la expresión a SQL o guardar el resultado.
+
+## ADR-034: Ordenar y filtrar por resumen
+
+**Contexto**: los resúmenes (ADR-031) se calculaban solo para la página que se muestra, así que no se podía ordenar ni filtrar por ellos. Es lo primero que se intenta con un resumen: «los clientes que más facturan», «los proveedores con más de 10 productos».
+
+**Decisión**:
+- **En el SQL de la lista:** solo cuando la consulta ordena o filtra por un resumen, se une a `records r` con un `LEFT JOIN` contra la tabla que enlaza, agrupada una vez (`rollupValuesSql`: `link`, `value`).
+  - Se usa una unión por resumen, aunque se use varias veces.
+  - El alias es una constante (`ru0`, `ru1`…) y todos los valores van como parámetros.
+  - La misma unión sirve para el total, la cuenta por grupos y la exportación.
+- **Mismo resultado que la tabla:** sin registros que enlacen, contar y sumar valen 0 (`COALESCE`, igual que `fillRollups` vía `emptyRollupValue`). Media, mínimo y máximo quedan vacíos y van al final.
+- **Comparación:** por número o, si es el mínimo o máximo de una fecha, por fecha (`rollupValueType`). El filtro es un rango (`between`), y los límites deben ser del tipo que corresponde (400).
+- **Relaciones múltiples (ADR-032):** cada registro cuenta en todos los que lista, igual que al mostrarlo.
+- **Permisos:** sin acceso a la tabla que enlaza, ordenar o filtrar por el resumen da 403, porque revelaría lo que suma.
+- **Sigue fuera:** agrupar por un resumen (cada registro tiene su propio valor), y ordenar o filtrar por fórmula (ADR-033).
+
+**Consecuencias**: ordenar por un resumen agrupa toda la tabla que enlaza en cada consulta, con un máximo de 10.000 registros, en lugar de una subconsulta por fila, y PostgreSQL lo resuelve con un hash join. Si las tablas crecieran mucho, la vía sería un índice sobre la celda de la relación o guardar el valor.
 
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 

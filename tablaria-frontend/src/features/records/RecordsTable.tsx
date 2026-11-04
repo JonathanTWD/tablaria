@@ -155,11 +155,14 @@ export function RecordsTable({ table }: { table: TableDetail }) {
                 ? (labelledRelations ?? []).includes(column.id)
                 : column.type === "lookup"
                   ? column.id in table.lookupTargets
-                  : column.type !== "rollup" && column.type !== "formula",
+                  : // By their value, only when the user can open what they sum up (ADR-034).
+                    column.type === "rollup"
+                    ? column.id in table.rollupTargets
+                    : column.type !== "formula",
           }),
         ),
       ),
-    [columns, labelledRelations, table.lookupTargets],
+    [columns, labelledRelations, table.lookupTargets, table.rollupTargets],
   );
 
   const grid = useTable({
@@ -239,13 +242,20 @@ export function RecordsTable({ table }: { table: TableDetail }) {
           onSearch={(search) => setView({ search }, { replace: true })}
         />
         <FiltersSheet
-          columns={columns.filter((column) =>
-            column.type === "relation"
-              ? (labelledRelations ?? []).includes(column.id)
-              : column.type === "lookup"
-                ? column.id in table.lookupTargets
-                : column.type !== "rollup" && column.type !== "formula",
-          )}
+          columns={columns
+            .filter((column) =>
+              column.type === "relation"
+                ? (labelledRelations ?? []).includes(column.id)
+                : column.type === "lookup" || column.type === "rollup"
+                  ? column.id in table.lookupTargets || column.id in table.rollupTargets
+                  : column.type !== "formula",
+            )
+            // A rollup filters by a range of what it shows: a number, a price or a date.
+            .map((column) =>
+              column.type === "rollup"
+                ? { ...shownColumn(table, column), id: column.id, name: column.name }
+                : column,
+            )}
           filters={view.filters}
           onApply={(filters) => setView({ filters })}
         />

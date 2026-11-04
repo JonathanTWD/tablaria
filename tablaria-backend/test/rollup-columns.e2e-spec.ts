@@ -196,15 +196,108 @@ describe('Rollup columns (e2e)', () => {
       .expect(200);
     expect(csv.text).toContain('Ventas;2;4200;2100;2025-06-15');
 
-    // Not a filter or sort key yet, and never written.
-    await s.owner
-      .get(`/api/tables/${s.teams.id}/records`)
-      .query({ sort: count.id })
-      .expect(400);
+    // Never written.
     await s.owner
       .post(`/api/tables/${s.teams.id}/records`)
       .send({ data: { [count.id]: 3 } })
       .expect(400);
+  });
+
+  it('sorts and filters teams by what they sum up', async () => {
+    const s = await setup();
+    const add = async (columnName: string, options: object) =>
+      (
+        await rollup(s.owner, s.teams.id, columnName, {
+          relationColumnId: s.team.id,
+          ...options,
+        }).expect(201)
+      ).body as TableColumn;
+    const count = await add('Personas', { function: 'count' });
+    const total = await add('Coste', {
+      function: 'sum',
+      targetColumnId: s.salary.id,
+    });
+    const average = await add('Salario medio', {
+      function: 'avg',
+      targetColumnId: s.salary.id,
+    });
+    const latest = await add('Última alta', {
+      function: 'max',
+      targetColumnId: s.start.id,
+    });
+
+    const names = async (query: Record<string, string>) =>
+      (
+        (
+          await s.owner
+            .get(`/api/tables/${s.teams.id}/records`)
+            .query(query)
+            .expect(200)
+        ).body as RecordPage
+      ).data.map(({ data }) => data[s.teamName.id]);
+    const filters = (...list: object[]) => JSON.stringify(list);
+
+    expect(await names({ sort: count.id, order: 'desc' })).toEqual([
+      'Ventas',
+      'Almacén',
+      'Diseño',
+    ]);
+    // Nobody links to Diseño: 0 people, so first going up.
+    expect(await names({ sort: total.id })).toEqual([
+      'Diseño',
+      'Almacén',
+      'Ventas',
+    ]);
+    // No average at all: last either way, ties in creation order.
+    expect(await names({ sort: average.id, order: 'desc' })).toEqual([
+      'Ventas',
+      'Almacén',
+      'Diseño',
+    ]);
+    expect(
+      await names({
+        filters: filters({ columnId: count.id, op: 'between', min: 1 }),
+      }),
+    ).toEqual(['Ventas', 'Almacén']);
+    expect(
+      await names({
+        filters: filters({ columnId: total.id, op: 'between', max: 0 }),
+      }),
+    ).toEqual(['Diseño']);
+    // Filtered and sorted by the same rollup, and by another one.
+    expect(
+      await names({
+        filters: filters(
+          { columnId: count.id, op: 'between', min: 1 },
+          { columnId: latest.id, op: 'between', min: '2025-01-01' },
+        ),
+        sort: count.id,
+      }),
+    ).toEqual(['Almacén', 'Ventas']);
+    // A rollup of dates takes dates.
+    await s.owner
+      .get(`/api/tables/${s.teams.id}/records`)
+      .query({
+        filters: filters({ columnId: latest.id, op: 'between', min: 5 }),
+      })
+      .expect(400);
+    // Still not a group key: each record has its own value.
+    await s.owner
+      .get(`/api/tables/${s.teams.id}/records`)
+      .query({ group: count.id })
+      .expect(400);
+
+    const csv = await s.owner
+      .get(`/api/tables/${s.teams.id}/records/export`)
+      .query({ sort: count.id, order: 'desc' })
+      .expect(200);
+    expect(
+      csv.text
+        .split('\r\n')
+        .slice(1)
+        .filter((line) => line !== '')
+        .map((line) => line.split(';')[0]),
+    ).toEqual(['Ventas', 'Almacén', 'Diseño']);
   });
 
   it('sums up within the same table, such as the people someone manages', async () => {
@@ -283,6 +376,11 @@ describe('Rollup columns (e2e)', () => {
 
     const page = await list(viewer, s.teams.id);
     expect(page.data.every(({ data }) => !(count.id in data))).toBe(true);
+    // Sorting by it would reveal what it sums up.
+    await viewer
+      .get(`/api/tables/${s.teams.id}/records`)
+      .query({ sort: count.id })
+      .expect(403);
     const detail = (await viewer.get(`/api/tables/${s.teams.id}`).expect(200))
       .body as TableDetail;
     expect(detail.rollupTargets).toEqual({});

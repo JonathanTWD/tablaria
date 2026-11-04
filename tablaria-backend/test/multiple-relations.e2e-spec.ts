@@ -209,6 +209,17 @@ describe('Multiple relations (e2e)', () => {
       ['Marco', 1, 3000],
       ['Sara', 0, 0],
     ]);
+
+    // Sorted by it, each project counts for everyone it lists (ADR-034).
+    const sorted = await list(s.owner, s.people.id, {
+      sort: count.id,
+      order: 'desc',
+    });
+    expect(sorted.data.map(({ data }) => data[s.name.id])).toEqual([
+      'Lucía',
+      'Marco',
+      'Sara',
+    ]);
   });
 
   it('takes a deleted record out of the lists that held it', async () => {
