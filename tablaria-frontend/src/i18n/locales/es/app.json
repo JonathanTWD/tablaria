@@ -37,11 +37,7 @@
       "low_other": "Quedan {{value}} (mín. {{min}})",
       "out": "Agotado",
       "more": "Y {{count}} más. Ábrelos desde sus tablas.",
-      "loadError": "No se pudieron cargar los avisos de stock.",
-      "notice_one": "{{count}} registro bajo mínimo",
-      "notice_other": "{{count}} registros bajo mínimo",
-      "noticeTable": "{{table}} ({{count}})",
-      "noticeHint": "Ábrelos en las métricas de cada tabla:"
+      "loadError": "No se pudieron cargar los avisos de stock."
     },
     "tablesTitle": "Tus tablas",
     "organizationTablesTitle": "Tablas de la organización",

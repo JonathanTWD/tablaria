@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { hasRole, type StockAlerts, type TableSummary } from "@tablaria/shared";
+import { hasRole, type TableSummary } from "@tablaria/shared";
 import { Building2, Plus, Settings, Table2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
@@ -9,9 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { displayName } from "@/features/auth/display-name";
 import { useSession } from "@/features/auth/session";
 import { useSpace, useSpaceName } from "@/features/organizations/space-context";
-import { stockAlertsQuery } from "@/features/stock-alerts/queries";
 import { SharedTablesSection } from "@/features/sharing/SharedTablesSection";
-import { StockAlertsNotice } from "@/features/stock-alerts/StockAlertsNotice";
 import { CreateTableDialog } from "@/features/tables/CreateTableDialog";
 import { tablesQuery } from "@/features/tables/queries";
 import { apiErrorMessage } from "@/lib/error-message";
@@ -23,11 +21,9 @@ export default function DashboardPage() {
   const { space, error: spaceError, retry: retrySpaces } = useSpace();
   const spaceName = useSpaceName();
   const tables = useQuery({ ...tablesQuery(space?.id ?? ""), enabled: Boolean(space) });
-  // The overview waits for the alerts too, so their card never pushes the tables down.
-  const alerts = useQuery(stockAlertsQuery);
   const loadError = spaceError ?? tables.error;
-  const loading = !loadError && (tables.isPending || (tables.isSuccess && alerts.isPending));
-  const ready = tables.isSuccess && !alerts.isPending;
+  const loading = !loadError && tables.isPending;
+  const ready = tables.isSuccess;
   const name = user ? displayName(user) : "";
   const canCreate = space !== undefined && hasRole(space.role, "ADMIN");
 
@@ -125,7 +121,6 @@ export default function DashboardPage() {
       {/* People with no tables of their own may still have some shared with them. */}
       {ready && tables.data.length === 0 && (
         <>
-          <StockAlertsNotice alerts={alerts.data} className="mt-8" />
           {space?.personal && <SharedTablesSection className="mt-10" />}
         </>
       )}
@@ -133,7 +128,6 @@ export default function DashboardPage() {
       {ready && tables.data.length > 0 && (
         <TablesOverview
           tables={tables.data}
-          alerts={alerts.data}
           personal={space?.personal ?? true}
         />
       )}
@@ -143,12 +137,9 @@ export default function DashboardPage() {
 
 function TablesOverview({
   tables,
-  alerts,
   personal,
 }: {
   tables: TableSummary[];
-  /** Undefined when the alerts failed to load. */
-  alerts: StockAlerts | undefined;
   /** The personal space also lists the tables shared with the user. */
   personal: boolean;
 }) {
@@ -179,9 +170,6 @@ function TablesOverview({
           </div>
         ))}
       </dl>
-
-      {/* Each table's metrics list its alerts and charts; here, only what needs a look (ADR-035). */}
-      <StockAlertsNotice alerts={alerts} className="mt-6" />
 
       <div className="mt-8 flex flex-col gap-10">
           <section aria-labelledby="tables-title" className="@container/tables">

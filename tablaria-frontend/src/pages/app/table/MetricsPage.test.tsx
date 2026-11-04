@@ -10,7 +10,6 @@ import {
 import { screen, within } from "@testing-library/react";
 import { Outlet, Route, Routes } from "react-router";
 import { describe, expect, it } from "vitest";
-import { StockAlertsNotice } from "@/features/stock-alerts/StockAlertsNotice";
 import { mockApi, renderWithProviders } from "@/test/render";
 import MetricsPage from "./MetricsPage";
 
@@ -82,7 +81,6 @@ const alerts: StockAlerts = {
       alertBelow: 2,
     },
   ],
-  tables: [{ tableId: TABLE, tableName: "Empleados", count: 1 }],
 };
 
 describe("MetricsPage", () => {
@@ -117,17 +115,5 @@ describe("MetricsPage", () => {
     });
     // February had no records, and still shows.
     expect(within(overTime).getAllByRole("row")).toHaveLength(4);
-  });
-});
-
-describe("StockAlertsNotice", () => {
-  it("links to the metrics of each table with records running low", () => {
-    renderWithProviders(<StockAlertsNotice alerts={alerts} />);
-
-    expect(screen.getByRole("heading", { name: "1 registro bajo mínimo" })).toBeVisible();
-    expect(screen.getByRole("link", { name: "Empleados (1)" })).toHaveAttribute(
-      "href",
-      `/app/tables/${TABLE}/metrics`,
-    );
   });
 });

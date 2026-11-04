@@ -646,7 +646,7 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
   - un gráfico por grupos (barras o dona);
   - un gráfico de evolución.
   Las métricas cuentan todos los registros de la tabla, sin la búsqueda ni los filtros de la vista de registros.
-- **Inicio** se queda con las cifras generales, la lista de tablas y un aviso breve con cuántos registros están bajo mínimo y enlaces a las métricas de cada tabla afectada.
+- **Inicio** se queda con las cifras generales y la lista de tablas. Se probó un aviso breve de stock bajo con enlaces a cada tabla, pero chocaba con el resto de la página y se quitó: los avisos se ven en las métricas de cada tabla.
 - **API de solo lectura en un módulo propio** (`metrics`), bajo `/tables/:tableId/metrics`. Sustituye a `GET /records/stats`, que solo usaba el gráfico de Inicio.
   - `summary`: total, media, mínimo y máximo de cada columna numérica o de precio, en una sola consulta (`unnest` de las columnas).
   - `groups`: agrupa por lista de opciones, Sí/No, texto o relación simple, y mide contando o con suma, media, mínimo o máximo de una columna.
@@ -659,7 +659,7 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
     - los ids de columna se comprueban contra la tabla y cada valor va como parámetro;
     - la función de la medida sale de una lista cerrada (`METRIC_FUNCTIONS`);
     - una celda que no es un número o una fecha ISO no rompe la conversión.
-- **Avisos de stock:** `GET /stock-alerts` admite `tableId` para la lista de una tabla y devuelve el recuento por tabla para el aviso de Inicio, con las mismas reglas de acceso.
+- **Avisos de stock:** `GET /stock-alerts` admite `tableId` para la lista de una tabla, con las mismas reglas de acceso.
 - **Gráficos con los charts de shadcn/ui (Recharts):**
   - un `ChartContainer` y un tooltip propios en `components/ui/chart.tsx`;
   - los colores salen de los tokens del tema y de los de cada opción de lista;

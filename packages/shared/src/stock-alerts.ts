@@ -17,8 +17,6 @@ export interface StockAlerts {
   total: number;
   /** The most urgent ones (lowest values first). */
   items: StockAlert[];
-  /** How many alerts each table has, the most first: what the home page links to. */
-  tables: { tableId: string; tableName: string; count: number }[];
 }
 
 export const STOCK_ALERTS_LIMIT = 8;

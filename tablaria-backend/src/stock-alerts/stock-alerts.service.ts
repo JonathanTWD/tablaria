@@ -17,26 +17,27 @@ export class StockAlertsService {
    * or only in the one asked for (a table's metrics, ADR-035).
    */
   async list(userId: string, query: StockAlertsQuery): Promise<StockAlerts> {
-    const alerts = candidates(userId, query.tableId);
-    const [items, tables] = await Promise.all([
-      this.prisma.$queryRaw<StockAlert[]>`
-        SELECT "recordId", "tableId", "tableName", "columnName", label, value, "alertBelow"
-        FROM ${alerts}
-        WHERE value < "alertBelow"
-        ORDER BY value ASC, "createdAt" ASC
-        LIMIT ${STOCK_ALERTS_LIMIT}`,
-      this.prisma.$queryRaw<StockAlerts['tables']>`
-        SELECT "tableId", "tableName", count(*)::int AS count
-        FROM ${alerts}
-        WHERE value < "alertBelow"
-        GROUP BY 1, 2
-        ORDER BY count DESC, "tableName" ASC`,
-    ]);
+    const rows = await this.prisma.$queryRaw<
+      (StockAlert & { total: bigint })[]
+    >`
+      SELECT "recordId", "tableId", "tableName", "columnName", label, value, "alertBelow",
+             count(*) OVER () AS total
+      FROM ${candidates(userId, query.tableId)}
+      WHERE value < "alertBelow"
+      ORDER BY value ASC, "createdAt" ASC
+      LIMIT ${STOCK_ALERTS_LIMIT}`;
 
     return {
-      total: tables.reduce((total, { count }) => total + count, 0),
-      items,
-      tables,
+      total: Number(rows[0]?.total ?? 0),
+      items: rows.map((row) => ({
+        tableId: row.tableId,
+        tableName: row.tableName,
+        recordId: row.recordId,
+        label: row.label,
+        columnName: row.columnName,
+        value: row.value,
+        alertBelow: row.alertBelow,
+      })),
     };
   }
 }

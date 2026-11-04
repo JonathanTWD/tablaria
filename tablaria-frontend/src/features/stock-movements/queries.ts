@@ -1,7 +1,7 @@
 import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { StockEntryInput } from "@tablaria/shared";
 import { refreshAfterWrite } from "@/features/records/queries";
-import { stockAlertsQuery } from "@/features/stock-alerts/queries";
+import { stockAlertsKey } from "@/features/stock-alerts/queries";
 import { tableKeys } from "@/features/tables/queries";
 import { stockMovementsApi } from "./api";
 
@@ -22,7 +22,7 @@ export function useRecordStockEntry(tableId: string, recordId: string) {
       Promise.all([
         refreshAfterWrite(queryClient, tableId),
         queryClient.invalidateQueries({ queryKey: tableKeys.movements(tableId) }),
-        queryClient.invalidateQueries({ queryKey: stockAlertsQuery.queryKey }),
+        queryClient.invalidateQueries({ queryKey: stockAlertsKey }),
       ]),
   });
 }

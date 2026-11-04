@@ -121,7 +121,6 @@ describe('Table access by role (e2e)', () => {
     ).toEqual({
       total: 0,
       items: [],
-      tables: [],
     });
   });
 

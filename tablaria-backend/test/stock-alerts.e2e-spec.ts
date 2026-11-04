@@ -83,7 +83,6 @@ describe('Stock alerts (e2e)', () => {
         },
         expect.objectContaining({ label: 'Guantes', value: 4 }) as unknown,
       ],
-      tables: [{ tableId: table.id, tableName: 'Almacén', count: 2 }],
     });
   });
 
@@ -121,10 +120,6 @@ describe('Stock alerts (e2e)', () => {
     expect(result.total).toBe(STOCK_ALERTS_LIMIT * 2);
     expect(result.items).toHaveLength(STOCK_ALERTS_LIMIT);
     expect(result.items.every(({ value }) => value === 1)).toBe(true);
-    expect(result.tables).toEqual([
-      { tableId: first.table.id, tableName: 'Almacén A', count: 8 },
-      { tableId: second.table.id, tableName: 'Almacén B', count: 8 },
-    ]);
 
     // A table's metrics ask only for its own (ADR-035).
     const own = await alerts(client, { tableId: second.table.id });
@@ -142,7 +137,7 @@ describe('Stock alerts (e2e)', () => {
     await add('Guantes', 1);
 
     const other = await createSignedInClient(app);
-    expect(await alerts(other)).toEqual({ total: 0, items: [], tables: [] });
+    expect(await alerts(other)).toEqual({ total: 0, items: [] });
     // Not even when asking for that table.
     expect((await alerts(other, { tableId: table.id })).total).toBe(0);
     await createClient(app).get('/api/stock-alerts').expect(401);
