@@ -44,7 +44,8 @@ export function SummaryCards({
         stats.avg === null || stats.min === null || stats.max === null
           ? t("metrics.summary.noValues")
           : t("metrics.summary.detail", {
-              avg: format(column, stats.avg),
+              // An average of whole numbers rarely is one: two decimals are enough.
+              avg: format(column, Math.round(stats.avg * 100) / 100),
               min: format(column, stats.min),
               max: format(column, stats.max),
             }),
@@ -52,9 +53,9 @@ export function SummaryCards({
   }
 
   return (
-    <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border @3xl:grid-cols-3 @6xl:grid-cols-4">
+    <dl className="grid grid-cols-2 gap-3 @3xl:grid-cols-3 @6xl:grid-cols-4">
       {cards.map((card) => (
-        <div key={card.key} className="flex flex-col bg-card px-5 py-4">
+        <div key={card.key} className="flex flex-col rounded-xl border border-border bg-card px-5 py-4">
           <dt className="truncate text-xs font-medium text-muted-foreground" title={card.label}>
             {card.label}
           </dt>
