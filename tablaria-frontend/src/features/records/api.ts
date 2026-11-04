@@ -1,8 +1,6 @@
 import type {
   RecordData,
   RecordPage,
-  RecordStats,
-  RecordStatsQuery,
   TableRecord,
 } from "@tablaria/shared";
 import { apiDownload, apiRequest } from "@/lib/api-client";
@@ -50,10 +48,6 @@ export const recordsApi = {
     }),
   exportCsv: (tableId: string, view: RecordsView) =>
     apiDownload(`/tables/${tableId}/records/export?${toExportQueryString(view)}`, "registros.csv"),
-  stats: (tableId: string, { groupBy, sum }: RecordStatsQuery) => {
-    const params = new URLSearchParams({ groupBy, ...(sum && { sum }) });
-    return apiRequest<RecordStats>(`/tables/${tableId}/records/stats?${params}`);
-  },
   remove: (tableId: string, recordId: string) =>
     apiRequest<void>(`/tables/${tableId}/records/${recordId}`, { method: "DELETE" }),
 };

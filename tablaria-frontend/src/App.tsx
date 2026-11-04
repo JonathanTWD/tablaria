@@ -19,6 +19,8 @@ const TablePage = lazy(() => import("@/pages/app/TablePage"));
 const RecordsPage = lazy(() => import("@/pages/app/table/RecordsPage"));
 const ColumnsPage = lazy(() => import("@/pages/app/table/ColumnsPage"));
 const ActivityPage = lazy(() => import("@/pages/app/table/ActivityPage"));
+// Recharts loads only with this page (ADR-035).
+const MetricsPage = lazy(() => import("@/pages/app/table/MetricsPage"));
 const PublicTablePage = lazy(() => import("@/pages/PublicTablePage"));
 const InvitationPage = lazy(() => import("@/pages/InvitationPage"));
 const OrganizationPage = lazy(() => import("@/pages/app/OrganizationPage"));
@@ -50,6 +52,7 @@ const App = () => {
             <Route path="tables/:tableId" element={<TablePage />}>
               <Route index element={<RecordsPage />} />
               <Route path="columns" element={<ColumnsPage />} />
+              <Route path="metrics" element={<MetricsPage />} />
               <Route path="activity" element={<ActivityPage />} />
             </Route>
             <Route path="organizations/:organizationId" element={<OrganizationPage />} />

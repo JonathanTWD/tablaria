@@ -7,7 +7,7 @@ export * from "./templates.js";
 export * from "./records.js";
 export * from "./stock-alerts.js";
 export * from "./stock-movements.js";
-export * from "./record-stats.js";
+export * from "./metrics.js";
 export * from "./sharing.js";
 export * from "./realtime.js";
 export * from "./organizations.js";
