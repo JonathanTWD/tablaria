@@ -21,7 +21,8 @@ export const tableKeys = {
   detail: (tableId: string) => [...tableKeys.all, "detail", tableId] as const,
   records: (tableId: string) => [...tableKeys.all, "records", tableId] as const,
   // Apart from `records`: those queries all hold record pages, which edits patch in place.
-  stats: (tableId: string) => [...tableKeys.all, "stats", tableId] as const,
+  /** The table's metrics (ADR-035). */
+  metrics: (tableId: string) => [...tableKeys.all, "metrics", tableId] as const,
   /** Stock histories of the table's records (ADR-024). */
   movements: (tableId: string) => [...tableKeys.all, "movements", tableId] as const,
   /** Who changed what in the table (ADR-025). */
@@ -53,7 +54,7 @@ function refreshTable(queryClient: QueryClient, tableId: string) {
   return Promise.all([
     queryClient.invalidateQueries({ queryKey: tableKeys.detail(tableId) }),
     queryClient.invalidateQueries({ queryKey: tableKeys.records(tableId) }),
-    queryClient.invalidateQueries({ queryKey: tableKeys.stats(tableId) }),
+    queryClient.invalidateQueries({ queryKey: tableKeys.metrics(tableId) }),
     queryClient.invalidateQueries({ queryKey: tableKeys.list() }),
   ]);
 }
@@ -87,7 +88,7 @@ export function useDeleteTable(tableId: string) {
     onSuccess: () => {
       queryClient.removeQueries({ queryKey: tableKeys.detail(tableId) });
       queryClient.removeQueries({ queryKey: tableKeys.records(tableId) });
-      queryClient.removeQueries({ queryKey: tableKeys.stats(tableId) });
+      queryClient.removeQueries({ queryKey: tableKeys.metrics(tableId) });
       return queryClient.invalidateQueries({ queryKey: tableKeys.list() });
     },
   });

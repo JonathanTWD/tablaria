@@ -8,4 +8,5 @@ packages:
 # locally. Rolldown (Vite's bundler) ships frequent native builds; the version
 # in the lockfile already passes CI, so it may be installed before it matures.
 minimumReleaseAgeExclude:
+  - "rolldown"
   - "@rolldown/*"

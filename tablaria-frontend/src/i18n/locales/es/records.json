@@ -4,7 +4,8 @@
     "label": "Secciones de la tabla",
     "records": "Registros",
     "columns": "Columnas",
-    "activity": "Actividad"
+    "activity": "Actividad",
+    "metrics": "Métricas"
   },
   "toolbar": {
     "search": "Buscar registros",
@@ -255,5 +256,51 @@
     "empty": "sin valor",
     "count_one": "· {{count}} registro",
     "count_other": "· {{count}} registros"
+  },
+  "metrics": {
+    "count": "Número de registros",
+    "functions": {
+      "sum": "Suma de {{name}}",
+      "avg": "Media de {{name}}",
+      "min": "Mínimo de {{name}}",
+      "max": "Máximo de {{name}}"
+    },
+    "measure": "Medir",
+    "empty": "Sin valor",
+    "others_one": "Otro valor",
+    "others_other": "Otros {{count}} valores",
+    "noRecords": "Esta tabla aún no tiene registros. Cuando los tenga, aquí verás sus métricas.",
+    "loadError": "No se pudieron cargar las métricas. Vuelve a intentarlo en un momento.",
+    "summary": {
+      "records": "Registros",
+      "lowStock": "Bajo mínimo",
+      "total": "Total de {{name}}",
+      "detail": "Media {{avg}} · Mín. {{min}} · Máx. {{max}}",
+      "noValues": "Sin valores todavía"
+    },
+    "groups": {
+      "title": "Por grupos",
+      "groupBy": "Agrupar por",
+      "view": "Tipo de gráfico",
+      "bars": "Barras",
+      "donut": "Dona",
+      "caption": "{{measure}} por {{group}}",
+      "noGroupable": "Esta tabla no tiene columnas para agrupar. Añade una lista de opciones, una columna Sí / No, una relación o una de texto."
+    },
+    "timeline": {
+      "title": "Evolución",
+      "date": "Según",
+      "createdAt": "Fecha de creación",
+      "interval": "Periodo",
+      "intervals": {
+        "day": "Día",
+        "week": "Semana",
+        "month": "Mes"
+      },
+      "weekOf": "Sem. {{day}}",
+      "period": "Periodo",
+      "caption": "{{measure}} por {{interval}}, según {{date}}",
+      "noDates": "Ningún registro tiene esa fecha todavía."
+    }
   }
 }

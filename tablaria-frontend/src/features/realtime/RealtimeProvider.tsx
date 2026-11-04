@@ -8,7 +8,7 @@ import type {
   RealtimeTicket,
 } from "@tablaria/shared";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { stockAlertsQuery } from "@/features/stock-alerts/queries";
+import { stockAlertsKey } from "@/features/stock-alerts/queries";
 import { tableKeys } from "@/features/tables/queries";
 import { apiRequest } from "@/lib/api-client";
 import { RealtimeContext, type RealtimeStatus } from "./realtime-context";
@@ -22,10 +22,10 @@ function refresh(queryClient: QueryClient, tableId: string, scope: RealtimeScope
   if (scope === "records" || scope === "columns") {
     keys.push(
       tableKeys.records(tableId),
-      tableKeys.stats(tableId),
+      tableKeys.metrics(tableId),
       tableKeys.movements(tableId),
       tableKeys.activity(tableId),
-      stockAlertsQuery.queryKey,
+      stockAlertsKey,
     );
   }
   if (scope === "records" || scope === "columns" || scope === "table") {
@@ -37,7 +37,7 @@ function refresh(queryClient: QueryClient, tableId: string, scope: RealtimeScope
   }
   if (scope === "deleted") {
     // The page refetches, gets a 404 and says the table is gone.
-    keys.push(tableKeys.detail(tableId), tableKeys.list(), tableKeys.shared(), stockAlertsQuery.queryKey);
+    keys.push(tableKeys.detail(tableId), tableKeys.list(), tableKeys.shared(), stockAlertsKey);
   }
   for (const queryKey of keys) {
     void queryClient.invalidateQueries({ queryKey });
