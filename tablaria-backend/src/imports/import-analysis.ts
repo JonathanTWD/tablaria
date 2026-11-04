@@ -4,6 +4,7 @@ import {
   type ImportCellError,
   type ImportCheck,
   type importSchema,
+  isComputedType,
   MAX_COLUMNS_PER_TABLE,
   MAX_IMPORT_ERRORS,
   MAX_SELECT_CHOICES,
@@ -74,7 +75,7 @@ export function planImport(
       if (!column) {
         throw new InvalidImportError(`Column ${target} is not in this table`);
       }
-      if (column.type === 'lookup' || column.type === 'rollup') {
+      if (isComputedType(column.type)) {
         throw new InvalidImportError(
           `An import cannot fill ${column.type} columns`,
         );
@@ -83,8 +84,7 @@ export function planImport(
     }
     if (
       target.create.type === 'relation' ||
-      target.create.type === 'lookup' ||
-      target.create.type === 'rollup'
+      isComputedType(target.create.type)
     ) {
       // What they link to is decided in the column settings, not in a file.
       throw new InvalidImportError(

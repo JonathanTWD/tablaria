@@ -6,6 +6,7 @@ import {
   Link2,
   ListChecks,
   Sigma,
+  SquareFunction,
   TextSearch,
   ToggleLeft,
   Type,
@@ -22,6 +23,7 @@ export const COLUMN_TYPE_ICONS: Record<ColumnType, LucideIcon> = {
   relation: Link2,
   lookup: TextSearch,
   rollup: Sigma,
+  formula: SquareFunction,
 };
 
 /** Chip colors for select choices; every pair keeps 4.5:1 contrast in both themes. */

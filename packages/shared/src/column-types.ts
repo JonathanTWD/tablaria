@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { FORMULA_MAX_LENGTH, FORMULA_RESULT_TYPES } from "./formulas.js";
 
 export const COLUMN_TYPES = [
   "text",
@@ -10,9 +11,17 @@ export const COLUMN_TYPES = [
   "relation",
   "lookup",
   "rollup",
+  "formula",
 ] as const;
 
 export type ColumnType = (typeof COLUMN_TYPES)[number];
+
+/** Types whose values are computed when read, never written (ADR-030, 031, 033). */
+export const COMPUTED_COLUMN_TYPES = ["lookup", "rollup", "formula"] as const satisfies readonly ColumnType[];
+
+export function isComputedType(type: ColumnType): boolean {
+  return (COMPUTED_COLUMN_TYPES as readonly ColumnType[]).includes(type);
+}
 
 export const MAX_COLUMNS_PER_TABLE = 50;
 export const COLUMN_NAME_MAX_LENGTH = 60;
@@ -58,6 +67,8 @@ export const columnValueSchemas = {
   lookup: z.never(),
   // Rollups are computed from the records that link here, never written (ADR-031).
   rollup: z.never(),
+  // Formulas are computed from the record's own cells, never written (ADR-033).
+  formula: z.never(),
 } satisfies Record<ColumnType, z.ZodType>;
 
 const currencyCodes = new Set(Intl.supportedValuesOf("currency"));
@@ -174,10 +185,23 @@ export const rollupOptionsSchema = z
     message: "Count needs no column; the other functions need one",
   });
 
+/**
+ * A formula computes a value from the record's cells, such as price × stock
+ * (ADR-033). The API stores columns as `{id}` and works out `resultType`.
+ */
+export const formulaOptionsSchema = z.object({
+  expression: z.string().trim().min(1).max(FORMULA_MAX_LENGTH),
+  /** Shows a number result as a price in this currency. */
+  currency: currencyCodeSchema.nullable().default(null),
+  /** Set by the API from the expression; whatever the client sends is replaced. */
+  resultType: z.enum(FORMULA_RESULT_TYPES).default("number"),
+});
+
 export type SelectOptions = z.infer<typeof selectOptionsSchema>;
 export type RelationOptions = z.infer<typeof relationOptionsSchema>;
 export type RollupOptions = z.infer<typeof rollupOptionsSchema>;
 export type RollupFunction = (typeof ROLLUP_FUNCTIONS)[number];
+export type FormulaOptions = z.infer<typeof formulaOptionsSchema>;
 export type LookupOptions = z.infer<typeof lookupOptionsSchema>;
 export type CurrencyOptions = z.infer<typeof currencyOptionsSchema>;
 export type NumberOptions = z.infer<typeof numberOptionsSchema>;
@@ -253,10 +277,16 @@ export const columnDefinitionSchema = z
       options: rollupOptionsSchema,
       defaultValue: z.null().default(null),
     }),
+    z.object({
+      ...columnBase,
+      type: z.literal("formula"),
+      options: formulaOptionsSchema,
+      defaultValue: z.null().default(null),
+    }),
   ])
   .superRefine((column, ctx) => {
-    // Nobody fills a lookup or a rollup: they can't be required.
-    if ((column.type === "lookup" || column.type === "rollup") && column.required) {
+    // Nobody fills a computed column: it can't be required.
+    if (isComputedType(column.type) && column.required) {
       ctx.addIssue({ code: "custom", path: ["required"], message: "Computed columns can't be required" });
     }
     if (column.unique && !canBeUnique(column.type)) {

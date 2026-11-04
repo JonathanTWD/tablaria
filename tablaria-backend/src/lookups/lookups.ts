@@ -8,12 +8,14 @@ import {
   type CellValue,
   type ColumnDefinition,
   type ColumnType,
+  isComputedType,
   type RecordColumn,
   type RecordData,
   type RelationOptions,
   type TableColumn,
 } from '@tablaria/shared';
 import { toTableColumn } from '../columns/column-mapper';
+import { syncFormulas } from '../formulas/formulas';
 import type { Prisma } from '../generated/prisma/client';
 import type { LabelSource } from '../relations/relations';
 import { tableRole } from '../tables/table-access';
@@ -83,20 +85,15 @@ export async function requireLookupSource(
   }
 }
 
-const COMPUTED_TYPES: ColumnType[] = ['lookup', 'rollup'];
-
 /**
- * Lookups and rollups keep their type: they are created as such and stay so,
+ * Computed columns keep their type: they are created as such and stay so,
  * and no column becomes one.
  */
-export function requireSameLookupType(
+export function requireSameComputedType(
   current: ColumnType,
   next: ColumnType,
 ): void {
-  if (
-    current !== next &&
-    (COMPUTED_TYPES.includes(current) || COMPUTED_TYPES.includes(next))
-  ) {
+  if (current !== next && (isComputedType(current) || isComputedType(next))) {
     throw new BadRequestException("A computed column can't change type");
   }
 }
@@ -204,16 +201,17 @@ export async function fillLookups(
 
 /**
  * Deletes the lookups and rollups (ADR-031) that read through these relation
- * columns or show these columns; returns the tables they were in, so open
- * pages refresh. Both keep `relationColumnId` and `targetColumnId` in their
- * options. `types` narrows it to one of them.
+ * columns or show these columns, and the formulas that cited them (ADR-033);
+ * returns the tables they were in, so open pages refresh. Both keep
+ * `relationColumnId` and `targetColumnId` in their options. `types` narrows
+ * it to one of them.
  */
 export async function dropComputedColumns(
   tx: Db,
   {
     relationColumnIds = [],
     targetColumnIds = [],
-    types = COMPUTED_TYPES,
+    types = ['lookup', 'rollup'],
   }: {
     relationColumnIds?: string[];
     targetColumnIds?: string[];
@@ -240,5 +238,7 @@ export async function dropComputedColumns(
   await tx.column.deleteMany({
     where: { id: { in: lookups.map(({ id }) => id) } },
   });
-  return [...new Set(lookups.map(({ tableId }) => tableId))];
+  const tables = [...new Set(lookups.map(({ tableId }) => tableId))];
+  await syncFormulas(tx, tables);
+  return tables;
 }

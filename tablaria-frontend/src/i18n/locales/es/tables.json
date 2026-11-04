@@ -160,7 +160,8 @@
       "min": "Mínimo de «{{target}}» de {{table}} (por «{{relation}}»)",
       "max": "Máximo de «{{target}}» de {{table}} (por «{{relation}}»)"
     },
-    "rollupHidden": "Resumen de una tabla que no puedes abrir"
+    "rollupHidden": "Resumen de una tabla que no puedes abrir",
+    "formula": "= {{expression}}"
   },
   "types": {
     "text": "Texto",
@@ -171,7 +172,8 @@
     "currency": "Precio",
     "relation": "Relación con otra tabla",
     "lookup": "Consulta de otra tabla",
-    "rollup": "Resumen de otra tabla"
+    "rollup": "Resumen de otra tabla",
+    "formula": "Fórmula"
   },
   "typeHints": {
     "text": "Nombres, referencias, notas…",
@@ -182,7 +184,8 @@
     "currency": "Importes en la moneda que elijas",
     "relation": "Un registro de otra tabla de este espacio",
     "lookup": "Muestra un dato del registro enlazado, como el teléfono del proveedor",
-    "rollup": "Cuenta o suma los registros que enlazan aquí, como los empleados de un equipo"
+    "rollup": "Cuenta o suma los registros que enlazan aquí, como los empleados de un equipo",
+    "formula": "Calcula con otras columnas, como precio × stock"
   },
   "colors": {
     "gray": "Gris",
@@ -237,7 +240,8 @@
       "alertBelow": "Escribe un número igual o mayor que 0.",
       "linkedTable": "Elige la tabla con la que enlazar.",
       "lookup": "Elige la relación y el dato que quieres mostrar.",
-      "rollup": "Elige la relación y, salvo para contar, la columna."
+      "rollup": "Elige la relación y, salvo para contar, la columna.",
+      "formula": "Revisa la fórmula: no se ha podido guardar."
     },
     "linkedTable": "Tabla enlazada",
     "linkedTablePlaceholder": "Elige una tabla",
@@ -265,7 +269,36 @@
     "rollupFunction": "Cálculo",
     "rollupTarget": "Columna",
     "rollupTargetHint": "Solo números y precios. Se calcula cada vez con los registros que enlazan aquí.",
-    "rollupTargetHintRange": "Números, precios o fechas. Se calcula cada vez con los registros que enlazan aquí."
+    "rollupTargetHintRange": "Números, precios o fechas. Se calcula cada vez con los registros que enlazan aquí.",
+    "formula": "Fórmula",
+    "formulaHint": "Cita columnas entre llaves y usa + - * / y & para unir textos. Separa los datos de una función con ; (los decimales llevan coma). Funciones: SI, Y, O, NO, ESVACIO, REDONDEAR, ABS, MIN, MAX, MAYUSC, MINUSC, LARGO, HOY y DIAS.",
+    "formulaExample": "Ejemplo: SI({Stock} < 5; \"Pedir\"; \"OK\")",
+    "formulaColumns": "Insertar columna",
+    "formulaInsert": "Insertar {{name}} en la fórmula",
+    "formulaResult": "Da un resultado de tipo {{type}}.",
+    "formulaResultTypes": {
+      "number": "número",
+      "text": "texto",
+      "boolean": "Sí / No",
+      "date": "fecha"
+    },
+    "formulaCurrency": "Mostrar como precio",
+    "formulaNoCurrency": "No, como número",
+    "formulaErrors": {
+      "empty": "Escribe la fórmula.",
+      "tooLong": "La fórmula es demasiado larga (máximo 1000 caracteres).",
+      "tooComplex": "La fórmula es demasiado compleja: divídela en menos operaciones.",
+      "unexpected": "Sobra o falta algo cerca de «{{detail}}».",
+      "unexpectedEnd": "La fórmula está incompleta: falta algo al final.",
+      "unclosedText": "Falta cerrar unas comillas.",
+      "unclosedColumn": "Falta cerrar una llave }.",
+      "unknownFunction": "No existe la función {{detail}}.",
+      "arguments": "{{detail}} no lleva ese número de datos.",
+      "unknownColumn": "No hay ninguna columna «{{detail}}» en esta tabla.",
+      "columnNotAllowed": "No se puede usar «{{detail}}»: las relaciones y otras fórmulas no entran en una fórmula.",
+      "types": "Los tipos no encajan en «{{detail}}», por ejemplo al sumar un texto.",
+      "currency": "Solo una fórmula que da un número se puede mostrar como precio."
+    }
   },
   "validation": {
     "tableName": "Escribe un nombre de hasta 80 caracteres.",

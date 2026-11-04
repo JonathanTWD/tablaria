@@ -47,7 +47,8 @@ function cellText(
         .join(', '),
     );
   }
-  if (column.type === 'boolean') {
+  // Sí/No columns, and the formulas and lookups that give one.
+  if (typeof value === 'boolean') {
     return value ? 'Sí' : 'No';
   }
   if (typeof value === 'number') {
@@ -58,9 +59,13 @@ function cellText(
 
 function headerText(column: TableColumn): string {
   const name = neutralize(column.name);
-  return column.type === 'currency'
-    ? `${name} (${column.options.currency})`
-    : name;
+  const currency =
+    column.type === 'currency'
+      ? column.options.currency
+      : column.type === 'formula'
+        ? column.options.currency
+        : null;
+  return currency ? `${name} (${currency})` : name;
 }
 
 /**

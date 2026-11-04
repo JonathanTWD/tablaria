@@ -3,6 +3,7 @@ import {
   type ColumnType,
   hasRole,
   type ImportCheck,
+  isComputedType,
   type ImportTarget,
   MAX_COLUMNS_PER_TABLE,
   MAX_IMPORT_ROWS,
@@ -113,10 +114,10 @@ function ImportWizard({ destination, onDone }: { destination: ImportDestination;
   const { t, i18n } = useTranslation("records");
   const navigate = useNavigate();
   const maxRows = MAX_IMPORT_ROWS.toLocaleString(i18n.language);
-  // Lookups are read from another table, never filled (ADR-030).
+  // Computed columns are never filled (ADR-030, ADR-031, ADR-033).
   const tableColumns =
     destination.kind === "table"
-      ? destination.table.columns.filter(({ type }) => type !== "lookup" && type !== "rollup")
+      ? destination.table.columns.filter(({ type }) => !isComputedType(type))
       : [];
   // Columns and choices change the table's structure: admins only (the API checks too).
   const canChangeColumns = destination.kind === "newTable" || hasRole(destination.table.role, "ADMIN");

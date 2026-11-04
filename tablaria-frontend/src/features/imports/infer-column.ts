@@ -1,18 +1,20 @@
 import {
   COLUMN_NAME_MAX_LENGTH,
   COLUMN_TYPES,
+  type COMPUTED_COLUMN_TYPES,
   type ColumnDefinitionInput,
   type ColumnType,
+  isComputedType,
   MAX_SELECT_CHOICES,
   SELECT_CHOICE_MAX_LENGTH,
   SELECT_COLORS,
 } from "@tablaria/shared";
 
 /** What an import can create: relations need a linked table, which no file names. */
-export type ImportableType = Exclude<ColumnType, "relation" | "lookup" | "rollup">;
+export type ImportableType = Exclude<ColumnType, "relation" | (typeof COMPUTED_COLUMN_TYPES)[number]>;
 
 export const IMPORTABLE_TYPES = COLUMN_TYPES.filter(
-  (type): type is ImportableType => type !== "relation" && type !== "lookup" && type !== "rollup",
+  (type): type is ImportableType => type !== "relation" && !isComputedType(type),
 );
 
 /** Most distinct values a column can have to be offered as a list of options. */
