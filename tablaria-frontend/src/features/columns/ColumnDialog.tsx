@@ -804,13 +804,15 @@ function FormulaFields({
     const start = element?.selectionStart ?? current.length;
     const end = element?.selectionEnd ?? current.length;
     const text = formulaColumnRef(name);
-    form.setValue("expression", current.slice(0, start) + text + current.slice(end), {
-      shouldDirty: true,
-    });
-    // Back to typing right after what was inserted.
+    const next = current.slice(0, start) + text + current.slice(end);
+    form.setValue("expression", next, { shouldDirty: true });
+    // Back to typing right after what was inserted, unless typing already
+    // went on: moving the caret then would split what is being typed.
     requestAnimationFrame(() => {
-      element?.focus();
-      element?.setSelectionRange(start + text.length, start + text.length);
+      if (element?.value === next) {
+        element.focus();
+        element.setSelectionRange(start + text.length, start + text.length);
+      }
     });
   };
 
