@@ -18,7 +18,7 @@ Gestión de inventario flexible: cada usuario crea sus propias tablas, define co
 - **Tiempo real y presencia**: los cambios de otras personas aparecen sin recargar, y se ve quién tiene la tabla abierta y qué celda está editando.
 - **Métricas de cada tabla**: totales y medias, registros bajo mínimo, gráficos por grupos (barras o dona) y evolución en el tiempo.
 - **Dashboard** con cifras generales, tablas recientes y selector de espacio, tema claro u oscuro, interfaz en español preparada para más idiomas y diseño adaptado a móvil y a pantallas grandes.
-- **Demo pública** con cuentas temporales, tablas de ejemplo y una organización con compañeros ficticios.
+- **Demo pública** con cuentas temporales: una ferretería con productos, proveedores y pedidos enlazados, con consultas, resúmenes, fórmulas, historial de stock y actividad, y una organización con compañeros ficticios.
 
 ## Stack
 

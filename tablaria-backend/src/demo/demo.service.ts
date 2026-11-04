@@ -1,27 +1,26 @@
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
-import {
-  type ColumnDefinition,
-  columnDefinitionSchema,
-  type RecordData,
-  recordDataSchema,
-  TABLE_TEMPLATES,
-} from '@tablaria/shared';
 import { randomUUID } from 'node:crypto';
 import { ACCESS_TOKEN_TTL_SECONDS } from '../auth/auth.constants';
 import { PasswordService } from '../auth/password.service';
 import { generateSecureToken } from '../auth/secure-token';
-import { toColumnData } from '../columns/column-mapper';
 import { PrismaService } from '../database/prisma.service';
-import { inInsertionOrder, withoutEmptyCells } from '../records/record-data';
-import { logStockChanges } from '../stock-movements/stock-log';
 import type { Prisma, User } from '../generated/prisma/client';
 import { personalOrganizationId } from '../tables/table-access';
-import { DEMO_ORGANIZATION, DEMO_TABLES, type DemoTable } from './demo-data';
+import { DEMO_ORGANIZATION, demoTables, type DemoTableKey } from './demo-data';
+import { createDemoTables } from './demo-tables';
 
 export const DEMO_TTL_MS = 24 * 60 * 60 * 1000;
 /** Keeps the free database small even if many people try the demo at once. */
 export const MAX_ACTIVE_DEMO_ACCOUNTS = 300;
 const VISITOR_EMAIL_PREFIX = 'demo-';
+/** How the visitor's lists show the demo tables: the shop's catalog first. */
+export const DEMO_DISPLAY_ORDER: DemoTableKey[] = [
+  'products',
+  'orders',
+  'suppliers',
+  'equipment',
+  'warehouse',
+];
 
 /**
  * Temporary accounts for "Try the demo": already verified, filled with example
@@ -93,13 +92,18 @@ export class DemoService {
           },
         },
       });
-      // Lists show the most recently edited table first, so create the first one last.
-      for (const table of [...DEMO_TABLES].reverse()) {
-        const organizationId = table.inOrganization
-          ? organization.id
-          : personalId;
-        await createDemoTable(tx, organizationId, user.id, table);
-      }
+      await createDemoTables(tx, demoTables(now), DEMO_DISPLAY_ORDER, {
+        personalId,
+        organizationId: organization.id,
+        visitorId: user.id,
+        memberIds: new Map(
+          members.map(({ id }, index) => [
+            DEMO_ORGANIZATION.members[index].name,
+            id,
+          ]),
+        ),
+        now,
+      });
       return user;
     });
   }
@@ -123,66 +127,4 @@ export class DemoService {
     ]);
     return deleted;
   }
-}
-
-async function createDemoTable(
-  tx: Prisma.TransactionClient,
-  organizationId: string,
-  userId: string,
-  table: DemoTable,
-): Promise<void> {
-  const definitions: ColumnDefinition[] = TABLE_TEMPLATES[table.templateId].map(
-    (column) => columnDefinitionSchema.parse(column),
-  );
-  const created = await tx.inventoryTable.create({
-    data: {
-      organizationId,
-      createdById: userId,
-      name: table.name,
-      description: table.description,
-      columns: {
-        create: definitions.map((column, position) => ({
-          ...toColumnData(column),
-          position,
-        })),
-      },
-    },
-    include: { columns: true },
-  });
-
-  const columns = definitions.map((definition) => {
-    const id = created.columns.find(({ name }) => name === definition.name)?.id;
-    if (!id) {
-      throw new Error(`Demo column "${definition.name}" was not created`);
-    }
-    return { ...definition, id };
-  });
-  // The same validation as the API, so the demo data can never drift from the rules.
-  const schema = recordDataSchema(columns, { partial: false });
-
-  const records = await tx.record.createManyAndReturn({
-    select: { id: true, data: true },
-    data: inInsertionOrder(table.rows).map(({ createdAt, ...row }) => {
-      const byId = Object.fromEntries(
-        columns.map(({ id, name }) => [id, row[name]]),
-      );
-      return {
-        tableId: created.id,
-        data: withoutEmptyCells(schema.parse(byId)),
-        createdAt,
-      };
-    }),
-  });
-  await logStockChanges(tx, {
-    tableId: created.id,
-    userId,
-    kind: 'COUNT',
-    note: 'Inventario inicial',
-    columns,
-    writes: records.map(({ id, data }) => ({
-      id,
-      before: {},
-      after: data as RecordData,
-    })),
-  });
 }
