@@ -129,7 +129,7 @@
     "fileSummary_other": "{{name}}: {{count}} filas de datos.",
     "columnNumber": "Columna {{number}}",
     "mapping": "Columnas",
-    "mappingHint": "Elige en qué columna de la tabla va cada columna del archivo. Las que tienen el mismo nombre ya están emparejadas.",
+    "mappingHint": "Elige en qué columna de la tabla va cada columna del archivo. Las que tienen el mismo nombre ya están emparejadas. En una relación, escribe el nombre del registro enlazado (su primera columna) y, si admite varios, sepáralos con comas.",
     "mappingHintNew": "Elige en qué columna va cada columna del archivo, o crea una nueva con el tipo que mejor encaja con sus valores. Puedes cambiar el tipo.",
     "newColumn": "Nueva columna",
     "typeFor": "Tipo de la nueva columna para «{{name}}»",
@@ -164,6 +164,8 @@
       "required": "es obligatoria y está vacía",
       "unknownChoice": "no es una opción de la lista",
       "duplicate": "ya está en otro registro o se repite en el archivo",
+      "unknownRecord": "ningún registro de la tabla enlazada se llama así",
+      "ambiguousRecord": "varios registros de la tabla enlazada se llaman así: cambia el nombre de uno para distinguirlos",
       "invalid": {
         "text": "no es un texto válido",
         "number": "no es un número",
@@ -171,7 +173,7 @@
         "date": "no es una fecha (usa 31/12/2026 o 2026-12-31)",
         "boolean": "no es Sí o No",
         "select": "no es una opción de la lista",
-        "relation": "no se puede importar en una relación: enlázala después en la tabla",
+        "relation": "no es el nombre de un registro de la tabla enlazada",
         "lookup": "se lee de otra tabla",
         "rollup": "se calcula con otros registros",
         "formula": "se calcula con una fórmula"

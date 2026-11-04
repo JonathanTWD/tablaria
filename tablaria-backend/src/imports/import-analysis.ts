@@ -18,7 +18,11 @@ import {
 import { randomUUID } from 'node:crypto';
 import type { z } from 'zod';
 import { uniqueKey } from '../records/unique-values';
-import { importCellValue } from './import-value';
+import {
+  importCellValue,
+  importLinkedRecords,
+  type RecordsByName,
+} from './import-value';
 
 export type ImportRequest = z.output<typeof importSchema>;
 
@@ -122,13 +126,15 @@ export interface ImportUniqueness {
  * rules as creating a record by hand. With `addMissingChoices`, values no
  * select choice matches become new choices instead of errors. Unique columns
  * refuse values repeated in the file or held by another record; with
- * `updateBy`, a row whose key a record holds updates that record.
+ * `updateBy`, a row whose key a record holds updates that record. Relation
+ * cells name their linked records, found in `linkedNames` (ADR-036).
  */
 export function analyzeImport(
   plan: ImportPlan,
   rows: string[][],
   addMissingChoices: boolean,
   uniqueness: ImportUniqueness = { taken: new Map() },
+  linkedNames: ReadonlyMap<string, RecordsByName> = new Map(),
 ): ImportAnalysis {
   const keyColumn =
     uniqueness.updateBy === undefined
@@ -180,7 +186,14 @@ export function analyzeImport(
         return;
       }
       const value = cells[position] ?? '';
-      const cell = importCellValue(value, column);
+      const cell =
+        column.type === 'relation'
+          ? importLinkedRecords(
+              value,
+              column.options.multiple,
+              linkedNames.get(column.id) ?? new Map(),
+            )
+          : importCellValue(value, column);
       if ('error' in cell) {
         rowErrors.push({ row, column: position, value, reason: cell.error });
       } else {

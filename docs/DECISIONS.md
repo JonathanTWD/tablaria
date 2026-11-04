@@ -675,6 +675,23 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 - Cada gráfico es una consulta agrupada sobre la tabla, con un máximo de 10.000 registros.
 - Las métricas se invalidan con cada cambio de registros o columnas (tiempo real incluido), igual que hacía el gráfico de Inicio.
 - Se añade una dependencia: Recharts 3, con más de 14 días, como exige pnpm. Para instalarla se excluye `rolldown` de `minimumReleaseAge`, igual que `@rolldown/*`, porque la versión del lockfile ya pasa el CI.
+## ADR-036: Importar relaciones por nombre
+
+**Contexto**: una relación guarda el id del registro enlazado (ADR-022), y un CSV trae su nombre («Bosch»). Hasta ahora toda celda de relación salía como valor no válido, así que había que importar y luego enlazar a mano, aunque el propio CSV exportado ya escribe las relaciones por nombre (ADR-032).
+
+**Decisión**:
+- **Por nombre, el que se ve en la tabla:** la primera columna de la tabla enlazada, como en las etiquetas (ADR-028). Antes de analizar el archivo se cargan, por cada relación que rellena, los registros de su tabla por nombre (`recordsByName`).
+  - Los nombres se comparan como los valores únicos (`uniqueKey`), sin distinguir mayúsculas ni espacios de más.
+  - Si la primera columna de la tabla enlazada es otra relación, no hay nombres con los que emparejar.
+- **Relación múltiple:** nombres separados por comas, lo mismo que escribe la exportación. Un nombre repetido enlaza una vez.
+- **Errores por celda**, en el informe del asistente: `unknownRecord` si ningún registro se llama así y `ambiguousRecord` si se llaman así varios. Nunca se elige uno al azar. Como siempre, con un error no se importa nada.
+- **Permisos:** quien importa tiene que poder abrir la tabla enlazada (403 si no), porque emparejar nombres revelaría lo que contiene. Es la misma regla que al enlazar a mano.
+- **Sigue sin poder hacerse:**
+  - crear una columna de relación desde el archivo, que no dice a qué tabla enlaza;
+  - enlazar con registros que llegan en el mismo archivo: solo se encuentran los que ya existen;
+  - rellenar consultas, resúmenes y fórmulas, que se calculan solos.
+
+**Consecuencias**: cada importación lee una vez los registros de cada tabla enlazada, con un máximo de 10.000. El CSV exportado se puede volver a importar con sus relaciones. Para nombres repetidos, la vía es renombrar uno o darle a la primera columna valores únicos (ADR-023).
 
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
