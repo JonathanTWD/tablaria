@@ -693,6 +693,35 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 
 **Consecuencias**: cada importación lee una vez los registros de cada tabla enlazada, con un máximo de 10.000. El CSV exportado se puede volver a importar con sus relaciones. Para nombres repetidos, la vía es renombrar uno o darle a la primera columna valores únicos (ADR-023).
 
+## ADR-037: Una demo que enseña todas las funciones
+
+**Contexto**: la demo (ADR-013) creaba tres tablas a partir de las plantillas: un catálogo, un almacén y unos equipos de oficina. No tenía relaciones, consultas, resúmenes, fórmulas ni historial, así que quien entraba no veía nada de lo añadido desde la v1.5.0, y las métricas por fecha salían en un solo punto.
+
+**Decisión**:
+- **Una historia, una ferretería.** En Mi espacio están Productos, Pedidos, Proveedores y Equipos de la oficina. En la organización «Equipo de la tienda», con sus compañeros ficticios, está Almacén central. Productos va primero en las listas, porque es lo que se abre.
+  - **Productos:** lista de opciones, relación y consulta, precio y coste, dos fórmulas, stock con aviso, booleano y un resumen que cuenta los pedidos.
+  - **Proveedores:** resúmenes que cuentan y suman a través de la relación de Productos.
+  - **Pedidos:** relación múltiple, fechas, estado y booleano.
+- **Datos declarativos** (`demoTables` en `demo-data.ts`):
+  - las relaciones nombran tablas por clave y registros por su primera celda, como al importar (ADR-036);
+  - consultas, resúmenes y fórmulas nombran columnas.
+
+  Las fechas cuentan hacia atrás desde el día en que se crea la cuenta, así que la evolución siempre parece reciente.
+- **Construcción como la haría una persona** (`createDemoTables`):
+  1. Primero las columnas guardadas.
+  2. Después los registros, tabla enlazada antes que la que enlaza, validados con `recordDataSchema` como en la API.
+  3. Al final las columnas calculadas. Las fórmulas pasan por `prepareFormula`, así que su expresión y su tipo de resultado son los mismos que daría la API.
+- **Historial con fechas:**
+  - cada registro se añade en un día distinto dentro de un plazo por tabla;
+  - cada celda de stock tiene un recuento inicial y los movimientos de la tabla, con sus fechas y autores, y su saldo coincide con el valor de la celda;
+  - cada alta y cada movimiento dejan su evento de actividad (ADR-025).
+- **Sin enlace público:** el token solo se muestra al crearlo, así que uno creado por la demo no serviría. El visitante puede crear el suyo.
+
+**Consecuencias**:
+- Crear una cuenta de demo cuesta unas cien escrituras en una transacción, que siguen siendo pocas para el límite de 300 cuentas activas.
+- El test de la demo comprueba que cada tipo de columna da su valor (fórmula, consulta, resumen por relación simple y múltiple), que el historial de stock cuadra y que la evolución tiene varios meses.
+- Si se añade una función nueva, la demo debería enseñarla también.
+
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
 Todas están especificadas en [MVP_PROMPT.md](MVP_PROMPT.md):

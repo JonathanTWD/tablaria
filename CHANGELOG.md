@@ -2,6 +2,12 @@
 
 ## Sin publicar
 
+- **Una demo que lo enseña todo** (ADR-037): la cuenta de demostración llega con una ferretería cuyas tablas están enlazadas, para ver todas las funciones sin montar nada.
+  - **Productos** (antes «Ferretería López»): lista de categorías y proveedor enlazado, con su teléfono como consulta. Lleva coste y precio, las fórmulas «Margen» y «Valor del stock», stock con aviso de bajo mínimo e historial de movimientos, y un resumen «Pedidos».
+  - **Proveedores:** datos de contacto y los resúmenes «Productos» y «Unidades en stock».
+  - **Pedidos:** cada uno enlaza con varios productos, con fechas repartidas en los últimos meses para que la evolución de las métricas tenga forma, además de estado y pagado.
+  - **Historial real:** los registros se añadieron a lo largo de semanas, con entradas, salidas y recuentos de stock en días distintos, así que la pestaña «Actividad» y el historial de cada producto tienen contenido. En la organización «Equipo de la tienda», los movimientos son de los compañeros ficticios.
+  - Siguen «Equipos de la oficina» en Mi espacio y «Almacén central» en la organización.
 - **Importar relaciones por nombre** (ADR-036): al importar un CSV, una columna de relación se rellena con el nombre del registro enlazado, el que se ve en la tabla (su primera columna).
   - **Varios registros:** en una relación múltiple, los nombres van separados por comas («Makita, Bosch»).
   - **Sin distinguir mayúsculas** ni espacios de más. Un nombre repetido en la misma celda enlaza una sola vez.
