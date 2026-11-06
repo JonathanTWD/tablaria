@@ -48,7 +48,7 @@ export function RecordSheet({
 
   return (
     <Sheet open onOpenChange={(open) => !open && onClose()}>
-      <SheetContent side="right" closeLabel={t("common:close")} className="w-full overflow-y-auto sm:max-w-md">
+      <SheetContent side="right" closeLabel={t("common:close")} className="overflow-y-auto data-[side=right]:w-full data-[side=right]:sm:max-w-md">
         <div className="flex flex-col gap-5 p-4 sm:p-6">
           <div>
             <SheetTitle>{name || t("qr.sheetTitle")}</SheetTitle>
