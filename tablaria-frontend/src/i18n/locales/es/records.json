@@ -302,5 +302,22 @@
       "caption": "{{measure}} por {{interval}}, según {{date}}",
       "noDates": "Ningún registro tiene esa fecha todavía."
     }
+  },
+  "qr": {
+    "open": "Ver ficha",
+    "labels": "Etiquetas QR",
+    "codeOf": "Código QR de {{name}}",
+    "sheetTitle": "Registro",
+    "sheetDescription": "Ficha de un registro de {{table}}, con su etiqueta QR para imprimir.",
+    "notFound": "Este registro ya no existe o no tienes acceso a su tabla.",
+    "printOne": "Imprimir etiqueta",
+    "download": "Descargar QR",
+    "labelsTitle": "Etiquetas QR",
+    "labelsHeading": "Etiquetas QR de {{table}}",
+    "back": "Volver a la tabla",
+    "print": "Imprimir",
+    "printHint": "Al escanear una etiqueta se abre la ficha del registro. Solo la ve quien tiene acceso a la tabla.",
+    "firstOnly": "Se muestran los primeros {{count}} de {{total}} registros. Filtra la tabla para imprimir otros.",
+    "none": "No hay registros con esta búsqueda o estos filtros."
   }
 }

@@ -1,5 +1,12 @@
 # Changelog
 
+## Sin publicar
+
+- **Etiquetas QR y ficha de cada registro** (ADR-038):
+  - **Ficha:** «Ver ficha» en el menú de cada fila abre un panel con todas sus celdas, también las calculadas, y su etiqueta QR. Se puede imprimir la etiqueta, descargar el QR en PNG, ver los movimientos de stock o editar el registro.
+  - **Etiquetas para imprimir:** «Etiquetas QR» genera una hoja con la etiqueta de cada registro de la vista actual (búsqueda, filtros y orden), hasta 100. Lleva el nombre, la referencia (la primera columna de valor único, como el SKU) y la tabla.
+  - **Al escanear** una etiqueta con el móvil se abre la ficha de ese registro. Solo la ve quien tiene acceso a la tabla: el código no lleva datos, solo el enlace.
+
 ## v1.7.0 — Fórmulas y métricas
 
 - **Seguridad** (auditoría OWASP Top 10:2025 de la release):

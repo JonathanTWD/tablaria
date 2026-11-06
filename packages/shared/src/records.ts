@@ -69,6 +69,15 @@ export function linkedRecordIds(value: CellValue | undefined): string[] {
   return Array.isArray(value) ? value : [];
 }
 
+/**
+ * One record, as a QR label opens it (ADR-038): its computed columns filled
+ * and the labels of the records it links to, as in a page of records.
+ */
+export interface RecordDetail {
+  record: TableRecord;
+  linked: Record<string, string>;
+}
+
 export interface RecordPage extends Paginated<TableRecord> {
   linked: Record<string, string>;
   /** Every group of the whole listing (not only this page) when it is grouped; empty otherwise. */

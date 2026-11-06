@@ -21,6 +21,8 @@ export const tableKeys = {
   detail: (tableId: string) => [...tableKeys.all, "detail", tableId] as const,
   records: (tableId: string) => [...tableKeys.all, "records", tableId] as const,
   // Apart from `records`: those queries all hold record pages, which edits patch in place.
+  /** Single records, as their QR label opens them (ADR-038). */
+  recordDetails: (tableId: string) => [...tableKeys.all, "record", tableId] as const,
   /** The table's metrics (ADR-035). */
   metrics: (tableId: string) => [...tableKeys.all, "metrics", tableId] as const,
   /** Stock histories of the table's records (ADR-024). */

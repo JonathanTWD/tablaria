@@ -7,6 +7,7 @@ import {
   MAX_RECORDS_PER_TABLE,
   type Paginated,
   type RecordGroup,
+  type RecordDetail,
   type RecordPage,
   type RecordColumn,
   type RecordData,
@@ -101,6 +102,40 @@ export class RecordsService {
         page.data.map(({ data }) => data),
       ),
       labelledRelations: [...relations.keys()],
+    };
+  }
+
+  /** One record with what a page shows of it: computed columns and linked labels. */
+  async get(
+    userId: string,
+    tableId: string,
+    recordId: string,
+  ): Promise<RecordDetail> {
+    const table = await this.prisma.inventoryTable.findFirst({
+      where: { id: tableId, ...accessibleTables(userId) },
+      select: { columns: true, records: { where: { id: recordId } } },
+    });
+    // Same answer for a record of another table as for a missing one.
+    const [stored] = table?.records ?? [];
+    if (!table || !stored) {
+      throw new NotFoundException('Record not found');
+    }
+    const columns = table.columns.map(toTableColumn);
+    const rows = [toTableRecord(stored)];
+    await fillLookups(
+      this.prisma,
+      await lookupSources(this.prisma, userId, columns),
+      rows,
+    );
+    await fillRollups(
+      this.prisma,
+      await rollupSources(this.prisma, userId, columns),
+      rows,
+    );
+    fillFormulas(columns, rows);
+    return {
+      record: rows[0],
+      linked: await linkedLabels(this.prisma, userId, columns, [rows[0].data]),
     };
   }
 

@@ -21,6 +21,7 @@ const ColumnsPage = lazy(() => import("@/pages/app/table/ColumnsPage"));
 const ActivityPage = lazy(() => import("@/pages/app/table/ActivityPage"));
 // Recharts loads only with this page (ADR-035).
 const MetricsPage = lazy(() => import("@/pages/app/table/MetricsPage"));
+const LabelsPage = lazy(() => import("@/pages/app/table/LabelsPage"));
 const PublicTablePage = lazy(() => import("@/pages/PublicTablePage"));
 const InvitationPage = lazy(() => import("@/pages/InvitationPage"));
 const OrganizationPage = lazy(() => import("@/pages/app/OrganizationPage"));
@@ -47,6 +48,8 @@ const App = () => {
         </Route>
 
         <Route path="app" element={<RequireAuth />}>
+          {/* Outside the app's frame: only the labels get printed (ADR-038). */}
+          <Route path="tables/:tableId/labels" element={<LabelsPage />} />
           <Route element={<AppLayout />}>
             <Route index element={<DashboardPage />} />
             <Route path="tables/:tableId" element={<TablePage />}>
