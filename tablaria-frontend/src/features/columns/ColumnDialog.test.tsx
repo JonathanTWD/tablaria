@@ -188,4 +188,80 @@ describe("ColumnDialog", () => {
       ]),
     );
   });
+
+  it("creates a formula that cites columns by name and checks it as it is typed", async () => {
+    const user = userEvent.setup();
+    const name = column("8c9d0e1f-1111-4aaa-8bbb-000000000021", 0, { name: "Nombre", type: "text" });
+    const price = column("8c9d0e1f-2222-4aaa-8bbb-000000000022", 1, {
+      name: "Precio",
+      type: "currency",
+      options: { currency: "EUR" },
+    });
+    const stock = column("8c9d0e1f-3333-4aaa-8bbb-000000000023", 2, { name: "Stock", type: "number" });
+    const products = table(PRODUCTS_ID, "Productos", [name, price, stock, supplier]);
+    const sent: unknown[] = [];
+    mockApi((url, init) => {
+      if (init.method === "POST") {
+        sent.push(JSON.parse(String(init.body)));
+        return { ...stock, id: "8c9d0e1f-4444-4aaa-8bbb-000000000024", name: "Valor" };
+      }
+      if (url.pathname.endsWith(`/tables/${PRODUCTS_ID}`)) {
+        return products;
+      }
+      return [products];
+    });
+    renderWithProviders(
+      <ColumnDialog tableId={PRODUCTS_ID} recordCount={0} open onOpenChange={() => undefined} />,
+    );
+
+    await user.type(screen.getByLabelText("Nombre"), "Valor");
+    await user.click(screen.getByLabelText("Tipo"));
+    await user.click(await screen.findByRole("option", { name: /Fórmula/ }));
+    const expression = await screen.findByLabelText("Fórmula");
+    // A relation can't be cited, so it isn't offered.
+    expect(screen.queryByRole("button", { name: "Insertar Proveedor en la fórmula" })).not.toBeInTheDocument();
+
+    await user.type(expression, "{{Nombre} * 2");
+    await user.click(screen.getByRole("button", { name: "Añadir columna" }));
+    expect(
+      await screen.findByText("Los tipos no encajan en «*», por ejemplo al sumar un texto."),
+    ).toBeVisible();
+    expect(sent).toEqual([]);
+
+    await user.clear(expression);
+    await user.click(screen.getByRole("button", { name: "Insertar Precio en la fórmula" }));
+    await user.type(expression, " * ");
+    await user.click(screen.getByRole("button", { name: "Insertar Stock en la fórmula" }));
+    expect(await screen.findByText("Da un resultado de tipo número.")).toBeVisible();
+    await user.click(screen.getByLabelText("Mostrar como precio"));
+    await user.click(await screen.findByRole("option", { name: /^EUR/ }));
+    await user.click(screen.getByRole("button", { name: "Añadir columna" }));
+
+    await waitFor(() =>
+      expect(sent).toEqual([
+        expect.objectContaining({
+          type: "formula",
+          required: false,
+          options: { expression: "{Precio} * {Stock}", currency: "EUR", resultType: "number" },
+          defaultValue: null,
+        }),
+      ]),
+    );
+  });
+
+  it("shows a stored formula with the names of its columns", async () => {
+    const price = column("8c9d0e1f-2222-4aaa-8bbb-000000000022", 0, { name: "Precio", type: "number" });
+    const value = column("8c9d0e1f-5555-4aaa-8bbb-000000000025", 1, {
+      name: "Con IVA",
+      type: "formula",
+      options: { expression: `{${price.id}} * 1.21`, currency: null, resultType: "number" },
+    });
+    const products = table(PRODUCTS_ID, "Productos", [price, value]);
+    mockApi(() => products);
+    renderWithProviders(
+      <ColumnDialog tableId={PRODUCTS_ID} column={value} recordCount={0} open onOpenChange={() => undefined} />,
+    );
+
+    expect(await screen.findByLabelText("Fórmula")).toHaveValue("{Precio} * 1.21");
+  });
 });

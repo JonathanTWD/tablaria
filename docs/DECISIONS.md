@@ -564,7 +564,7 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
   - si la columna sumada cambia a un tipo que no encaja con su función, se borra (`dropRollupsNotFitting`).
 - **Formato:** contar se muestra como número; sumar y media, como la columna sumada (precio con moneda), pero sin el aviso de stock bajo, que tiene sentido por registro y no para un total; mínimo y máximo, como su columna (fechas).
 - **Fuera de esta versión:**
-  - ordenar y filtrar por un resumen (400), porque hoy se calcula por página y no en el SQL de la lista;
+  - ordenar y filtrar por un resumen (400), porque hoy se calcula por página y no en el SQL de la lista (hecho en ADR-034);
   - resúmenes con condición («tareas pendientes»);
   - la selección múltiple, que cambiará qué cuenta como «enlaza aquí» (hecha en ADR-032).
 
@@ -588,6 +588,139 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 - **Interfaz:** el selector deja abierta la lista y cada elección añade o quita un registro (`aria-pressed`). Encima muestra los enlazados, cada uno con su botón para quitarlo. En una relación obligatoria no se puede quitar el último.
 
 **Consecuencias**: buscar y ordenar por una relación múltiple hace una subconsulta por fila sobre la tabla enlazada, acotada por `tableId` y por clave primaria. Va bien con 10.000 registros por tabla. Las consultas a través de listas y agrupar por cada registro enlazado quedan para más adelante.
+
+## ADR-033: Columnas de fórmula
+
+**Contexto**: con consultas (ADR-030) y resúmenes (ADR-031) una fila ya tiene el precio, el stock o el total de pedidos, pero no se podía combinar: el valor del inventario (precio × stock), los días hasta caducar o un aviso «Pedir» cuando el stock baja.
+
+**Decisión**:
+- **Tipo de columna `formula`,** con las opciones `expression`, `currency` y `resultType`. Las columnas se citan entre llaves, `{Precio} * {Stock}`.
+- **Lenguaje propio, sin `eval` ni SQL:** un analizador escrito a mano en `@tablaria/shared` (`parseFormula`, `checkFormula`, `evaluateFormula`). Lo usan la API, que es la que valida y calcula, y el formulario, que muestra los errores mientras se escribe.
+  - Números con coma decimal (`2,5`; el punto también vale), textos entre comillas, `VERDADERO` y `FALSO`.
+  - Los datos de una función se separan con `;`, como en una hoja de cálculo en español. La coma también separa cuando no puede ser decimal (`MAX(2, 5)`).
+  - Las columnas se citan entre llaves; una llave dentro del nombre se escribe doble (`{Talla {EU}}}`).
+  - Operadores `+ - * /`, `&` para unir textos y las comparaciones `= <> < > <= >=`.
+  - Funciones: `SI`, `Y`, `O`, `NO`, `ESVACIO`, `REDONDEAR`, `ABS`, `MIN`, `MAX`, `MAYUSC`, `MINUSC`, `LARGO`, `HOY` y `DIAS`. Los nombres van en español, como el resto de la aplicación; sus equivalentes en inglés (`IF`, `AND`…) también valen, para no rehacerlo al traducir la interfaz.
+  - Como máximo 1.000 caracteres y 100 nodos, para que nadie haga trabajar al servidor con una expresión enorme.
+- **Tipos comprobados al guardar:** cada expresión da un número, un texto, un Sí/No o una fecha (`resultType`), calculado por la API y no por el cliente. Lo que no encaja da 422 con el motivo (`SI` con ramas de tipos distintos, sumar un texto…).
+  - Puede citar texto, número, precio (como número), fecha, Sí/No, lista (como texto), consultas y resúmenes, con el tipo de lo que muestran.
+  - No puede citar relaciones ni otras fórmulas, para que no haya cadenas.
+- **`HOY`** es la fecha en España (Europe/Madrid), no la de UTC, para que no cambie de día a medianoche.
+- **Celdas vacías:** una cuenta con una celda vacía queda vacía; dividir por cero, también. `&` toma lo vacío como texto vacío. `ESVACIO` lo comprueba de forma explícita.
+- **Moneda opcional** (`currency`): una fórmula numérica puede mostrarse como precio (precio × stock en euros).
+- **En la base de datos, por id:** la expresión se guarda como `{id}` y la interfaz la muestra con los nombres. Renombrar una columna no rompe nada.
+- **Calculada al leer, nunca guardada** (`fillFormulas`): después de las consultas y los resúmenes, en la lista y en el CSV. Escribirla da 400, igual que con las demás columnas calculadas.
+- **Tipo fijo:** se crea como fórmula y no cambia de tipo. No puede ser obligatoria, única ni tener valor por defecto.
+- **Limpieza** (`syncFormulas`): al borrar o cambiar una columna, se vuelven a comprobar las fórmulas de las tablas afectadas, que son la propia y las que tienen consultas o resúmenes que leen de ella. Si una fórmula ya no encaja se borra, como las consultas; si cambia su tipo de resultado, se actualiza, y si deja de dar un número pierde la moneda en vez de borrarse.
+- **Permisos:** una consulta o un resumen que el usuario no puede ver llega vacío, así que la fórmula se calcula con ese hueco y no revela nada.
+- **Enlaces públicos:** no muestran fórmulas, igual que no muestran consultas ni resúmenes (ADR-026).
+- **Fuera de esta versión:** ordenar, filtrar, buscar y agrupar por una fórmula (400), porque se calcula en la página y no en el SQL; fórmulas que citen otras fórmulas; más funciones.
+
+**Consecuencias**: calcular una fórmula cuesta muy poco frente a leer la página, y no añade consultas a la base de datos. Para ordenar por ella habría que traducir la expresión a SQL o guardar el resultado.
+
+## ADR-034: Ordenar y filtrar por resumen
+
+**Contexto**: los resúmenes (ADR-031) se calculaban solo para la página que se muestra, así que no se podía ordenar ni filtrar por ellos. Es lo primero que se intenta con un resumen: «los clientes que más facturan», «los proveedores con más de 10 productos».
+
+**Decisión**:
+- **En el SQL de la lista:** solo cuando la consulta ordena o filtra por un resumen, se une a `records r` con un `LEFT JOIN` contra la tabla que enlaza, agrupada una vez (`rollupValuesSql`: `link`, `value`).
+  - Se usa una unión por resumen, aunque se use varias veces.
+  - El alias es una constante (`ru0`, `ru1`…) y todos los valores van como parámetros.
+  - La misma unión sirve para el total, la cuenta por grupos y la exportación.
+- **Mismo resultado que la tabla:** sin registros que enlacen, contar y sumar valen 0 (`COALESCE`, igual que `fillRollups` vía `emptyRollupValue`). Media, mínimo y máximo quedan vacíos y van al final.
+- **Comparación:** por número o, si es el mínimo o máximo de una fecha, por fecha (`rollupValueType`). El filtro es un rango (`between`), y los límites deben ser del tipo que corresponde (400).
+- **Relaciones múltiples (ADR-032):** cada registro cuenta en todos los que lista, igual que al mostrarlo.
+- **Permisos:** sin acceso a la tabla que enlaza, ordenar o filtrar por el resumen da 403, porque revelaría lo que suma.
+- **Sigue fuera:** agrupar por un resumen (cada registro tiene su propio valor), y ordenar o filtrar por fórmula (ADR-033).
+
+**Consecuencias**: ordenar por un resumen agrupa toda la tabla que enlaza en cada consulta, con un máximo de 10.000 registros, en lugar de una subconsulta por fila, y PostgreSQL lo resuelve con un hash join. Si las tablas crecieran mucho, la vía sería un índice sobre la celda de la relación o guardar el valor.
+
+## ADR-035: Métricas de cada tabla
+
+**Contexto**: Inicio mezclaba la lista «Bajo mínimo» de todas las tablas con un gráfico «Resumen» en el que primero había que elegir la tabla. Las dos cosas se entienden mejor dentro de la tabla a la que pertenecen, y con las relaciones, consultas y resúmenes había mucho más que medir.
+
+**Decisión**:
+- **Una pestaña «Métricas» por tabla** (`/app/tables/:tableId/metrics`), con:
+  - tarjetas de resumen;
+  - la lista de bajo mínimo de la tabla;
+  - un gráfico por grupos (barras o dona);
+  - un gráfico de evolución.
+  Las métricas cuentan todos los registros de la tabla, sin la búsqueda ni los filtros de la vista de registros.
+- **Inicio** se queda con las cifras generales y la lista de tablas. Se probó un aviso breve de stock bajo con enlaces a cada tabla, pero chocaba con el resto de la página y se quitó: los avisos se ven en las métricas de cada tabla.
+- **API de solo lectura en un módulo propio** (`metrics`), bajo `/tables/:tableId/metrics`. Sustituye a `GET /records/stats`, que solo usaba el gráfico de Inicio.
+  - `summary`: total, media, mínimo y máximo de cada columna numérica o de precio, en una sola consulta (`unnest` de las columnas).
+  - `groups`: agrupa por lista de opciones, Sí/No, texto o relación simple, y mide contando o con suma, media, mínimo o máximo de una columna.
+    - Devuelve los 8 grupos mayores y junta el resto. La media de ese resto se pondera por cuántos valores tenía cada grupo.
+    - Por relación, los nombres salen de `linkedLabels`. Si no se puede abrir la tabla enlazada, devuelve 403, como al ordenar por ella (ADR-028).
+    - Una relación múltiple no agrupa (ADR-032).
+  - `timeline`: registros por día, semana (empieza en lunes) o mes, según la fecha de creación o una columna de fecha, con la misma medida.
+    - Devuelve los 36 periodos más recientes con registros. El navegador rellena los vacíos, para que se vean los huecos.
+  - **Seguridad:**
+    - los ids de columna se comprueban contra la tabla y cada valor va como parámetro;
+    - la función de la medida sale de una lista cerrada (`METRIC_FUNCTIONS`);
+    - una celda que no es un número o una fecha ISO no rompe la conversión.
+- **Avisos de stock:** `GET /stock-alerts` admite `tableId` para la lista de una tabla, con las mismas reglas de acceso.
+- **Gráficos con los charts de shadcn/ui (Recharts):**
+  - un `ChartContainer` y un tooltip propios en `components/ui/chart.tsx`;
+  - los colores salen de los tokens del tema y de los de cada opción de lista;
+  - Recharts solo se carga con la página de métricas (`lazy`), así que el paquete inicial no crece.
+- **Accesibilidad:** el dibujo se oculta a los lectores de pantalla y cada gráfico lleva sus datos en una tabla (`ChartData`), con título y leyenda visibles. El cambio barras/dona usa `aria-pressed`.
+- **Fuera por ahora:**
+  - medir resúmenes y fórmulas, que se calculan al leer;
+  - métricas que sigan los filtros de la vista;
+  - guardar la configuración de los gráficos;
+  - un dashboard con varias tablas.
+
+**Consecuencias**:
+- Cada gráfico es una consulta agrupada sobre la tabla, con un máximo de 10.000 registros.
+- Las métricas se invalidan con cada cambio de registros o columnas (tiempo real incluido), igual que hacía el gráfico de Inicio.
+- Se añade una dependencia: Recharts 3, con más de 14 días, como exige pnpm. Para instalarla se excluye `rolldown` de `minimumReleaseAge`, igual que `@rolldown/*`, porque la versión del lockfile ya pasa el CI.
+## ADR-036: Importar relaciones por nombre
+
+**Contexto**: una relación guarda el id del registro enlazado (ADR-022), y un CSV trae su nombre («Bosch»). Hasta ahora toda celda de relación salía como valor no válido, así que había que importar y luego enlazar a mano, aunque el propio CSV exportado ya escribe las relaciones por nombre (ADR-032).
+
+**Decisión**:
+- **Por nombre, el que se ve en la tabla:** la primera columna de la tabla enlazada, como en las etiquetas (ADR-028). Antes de analizar el archivo se cargan, por cada relación que rellena, los registros de su tabla por nombre (`recordsByName`).
+  - Los nombres se comparan como los valores únicos (`uniqueKey`), sin distinguir mayúsculas ni espacios de más.
+  - Si la primera columna de la tabla enlazada es otra relación, no hay nombres con los que emparejar.
+- **Relación múltiple:** nombres separados por comas, lo mismo que escribe la exportación. Un nombre repetido enlaza una vez.
+- **Errores por celda**, en el informe del asistente: `unknownRecord` si ningún registro se llama así y `ambiguousRecord` si se llaman así varios. Nunca se elige uno al azar. Como siempre, con un error no se importa nada.
+- **Permisos:** quien importa tiene que poder abrir la tabla enlazada (403 si no), porque emparejar nombres revelaría lo que contiene. Es la misma regla que al enlazar a mano.
+- **Sigue sin poder hacerse:**
+  - crear una columna de relación desde el archivo, que no dice a qué tabla enlaza;
+  - enlazar con registros que llegan en el mismo archivo: solo se encuentran los que ya existen;
+  - rellenar consultas, resúmenes y fórmulas, que se calculan solos.
+
+**Consecuencias**: cada importación lee una vez los registros de cada tabla enlazada, con un máximo de 10.000. El CSV exportado se puede volver a importar con sus relaciones. Para nombres repetidos, la vía es renombrar uno o darle a la primera columna valores únicos (ADR-023).
+
+## ADR-037: Una demo que enseña todas las funciones
+
+**Contexto**: la demo (ADR-013) creaba tres tablas a partir de las plantillas: un catálogo, un almacén y unos equipos de oficina. No tenía relaciones, consultas, resúmenes, fórmulas ni historial, así que quien entraba no veía nada de lo añadido desde la v1.5.0, y las métricas por fecha salían en un solo punto.
+
+**Decisión**:
+- **Una historia, una ferretería.** En Mi espacio están Productos, Pedidos, Proveedores y Equipos de la oficina. En la organización «Equipo de la tienda», con sus compañeros ficticios, está Almacén central. Productos va primero en las listas, porque es lo que se abre.
+  - **Productos:** lista de opciones, relación y consulta, precio y coste, dos fórmulas, stock con aviso, booleano y un resumen que cuenta los pedidos.
+  - **Proveedores:** resúmenes que cuentan y suman a través de la relación de Productos.
+  - **Pedidos:** relación múltiple, fechas, estado y booleano.
+- **Datos declarativos** (`demoTables` en `demo-data.ts`):
+  - las relaciones nombran tablas por clave y registros por su primera celda, como al importar (ADR-036);
+  - consultas, resúmenes y fórmulas nombran columnas.
+
+  Las fechas cuentan hacia atrás desde el día en que se crea la cuenta, así que la evolución siempre parece reciente.
+- **Construcción como la haría una persona** (`createDemoTables`):
+  1. Primero las columnas guardadas.
+  2. Después los registros, tabla enlazada antes que la que enlaza, validados con `recordDataSchema` como en la API.
+  3. Al final las columnas calculadas. Las fórmulas pasan por `prepareFormula`, así que su expresión y su tipo de resultado son los mismos que daría la API.
+- **Historial con fechas:**
+  - cada registro se añade en un día distinto dentro de un plazo por tabla;
+  - cada celda de stock tiene un recuento inicial y los movimientos de la tabla, con sus fechas y autores, y su saldo coincide con el valor de la celda;
+  - cada alta y cada movimiento dejan su evento de actividad (ADR-025).
+- **Sin enlace público:** el token solo se muestra al crearlo, así que uno creado por la demo no serviría. El visitante puede crear el suyo.
+
+**Consecuencias**:
+- Crear una cuenta de demo cuesta unas cien escrituras en una transacción, que siguen siendo pocas para el límite de 300 cuentas activas.
+- El test de la demo comprueba que cada tipo de columna da su valor (fórmula, consulta, resumen por relación simple y múltiple), que el historial de stock cuadra y que la evolución tiene varios meses.
+- Si se añade una función nueva, la demo debería enseñarla también.
 
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 

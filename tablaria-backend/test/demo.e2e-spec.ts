@@ -4,12 +4,15 @@ import type {
   OrganizationDetail,
   OrganizationSummary,
   Paginated,
-  TableRecord,
+  RecordPage,
+  StockAlerts,
+  StockHistory,
+  TableDetail,
   TableSummary,
 } from '@tablaria/shared';
 import { App } from 'supertest/types';
 import { PrismaService } from '../src/database/prisma.service';
-import { DEMO_ORGANIZATION, DEMO_TABLES } from '../src/demo/demo-data';
+import { DEMO_ORGANIZATION, demoTables } from '../src/demo/demo-data';
 import {
   DEMO_TTL_MS,
   MAX_ACTIVE_DEMO_ACCOUNTS,
@@ -22,6 +25,8 @@ import {
   type TestClient,
 } from './helpers/app';
 import { listEmails } from './helpers/mailpit';
+
+const DEMO_TABLES = demoTables(new Date());
 
 describe('Demo accounts (e2e)', () => {
   let app: INestApplication<App>;
@@ -87,11 +92,95 @@ describe('Demo accounts (e2e)', () => {
       organizationTables.map(({ name, recordCount }) => [name, recordCount]),
     ).toEqual(summary(DEMO_TABLES.filter((table) => table.inOrganization)));
 
-    const catalog = tables.find(({ name }) => name === DEMO_TABLES[0].name);
-    const records = (
-      await client.get(`/api/tables/${catalog?.id}/records`).expect(200)
-    ).body as Paginated<TableRecord>;
-    expect(records.meta.total).toBe(DEMO_TABLES[0].rows.length);
+    // The shop's catalog comes first: what a visitor opens.
+    expect(tables[0].name).toBe('Productos');
+  });
+
+  it('shows every kind of column, worked out from linked tables', async () => {
+    const { client } = await startDemo();
+    const tables = (await client.get('/api/tables').expect(200))
+      .body as TableSummary[];
+    const open = async (name: string) => {
+      const id = tables.find((table) => table.name === name)?.id;
+      const detail = (await client.get(`/api/tables/${id}`).expect(200))
+        .body as TableDetail;
+      const page = (
+        await client
+          .get(`/api/tables/${id}/records`)
+          .query({ pageSize: 100 })
+          .expect(200)
+      ).body as RecordPage;
+      const column = (columnName: string) =>
+        detail.columns.find(({ name }) => name === columnName)?.id ?? '';
+      const row = (first: string) =>
+        page.data.find(({ data }) => data[detail.columns[0].id] === first)
+          ?.data ?? {};
+      return { id, detail, page, column, row };
+    };
+
+    const products = await open('Productos');
+    expect(products.detail.columns.map(({ type }) => type)).toEqual(
+      expect.arrayContaining(['relation', 'lookup', 'formula', 'rollup']),
+    );
+    const drill = products.row('Taladro percutor 750 W');
+    // Margin and stock value are formulas; the supplier's phone, a lookup.
+    expect(drill[products.column('Margen')]).toBe(37.5);
+    expect(drill[products.column('Valor del stock')]).toBeCloseTo(52.4 * 14);
+    expect(drill[products.column('Teléfono del proveedor')]).toBe(
+      '961 555 210',
+    );
+    // In three orders, through a relation to several products.
+    expect(drill[products.column('Pedidos')]).toBe(3);
+
+    const suppliers = await open('Proveedores');
+    expect(suppliers.row('Ferrotool')).toMatchObject({
+      [suppliers.column('Productos')]: 3,
+      [suppliers.column('Unidades en stock')]: 23,
+    });
+
+    const orders = await open('Pedidos');
+    const big = orders.row('PED-1038')[orders.column('Productos')];
+    expect(Array.isArray(big) && big.length).toBe(3);
+
+    // Some products run low, and the drill has a stock history that adds up.
+    const alerts = (
+      await client
+        .get('/api/stock-alerts')
+        .query({ tableId: products.id })
+        .expect(200)
+    ).body as StockAlerts;
+    expect(alerts.total).toBeGreaterThan(0);
+    const drillId = products.page.data.find(
+      ({ data }) =>
+        data[products.detail.columns[0].id] === 'Taladro percutor 750 W',
+    )?.id;
+    const history = (
+      await client
+        .get(`/api/tables/${products.id}/records/${drillId}/movements`)
+        .query({ columnId: products.column('Stock') })
+        .expect(200)
+    ).body as StockHistory;
+    // Newest first: the last movement leaves the stock the table shows.
+    expect(history.data[0].balance).toBe(14);
+    expect(history.data.map(({ kind }) => kind)).toEqual([
+      'out',
+      'out',
+      'in',
+      'count',
+    ]);
+
+    // Every table has a history, and the orders spread over months.
+    const activity = (
+      await client.get(`/api/tables/${products.id}/activity`).expect(200)
+    ).body as Paginated<unknown>;
+    expect(activity.meta.total).toBeGreaterThan(products.page.meta.total);
+    const timeline = (
+      await client
+        .get(`/api/tables/${orders.id}/metrics/timeline`)
+        .query({ date: orders.column('Fecha') })
+        .expect(200)
+    ).body as { buckets: unknown[] };
+    expect(timeline.buckets.length).toBeGreaterThanOrEqual(5);
   });
 
   it('gives every visitor an account of their own', async () => {

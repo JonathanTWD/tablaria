@@ -35,7 +35,7 @@ La especificación completa del MVP está en [MVP_PROMPT.md](MVP_PROMPT.md).
 ### Prioridades tras el MVP
 
 1. **Exportar**, respetando la vista actual (búsqueda, filtros y orden). El CSV ya está hecho; falta Excel (`.xlsx` con ExcelJS), que se añadirá cuando las versiones recientes del lockfile cumplan la antigüedad mínima de pnpm.
-2. **Alertas de stock bajo** y **gráficos** en el dashboard (hecho: umbral por columna numérica, tarjeta «Bajo mínimo» y resumen con gráfico de barras por columna).
+2. **Alertas de stock bajo** y **gráficos** (hecho: umbral por columna numérica; desde ADR-035, pestaña «Métricas» en cada tabla con resumen, bajo mínimo, grupos y evolución).
 3. **Importar** con un asistente paso a paso (hecho para CSV, fase 10, ADR-021): elegir el archivo, emparejar columnas o crearlas con su tipo detectado, revisar errores y opciones nuevas, e importar todo o nada, también en una tabla vacía o como tabla nueva. Falta Excel (`.xlsx`), que se leerá en el navegador con ExcelJS cuando cumpla la antigüedad mínima de pnpm.
 4. **Preguntas sobre los datos con IA**: el modelo consulta la API mediante herramientas (filtros validados y un endpoint de agregaciones), nunca con SQL libre. Las herramientas solo leen.
 
@@ -52,7 +52,7 @@ Cada tarea indica qué modelo conviene: **Opus** para lo que toca seguridad, per
 - Enlaces públicos de solo lectura (hecho, ADR-026). Pendiente: caducidad opcional y elegir qué columnas se ven.
 - Imágenes y adjuntos: aparcado por ahora; diseño propuesto en «Imágenes y adjuntos (aparcado)», más abajo.
 - API pública con tokens y webhooks.
-- Relaciones entre tablas (hechas las básicas, ADR-022; buscar, filtrar y ordenar por nombre, ADR-028; columnas de consulta, ADR-030; columnas de resumen, ADR-031; relaciones con varios registros, ADR-032): ordenar y filtrar por resumen, resúmenes con condición, consultas a través de relaciones múltiples y columnas calculadas.
+- Relaciones entre tablas (hechas las básicas, ADR-022; buscar, filtrar y ordenar por nombre, ADR-028; columnas de consulta, ADR-030; columnas de resumen, ADR-031; relaciones con varios registros, ADR-032; columnas de fórmula, ADR-033; ordenar y filtrar por resumen, ADR-034): ordenar y filtrar por fórmula, resúmenes con condición y consultas a través de relaciones múltiples.
 - Preguntas sobre los datos con IA (necesita una API key de pago).
 - Tiempo real con varias instancias (Redis), solo si hace falta escalar.
 

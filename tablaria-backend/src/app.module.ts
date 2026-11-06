@@ -12,6 +12,7 @@ import { DatabaseModule } from './database/database.module';
 import { HealthModule } from './health/health.module';
 import { ImportsModule } from './imports/imports.module';
 import { MailModule } from './mail/mail.module';
+import { MetricsModule } from './metrics/metrics.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { PublicLinksModule } from './public-links/public-links.module';
 import { RecordsModule } from './records/records.module';
@@ -34,6 +35,7 @@ import { TablesModule } from './tables/tables.module';
     RecordsModule,
     ImportsModule,
     StockAlertsModule,
+    MetricsModule,
     StockMovementsModule,
     ActivityModule,
     PublicLinksModule,

@@ -1,5 +1,50 @@
 # Changelog
 
+## v1.7.0 — Fórmulas y métricas
+
+- **Seguridad** (auditoría OWASP Top 10:2025 de la release):
+  - **Código:** sin hallazgos. Se revisaron las fórmulas, el orden y filtro por resumen, las métricas, la importación de relaciones y la demo.
+    - Las fórmulas tienen un lenguaje propio, analizado a mano, sin `eval` ni SQL, con un límite de 1.000 caracteres y 100 nodos.
+    - Solo leen lo que el usuario puede ver: una consulta o un resumen sin acceso les llega vacío.
+    - Los enlaces públicos no muestran ninguna columna calculada.
+    - En el CSV, los textos de una fórmula se neutralizan como el resto, así que no pueden convertirse en fórmulas de la hoja de cálculo.
+  - **Dependencias:** de 17 avisos a 2, los dos en la CLI de shadcn, que no forma parte de la app.
+- **Columnas de fórmula** (ADR-033): calculan un valor a partir de las celdas del propio registro, como «Valor del stock» (`{Precio} * {Stock}`), «Margen» o un aviso con `SI`.
+  - **Funciones en español:** `SI`, `Y`, `O`, `NO`, `ESVACIO`, `REDONDEAR`, `ABS`, `MIN`, `MAX`, `MAYUSC`, `MINUSC`, `LARGO`, `HOY` y `DIAS`. También valen sus nombres en inglés. Las columnas se citan entre llaves.
+  - **Se comprueban mientras se escriben:** el formulario avisa de lo que no encaja y dice de qué tipo es el resultado. Una fórmula numérica se puede mostrar como precio.
+  - **Pueden citar** consultas y resúmenes, pero no relaciones ni otras fórmulas.
+  - **Siempre al día:** se calculan al leer y salen en el CSV. Si se renombra una columna, la fórmula sigue funcionando.
+- **Seguridad: dependencias actualizadas** (los avisos de la auditoría de la v1.5.0 y la v1.6.0):
+  - **body-parser 2.4.0**, que corrige el fallo con cuerpos comprimidos. Se mantiene igualmente el rechazo de cuerpos comprimidos (`inflate: false`), que la app nunca envía.
+  - **multer 2.5.0** y **qs 6.16.1**, en las dependencias de Express y Nest, fijados con `overrides` en `pnpm-workspace.yaml` hasta que ellos mismos los exijan.
+  - **nodemailer 10.2.1**, que solo se usa para enviar por SMTP en desarrollo (producción envía con Resend).
+  - **Pendiente:** minimatch y deepmerge, solo en la CLI de shadcn, que no forma parte de la app. La versión arreglada de minimatch cumple los 14 días de pnpm hacia el 11 de noviembre, y deepmerge no tiene arreglo todavía.
+- **Una demo que lo enseña todo** (ADR-037): la cuenta de demostración llega con una ferretería cuyas tablas están enlazadas, para ver todas las funciones sin montar nada.
+  - **Productos** (antes «Ferretería López»): lista de categorías y proveedor enlazado, con su teléfono como consulta. Lleva coste y precio, las fórmulas «Margen» y «Valor del stock», stock con aviso de bajo mínimo e historial de movimientos, y un resumen «Pedidos».
+  - **Proveedores:** datos de contacto y los resúmenes «Productos» y «Unidades en stock».
+  - **Pedidos:** cada uno enlaza con varios productos, con fechas repartidas en los últimos meses para que la evolución de las métricas tenga forma, además de estado y pagado.
+  - **Historial real:** los registros se añadieron a lo largo de semanas, con entradas, salidas y recuentos de stock en días distintos, así que la pestaña «Actividad» y el historial de cada producto tienen contenido. En la organización «Equipo de la tienda», los movimientos son de los compañeros ficticios.
+  - Siguen «Equipos de la oficina» en Mi espacio y «Almacén central» en la organización.
+- **Importar relaciones por nombre** (ADR-036): al importar un CSV, una columna de relación se rellena con el nombre del registro enlazado, el que se ve en la tabla (su primera columna).
+  - **Varios registros:** en una relación múltiple, los nombres van separados por comas («Makita, Bosch»).
+  - **Sin distinguir mayúsculas** ni espacios de más. Un nombre repetido en la misma celda enlaza una sola vez.
+  - **Errores claros:** si ningún registro se llama así, o se llaman así varios, la fila sale en el informe de errores y no se importa nada hasta corregirlo.
+  - **Ida y vuelta:** el CSV que exporta Tablaria, que ya escribe las relaciones por nombre, se puede volver a importar tal cual.
+  - **Permisos:** hay que poder abrir la tabla enlazada, como al enlazar a mano.
+- **Métricas de cada tabla** (ADR-035): una pestaña nueva, «Métricas», junto a Registros, Columnas y Actividad.
+  - **De un vistazo:** total de registros, cuántos están bajo mínimo y, por cada columna numérica o de precio, su total, media, mínimo y máximo.
+  - **Bajo mínimo:** la lista de la tabla, con enlace a cada registro.
+  - **Por grupos:** barras o dona por una lista de opciones, Sí/No, texto o una relación (con el nombre del registro enlazado). Se mide el número de registros o la suma, la media, el mínimo o el máximo de una columna. Por ejemplo, «Coste en salarios por equipo» o «Stock por proveedor».
+  - **Evolución:** registros por día, semana o mes, según su fecha de creación o una columna de fecha, con los periodos sin registros también, y la misma medida a elegir.
+  - **Accesibles:** cada gráfico lleva sus datos en una tabla para lectores de pantalla, y los colores son los de las opciones de cada lista.
+  - **Inicio, más limpio:** el gráfico «Resumen» y la lista «Bajo mínimo» pasan a las métricas de cada tabla. Inicio queda con las cifras generales y la lista de tablas.
+- **Ordenar y filtrar por resumen** (ADR-034): los resúmenes se ordenan con su cabecera y se filtran por rango en «Filtros».
+  - **Ejemplos:** «los clientes que más facturan», «los proveedores con 10 productos o más» o «los equipos con una incorporación desde enero».
+  - **Valores:** un conteo o una suma se filtran como número, y el mínimo o el máximo de unas fechas, como fecha.
+  - **Vacíos:** un registro sin nada que enlace con él cuenta 0 en conteos y sumas. En medias, mínimos y máximos queda vacío y se ordena al final.
+  - **Exportación:** el CSV sale en el mismo orden.
+  - **Permisos:** solo con resúmenes de tablas que puedes abrir.
+
 ## v1.6.0 — Relaciones avanzadas
 
 - **Seguridad** (auditoría OWASP Top 10:2025 de la release):

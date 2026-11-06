@@ -43,6 +43,23 @@ export function useCellFormatter(): CellFormatter {
           return number.format(Number(value));
         case "date":
           return date.format(new Date(`${String(value)}T00:00:00Z`));
+        case "formula": {
+          // Formatted as the kind of value it gives (ADR-033).
+          const { resultType, currency } = column.options;
+          if (resultType === "number" && currency) {
+            return currencyFormat(locale, currency).format(Number(value));
+          }
+          if (resultType === "number") {
+            return number.format(Number(value));
+          }
+          if (resultType === "date") {
+            return date.format(new Date(`${String(value)}T00:00:00Z`));
+          }
+          if (resultType === "boolean") {
+            return value ? t("columns.yes") : t("columns.no");
+          }
+          return String(value);
+        }
         default:
           return String(value);
       }

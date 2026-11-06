@@ -14,9 +14,6 @@ import {
   type RecordExportQuery,
   type RecordInput,
   type RecordListQuery,
-  type RecordStats,
-  type RecordStatsQuery,
-  type StatsGroup,
   type TableRecord,
 } from '@tablaria/shared';
 import { toTableColumn } from '../columns/column-mapper';
@@ -38,7 +35,12 @@ import {
 } from '../relations/relations';
 import { accessibleTables, touchTable } from '../tables/table-access';
 import { buildRecordQuery } from './record-query';
-import { fillRollups, rollupSources } from '../rollups/rollups';
+import {
+  fillRollups,
+  type RollupSource,
+  rollupSources,
+} from '../rollups/rollups';
+import { fillFormulas } from '../formulas/formulas';
 import {
   fillLookups,
   lookupLabelSources,
@@ -48,7 +50,6 @@ import { logStockChanges } from '../stock-movements/stock-log';
 import { toTableRecord, withoutEmptyCells } from './record-data';
 import { requireUniqueValues } from './unique-values';
 import { exportFileName, toCsv } from './record-export';
-import { statsColumns, summarizeGroups } from './record-stats';
 
 export interface ExportedFile {
   fileName: string;
@@ -79,16 +80,18 @@ export class RecordsService {
     const columns = table.columns.map(toTableColumn);
     const relations = await labelSources(this.prisma, userId, columns);
     const lookups = await lookupSources(this.prisma, userId, columns);
-    const page = await queryRecordPage(this.prisma, tableId, columns, query, [
-      ...relations,
-      ...lookupLabelSources(lookups),
-    ]);
-    await fillLookups(this.prisma, lookups, page.data);
-    await fillRollups(
+    const rollups = await rollupSources(this.prisma, userId, columns);
+    const page = await queryRecordPage(
       this.prisma,
-      await rollupSources(this.prisma, userId, columns),
-      page.data,
+      tableId,
+      columns,
+      query,
+      [...relations, ...lookupLabelSources(lookups)],
+      rollups,
     );
+    await fillLookups(this.prisma, lookups, page.data);
+    await fillRollups(this.prisma, rollups, page.data);
+    fillFormulas(columns, page.data);
     return {
       ...page,
       linked: await linkedLabels(
@@ -117,7 +120,8 @@ export class RecordsService {
 
     const columns = table.columns.map(toTableColumn);
     const lookups = await lookupSources(this.prisma, userId, columns);
-    const { where, orderBy } = buildRecordQuery(
+    const rollups = await rollupSources(this.prisma, userId, columns);
+    const { from, where, orderBy } = buildRecordQuery(
       tableId,
       columns,
       query,
@@ -125,17 +129,18 @@ export class RecordsService {
         ...(await labelSources(this.prisma, userId, columns)),
         ...lookupLabelSources(lookups),
       ]),
+      rollups,
     );
     const rows = await this.prisma.$queryRaw<
       { id: string; data: RecordData }[]
     >`
-      SELECT r.id, r.data FROM records r
+      SELECT r.id, r.data FROM ${from}
       WHERE ${where}
       ORDER BY ${orderBy}
       LIMIT ${MAX_RECORDS_PER_TABLE}`;
     await fillLookups(this.prisma, lookups, rows);
-    const rollups = await rollupSources(this.prisma, userId, columns);
     await fillRollups(this.prisma, rollups, rows);
+    fillFormulas(columns, rows);
 
     return {
       fileName: exportFileName(table.name, 'csv'),
@@ -162,47 +167,6 @@ export class RecordsService {
         'utf8',
       ),
     };
-  }
-
-  /** Records grouped by a column's values, counted and optionally summed. */
-  async stats(
-    userId: string,
-    tableId: string,
-    query: RecordStatsQuery,
-  ): Promise<RecordStats> {
-    const table = await this.prisma.inventoryTable.findFirst({
-      where: { id: tableId, ...accessibleTables(userId) },
-      select: { columns: true, _count: { select: { records: true } } },
-    });
-    if (!table) {
-      throw new NotFoundException('Table not found');
-    }
-
-    const { groupBy, sum } = statsColumns(
-      table.columns.map(toTableColumn),
-      query,
-    );
-    // Column ids come from the table itself, and the CASE keeps the cast away
-    // from cells that are not numbers.
-    const sumSql = sum
-      ? Prisma.sql`sum(CASE WHEN jsonb_typeof(r.data -> ${sum.id}::text) = 'number'
-                        THEN (r.data ->> ${sum.id}::text)::float8 END)`
-      : Prisma.sql`NULL::float8`;
-    const rows = await this.prisma.$queryRaw<
-      { value: StatsGroup['value']; count: bigint; sum: number | null }[]
-    >`
-      SELECT r.data -> ${groupBy.id}::text AS value,
-             count(*) AS count,
-             ${sumSql} AS sum
-      FROM records r
-      WHERE r."tableId" = ${tableId}::uuid
-      GROUP BY 1
-      ORDER BY ${sum ? Prisma.sql`3 DESC NULLS LAST,` : Prisma.empty} 2 DESC, 1 ASC NULLS LAST`;
-
-    return summarizeGroups(
-      rows.map((row) => ({ ...row, count: Number(row.count) })),
-      table._count.records,
-    );
   }
 
   async create(
@@ -344,28 +308,30 @@ export async function queryRecordPage(
   columns: RecordColumn[],
   query: RecordListQuery,
   labels?: Iterable<[string, LabelSource]>,
+  rollups?: ReadonlyMap<string, RollupSource>,
 ): Promise<Paginated<TableRecord> & { groups: RecordGroup[] }> {
-  const { where, orderBy, groupValue } = buildRecordQuery(
+  const { from, where, orderBy, groupValue } = buildRecordQuery(
     tableId,
     columns,
     query,
     new Map(labels),
+    rollups,
   );
   const offset = (query.page - 1) * query.pageSize;
   const [rows, [{ total }], groups] = await Promise.all([
     db.$queryRaw<RecordRow[]>`
       SELECT r.id, r."tableId", r.data, r."createdAt", r."updatedAt"
-      FROM records r
+      FROM ${from}
       WHERE ${where}
       ORDER BY ${orderBy}
       LIMIT ${query.pageSize} OFFSET ${offset}`,
     db.$queryRaw<{ total: bigint }[]>`
-      SELECT count(*) AS total FROM records r WHERE ${where}`,
+      SELECT count(*) AS total FROM ${from} WHERE ${where}`,
     // Counts for every group, so a group split across pages shows its real size.
     groupValue
       ? db.$queryRaw<RecordGroup[]>`
           SELECT ${groupValue} AS value, count(*)::int AS count
-          FROM records r WHERE ${where} GROUP BY 1`
+          FROM ${from} WHERE ${where} GROUP BY 1`
       : Promise.resolve([]),
   ]);
   const count = Number(total);

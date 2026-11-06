@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import {
   type CreatedPublicLink,
+  isComputedType,
   type PublicLinkStatus,
   type PublicTable,
   publicTokenSchema,
@@ -102,11 +103,8 @@ export class PublicLinksService {
     }
 
     const columns = link.table.columns
-      // Relations and the lookups that read through them open other tables.
-      .filter(
-        ({ type }) =>
-          type !== 'relation' && type !== 'lookup' && type !== 'rollup',
-      )
+      // Relations open other tables, and computed columns read through them.
+      .filter(({ type }) => type !== 'relation' && !isComputedType(type))
       .map(toTableColumn);
     const visible = new Set(columns.map(({ id }) => id));
     const page = await queryRecordPage(

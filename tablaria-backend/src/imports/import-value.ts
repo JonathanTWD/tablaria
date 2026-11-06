@@ -4,9 +4,16 @@ import {
   columnValueSchemas,
 } from '@tablaria/shared';
 import { convertCellValue } from '../columns/convert-value';
+import { uniqueKey } from '../records/unique-values';
 
 export type ImportedCell =
-  { value: CellValue } | { error: 'invalid' | 'unknownChoice' };
+  | { value: CellValue }
+  | {
+      error: 'invalid' | 'unknownChoice' | 'unknownRecord' | 'ambiguousRecord';
+    };
+
+/** The records of a linked table by name (their first cell, as a unique key). */
+export type RecordsByName = ReadonlyMap<string, string[]>;
 
 // Our CSV export prefixes these with an apostrophe so spreadsheets keep them as text.
 const FORMULA_GUARD = /^'(?=[=+\-@\t\r])/;
@@ -48,6 +55,40 @@ export function importCellValue(
     return { error: column.type === 'select' ? 'unknownChoice' : 'invalid' };
   }
   return { value };
+}
+
+/**
+ * A relation cell names the record it links to, as the table shows it (its
+ * first column), or several, comma-separated, when the relation is multiple:
+ * what our CSV export writes (ADR-036). Names compare like unique values,
+ * ignoring case and surrounding spaces.
+ */
+export function importLinkedRecords(
+  text: string,
+  multiple: boolean,
+  names: RecordsByName,
+): ImportedCell {
+  const trimmed = text.trim();
+  if (trimmed === '') {
+    return { value: null };
+  }
+  const parts = multiple
+    ? trimmed.split(',').filter((part) => part.trim() !== '')
+    : [trimmed];
+  const ids: string[] = [];
+  for (const part of parts) {
+    const found = names.get(uniqueKey(part) ?? '') ?? [];
+    if (found.length === 0) {
+      return { error: 'unknownRecord' };
+    }
+    if (found.length > 1) {
+      return { error: 'ambiguousRecord' };
+    }
+    if (!ids.includes(found[0])) {
+      ids.push(found[0]);
+    }
+  }
+  return { value: multiple ? ids : ids[0] };
 }
 
 /**

@@ -4,6 +4,7 @@ import {
   type ColumnDefinition,
   type ColumnType,
   columnValueSchemas,
+  isComputedType,
   MAX_LINKS_PER_CELL,
 } from "./column-types.js";
 
@@ -116,10 +117,10 @@ export function cellValueSchema(column: ColumnDefinition): z.ZodType<CellValue> 
  * cells it sends. Null means "empty the cell".
  */
 export function recordDataSchema(columns: RecordColumn[], { partial }: { partial: boolean }) {
-  // Lookups and rollups are computed, never written: sending one is an unknown key.
+  // Computed columns are never written: sending one is an unknown key.
   const shape = Object.fromEntries(
     columns
-      .filter((column) => column.type !== "lookup" && column.type !== "rollup")
+      .filter((column) => !isComputedType(column.type))
       .map((column) => [column.id, cellValueSchema(column).optional()]),
   );
   return z
@@ -169,8 +170,10 @@ export const FILTER_OPERATOR_BY_TYPE: Record<ColumnType, FilterOperator> = {
   relation: "contains",
   // By the value it shows, as text (ADR-030).
   lookup: "contains",
-  // Not filterable yet: the API refuses it (ADR-031).
+  // By its value, as a number or a date (ADR-034).
   rollup: "between",
+  // Not filterable yet: the API refuses it (ADR-033).
+  formula: "contains",
 };
 
 const rangeBoundSchema = z.union([z.number(), z.iso.date()]);

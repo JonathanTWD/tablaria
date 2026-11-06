@@ -26,9 +26,14 @@ import {
   logStockChanges,
   type RecordWrite,
 } from '../stock-movements/stock-log';
-import { requireTableRole, touchTable } from '../tables/table-access';
+import {
+  requireTableRole,
+  tableRole,
+  touchTable,
+} from '../tables/table-access';
 import { insertTable } from '../tables/tables.service';
-import { takenKeys } from '../records/unique-values';
+import { takenKeys, uniqueKey } from '../records/unique-values';
+import type { RecordsByName } from './import-value';
 import {
   analyzeImport,
   type ImportAnalysis,
@@ -65,6 +70,7 @@ export class ImportsService {
       plan,
       request,
       await uniqueness(this.prisma, tableId, plan, request.updateBy),
+      await recordsByName(this.prisma, userId, plan),
     ).check;
   }
 
@@ -85,6 +91,7 @@ export class ImportsService {
           plan,
           request,
           await uniqueness(tx, tableId, plan, request.updateBy),
+          await recordsByName(tx, userId, plan),
         );
         requireImportable(analysis);
         // New choices change the columns, which only admins do.
@@ -215,13 +222,62 @@ async function uniqueness(
   return { taken, updateBy };
 }
 
+/**
+ * For each relation the file fills, the records of its linked table by name:
+ * their first cell, as the table shows them (ADR-036). Linking needs access
+ * to that table, as when linking by hand.
+ */
+async function recordsByName(
+  db: Prisma.TransactionClient,
+  userId: string,
+  plan: ImportPlan,
+): Promise<Map<string, RecordsByName>> {
+  const result = new Map<string, RecordsByName>();
+  for (const column of plan.targets) {
+    if (column?.type !== 'relation' || result.has(column.id)) {
+      continue;
+    }
+    const linkedTableId = column.options.tableId;
+    if (!(await tableRole(db, userId, linkedTableId))) {
+      throw new ForbiddenException('No access to the linked table');
+    }
+    const first = await db.column.findFirst({
+      where: { tableId: linkedTableId },
+      orderBy: { position: 'asc' },
+      select: { id: true, type: true },
+    });
+    const names = new Map<string, string[]>();
+    // A relation as first column names records by another record's id: nothing to match.
+    if (first && first.type !== 'relation') {
+      const rows = await db.$queryRaw<{ id: string; name: string }[]>`
+        SELECT id, data ->> ${first.id}::text AS name FROM records
+        WHERE "tableId" = ${linkedTableId}::uuid AND data ? ${first.id}::text`;
+      for (const { id, name } of rows) {
+        const key = uniqueKey(name);
+        if (key !== null) {
+          names.set(key, [...(names.get(key) ?? []), id]);
+        }
+      }
+    }
+    result.set(column.id, names);
+  }
+  return result;
+}
+
 function analyze(
   plan: ImportPlan,
   request: Pick<ImportRequest, 'rows' | 'addMissingChoices'>,
   unique?: ImportUniqueness,
+  linkedNames?: ReadonlyMap<string, RecordsByName>,
 ): ImportAnalysis {
   try {
-    return analyzeImport(plan, request.rows, request.addMissingChoices, unique);
+    return analyzeImport(
+      plan,
+      request.rows,
+      request.addMissingChoices,
+      unique,
+      linkedNames,
+    );
   } catch (error) {
     if (error instanceof InvalidImportError) {
       throw new BadRequestException(error.message);

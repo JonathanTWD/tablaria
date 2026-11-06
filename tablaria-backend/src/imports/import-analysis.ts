@@ -4,6 +4,7 @@ import {
   type ImportCellError,
   type ImportCheck,
   type importSchema,
+  isComputedType,
   MAX_COLUMNS_PER_TABLE,
   MAX_IMPORT_ERRORS,
   MAX_SELECT_CHOICES,
@@ -17,7 +18,11 @@ import {
 import { randomUUID } from 'node:crypto';
 import type { z } from 'zod';
 import { uniqueKey } from '../records/unique-values';
-import { importCellValue } from './import-value';
+import {
+  importCellValue,
+  importLinkedRecords,
+  type RecordsByName,
+} from './import-value';
 
 export type ImportRequest = z.output<typeof importSchema>;
 
@@ -74,7 +79,7 @@ export function planImport(
       if (!column) {
         throw new InvalidImportError(`Column ${target} is not in this table`);
       }
-      if (column.type === 'lookup' || column.type === 'rollup') {
+      if (isComputedType(column.type)) {
         throw new InvalidImportError(
           `An import cannot fill ${column.type} columns`,
         );
@@ -83,8 +88,7 @@ export function planImport(
     }
     if (
       target.create.type === 'relation' ||
-      target.create.type === 'lookup' ||
-      target.create.type === 'rollup'
+      isComputedType(target.create.type)
     ) {
       // What they link to is decided in the column settings, not in a file.
       throw new InvalidImportError(
@@ -122,13 +126,15 @@ export interface ImportUniqueness {
  * rules as creating a record by hand. With `addMissingChoices`, values no
  * select choice matches become new choices instead of errors. Unique columns
  * refuse values repeated in the file or held by another record; with
- * `updateBy`, a row whose key a record holds updates that record.
+ * `updateBy`, a row whose key a record holds updates that record. Relation
+ * cells name their linked records, found in `linkedNames` (ADR-036).
  */
 export function analyzeImport(
   plan: ImportPlan,
   rows: string[][],
   addMissingChoices: boolean,
   uniqueness: ImportUniqueness = { taken: new Map() },
+  linkedNames: ReadonlyMap<string, RecordsByName> = new Map(),
 ): ImportAnalysis {
   const keyColumn =
     uniqueness.updateBy === undefined
@@ -180,7 +186,14 @@ export function analyzeImport(
         return;
       }
       const value = cells[position] ?? '';
-      const cell = importCellValue(value, column);
+      const cell =
+        column.type === 'relation'
+          ? importLinkedRecords(
+              value,
+              column.options.multiple,
+              linkedNames.get(column.id) ?? new Map(),
+            )
+          : importCellValue(value, column);
       if ('error' in cell) {
         rowErrors.push({ row, column: position, value, reason: cell.error });
       } else {

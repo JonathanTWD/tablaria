@@ -83,10 +83,12 @@ describe('Table access by role (e2e)', () => {
     await client.get(base).expect(expected.read);
     await client.get(`${base}/records`).expect(expected.read);
     await client.get(`${base}/records/export`).expect(expected.read);
+    await client.get(`${base}/metrics/summary`).expect(expected.read);
     await client
-      .get(`${base}/records/stats`)
+      .get(`${base}/metrics/groups`)
       .query({ groupBy: column('Ubicación') })
       .expect(expected.read);
+    await client.get(`${base}/metrics/timeline`).expect(expected.read);
 
     await client
       .post(`${base}/records`)

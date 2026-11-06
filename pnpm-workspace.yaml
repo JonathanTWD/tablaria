@@ -8,4 +8,12 @@ packages:
 # locally. Rolldown (Vite's bundler) ships frequent native builds; the version
 # in the lockfile already passes CI, so it may be installed before it matures.
 minimumReleaseAgeExclude:
+  - "rolldown"
   - "@rolldown/*"
+
+# Security fixes in dependencies of Express and Nest that their own ranges
+# don't reach yet (pnpm audit). Remove each once its parent requires it.
+overrides:
+  body-parser: ">=2.4.0"
+  multer: ">=2.5.0"
+  qs: ">=6.16.1"

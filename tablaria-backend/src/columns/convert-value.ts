@@ -41,7 +41,8 @@ export function convertCellValue(
       return null;
     case 'lookup':
     case 'rollup':
-      // Never stored: computed when read (ADR-030, ADR-031).
+    case 'formula':
+      // Never stored: computed when read (ADR-030, ADR-031, ADR-033).
       return null;
   }
 }

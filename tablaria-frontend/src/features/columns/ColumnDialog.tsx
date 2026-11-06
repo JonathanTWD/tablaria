@@ -5,15 +5,18 @@ import {
   canBeUnique,
   canRollUp,
   COLUMN_TYPES,
+  formulaColumnRef,
+  isComputedType,
   ROLLUP_FUNCTIONS,
   MAX_SELECT_CHOICES,
   SELECT_COLORS,
   type ColumnType,
   type SelectColor,
   type TableColumn,
+  type TableDetail,
 } from "@tablaria/shared";
 import { Plus, TriangleAlert, X } from "lucide-react";
-import { useId } from "react";
+import { useId, useRef } from "react";
 import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -48,6 +51,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import {
   tableQuery,
   tablesQuery,
@@ -65,6 +69,7 @@ import {
   type ColumnFormValues,
 } from "./column-form";
 import { COLUMN_TYPE_ICONS, COMMON_CURRENCIES, SELECT_SWATCH_CLASSES } from "./column-ui";
+import { checkFormulaIn, type FormulaCheck } from "./formula-check";
 
 interface ColumnDialogProps {
   tableId: string;
@@ -78,6 +83,7 @@ interface ColumnDialogProps {
 
 export function ColumnDialog({ open, onOpenChange, column, ...props }: ColumnDialogProps) {
   const { t } = useTranslation(["tables", "common"]);
+  const table = useQuery(tableQuery(props.tableId));
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -93,8 +99,17 @@ export function ColumnDialog({ open, onOpenChange, column, ...props }: ColumnDia
             {column ? column.name : t("columns.description")}
           </DialogDescription>
         </DialogHeader>
-        {/* The popup unmounts when closed, so every opening starts from fresh values. */}
-        <ColumnForm column={column} onDone={() => onOpenChange(false)} {...props} />
+        {/* The popup unmounts when closed, so every opening starts from fresh values.
+            A formula shows its columns by name, so it waits for them. */}
+        {column?.type === "formula" && table.isError ? (
+          <FormAlert>{apiErrorMessage(table.error)}</FormAlert>
+        ) : column?.type === "formula" && !table.data ? (
+          <p role="status" className="text-sm text-muted-foreground">
+            {t("common:loading")}
+          </p>
+        ) : (
+          <ColumnForm column={column} onDone={() => onOpenChange(false)} {...props} />
+        )}
       </DialogContent>
     </Dialog>
   );
@@ -108,10 +123,12 @@ function ColumnForm({
 }: Omit<ColumnDialogProps, "open" | "onOpenChange"> & { onDone: () => void }) {
   const { t, i18n } = useTranslation("tables");
   const ids = useId();
+  // Already loaded by the table page: it shows a formula's columns by name.
+  const table = useQuery(tableQuery(tableId));
   const form = useForm<ColumnFormValues>({
     resolver: zodResolver(columnFormSchema),
     mode: "onTouched",
-    defaultValues: columnFormDefaults(column),
+    defaultValues: columnFormDefaults(column, table.data?.columns),
   });
   // `keyName` keeps React keys apart from each choice's own `id`.
   const choices = useFieldArray({ control: form.control, name: "choices", keyName: "key" });
@@ -124,6 +141,14 @@ function ColumnForm({
   const unique =
     useWatch({ control: form.control, name: "unique" }) && canBeUnique(type) && !stock;
   const choiceValues = useWatch({ control: form.control, name: "choices" });
+  const [expression, formulaCurrency] = useWatch({
+    control: form.control,
+    name: ["expression", "formulaCurrency"],
+  });
+  const formulaCheck =
+    type === "formula" && table.data
+      ? checkFormulaIn(table.data, expression, formulaCurrency, column?.id)
+      : null;
   const { errors } = form.formState;
 
   const onError = (error: Error) => {
@@ -134,6 +159,10 @@ function ColumnForm({
   };
 
   const onSubmit = form.handleSubmit((values) => {
+    if (formulaCheck && !formulaCheck.ok) {
+      form.setError("expression", { type: "formula" }, { shouldFocus: true });
+      return;
+    }
     const body = toColumnDefinition(values);
     if (column) {
       update.mutate(
@@ -169,7 +198,13 @@ function ColumnForm({
         ? null
         : mutation.error instanceof ApiError && mutation.error.status === 422
           ? // For a relation, the linked table is the likelier cause than the column limit.
-            t(type === "relation" ? "columnForm.linkedTableError" : "columnForm.limit")
+            t(
+              type === "relation"
+                ? "columnForm.linkedTableError"
+                : type === "formula"
+                  ? "columnForm.errors.formula"
+                  : "columnForm.limit",
+            )
           : mutation.error && apiErrorMessage(mutation.error);
 
   const typeItems = Object.fromEntries(
@@ -211,7 +246,7 @@ function ColumnForm({
               <Select
                 items={typeItems}
                 value={field.value}
-                disabled={column?.type === "lookup" || column?.type === "rollup"}
+                disabled={column && isComputedType(column.type)}
                 onValueChange={(value) => {
                   if (value) {
                     field.onChange(value);
@@ -227,9 +262,9 @@ function ColumnForm({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {/* Computed columns are created as such and stay so (ADR-030, ADR-031). */}
+                  {/* Computed columns are created as such and stay so (ADR-030, 031, 033). */}
                   {COLUMN_TYPES.filter(
-                    (value) => !column || column.type === value || (value !== "lookup" && value !== "rollup"),
+                    (value) => !column || column.type === value || !isComputedType(value),
                   ).map((value) => {
                     const Icon = COLUMN_TYPE_ICONS[value];
                     return (
@@ -296,6 +331,17 @@ function ColumnForm({
         {type === "lookup" && <LookupFields tableId={tableId} form={form} id={`${ids}-lookup`} />}
 
         {type === "rollup" && <RollupFields tableId={tableId} form={form} id={`${ids}-rollup`} />}
+
+        {type === "formula" && table.data && formulaCheck && (
+          <FormulaFields
+            table={table.data}
+            columnId={column?.id}
+            form={form}
+            check={formulaCheck}
+            currencyItems={currencyItems}
+            id={`${ids}-formula`}
+          />
+        )}
 
         {type === "number" && (
           <FormField
@@ -399,7 +445,7 @@ function ColumnForm({
           </fieldset>
         )}
 
-        {type !== "lookup" && type !== "rollup" && (
+        {!isComputedType(type) && (
         <Field orientation="horizontal">
           <FieldContent>
             <FieldLabel htmlFor={`${ids}-required`}>{t("columnForm.required")}</FieldLabel>
@@ -468,7 +514,7 @@ function ColumnForm({
 
         {/* A default record would link every new record to the same one, and
             a unique column can't give the same value to every record. */}
-        {type !== "relation" && type !== "lookup" && type !== "rollup" && !unique && (
+        {type !== "relation" && !isComputedType(type) && !unique && (
           <DefaultValueField
             id={`${ids}-default`}
             type={type}
@@ -717,6 +763,164 @@ function LookupFields({
           <FieldDescription id={`${id}-target-hint`}>{t("columnForm.lookupTargetHint")}</FieldDescription>
         )}
       </Field>
+    </>
+  );
+}
+
+const NO_CURRENCY = "none";
+
+/**
+ * The expression, checked as it is typed against the other columns, with
+ * buttons that insert a column and, for a number, an optional currency.
+ */
+function FormulaFields({
+  table,
+  columnId,
+  form,
+  check,
+  currencyItems,
+  id,
+}: {
+  table: TableDetail;
+  columnId?: string;
+  form: ReturnType<typeof useForm<ColumnFormValues>>;
+  check: FormulaCheck;
+  currencyItems: Record<string, string>;
+  id: string;
+}) {
+  const { t } = useTranslation("tables");
+  const textarea = useRef<HTMLTextAreaElement | null>(null);
+  const formulaCurrency = useWatch({ control: form.control, name: "formulaCurrency" });
+  // Relations and other formulas can't be cited (ADR-033).
+  const citable = table.columns.filter(
+    (item) => item.id !== columnId && item.type !== "relation" && item.type !== "formula",
+  );
+  const showsNumber =
+    check.ok && (check.resultType === "number" || check.resultType === "unknown");
+
+  const insert = (name: string) => {
+    const element = textarea.current;
+    const current = form.getValues("expression");
+    const start = element?.selectionStart ?? current.length;
+    const end = element?.selectionEnd ?? current.length;
+    const text = formulaColumnRef(name);
+    const next = current.slice(0, start) + text + current.slice(end);
+    form.setValue("expression", next, { shouldDirty: true });
+    // Back to typing right after what was inserted, unless typing already
+    // went on: moving the caret then would split what is being typed.
+    requestAnimationFrame(() => {
+      if (element?.value === next) {
+        element.focus();
+        element.setSelectionRange(start + text.length, start + text.length);
+      }
+    });
+  };
+
+  return (
+    <>
+      <Controller
+        control={form.control}
+        name="expression"
+        render={({ field, fieldState, formState }) => {
+          const showError = !check.ok && (fieldState.isTouched || formState.isSubmitted);
+          return (
+            <Field data-invalid={showError}>
+              <FieldLabel htmlFor={`${id}-expression`}>{t("columnForm.formula")}</FieldLabel>
+              <Textarea
+                {...field}
+                ref={(element) => {
+                  field.ref(element);
+                  textarea.current = element;
+                }}
+                id={`${id}-expression`}
+                rows={3}
+                spellCheck={false}
+                autoComplete="off"
+                aria-invalid={showError}
+                aria-describedby={`${id}-expression-hint ${id}-expression-status`}
+                className="font-mono text-sm"
+              />
+              <FieldDescription id={`${id}-expression-hint`}>
+                {t("columnForm.formulaHint")} {t("columnForm.formulaExample")}
+              </FieldDescription>
+              <div id={`${id}-expression-status`} aria-live="polite">
+                {!check.ok && showError ? (
+                  <FieldError>
+                    {t(`columnForm.formulaErrors.${check.code}`, { detail: check.detail })}
+                  </FieldError>
+                ) : check.ok && check.resultType !== "unknown" ? (
+                  <FieldDescription>
+                    {t("columnForm.formulaResult", {
+                      type: t(`columnForm.formulaResultTypes.${check.resultType}`),
+                    })}
+                  </FieldDescription>
+                ) : null}
+              </div>
+            </Field>
+          );
+        }}
+      />
+      {citable.length > 0 && (
+        <div role="group" aria-labelledby={`${id}-columns`} className="flex flex-col gap-2">
+          <span id={`${id}-columns`} className="text-sm font-medium">
+            {t("columnForm.formulaColumns")}
+          </span>
+          <div className="flex flex-wrap gap-1.5">
+            {citable.map((item) => {
+              const Icon = COLUMN_TYPE_ICONS[item.type];
+              return (
+                <Button
+                  key={item.id}
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  aria-label={t("columnForm.formulaInsert", { name: item.name })}
+                  onClick={() => insert(item.name)}
+                >
+                  <Icon aria-hidden="true" className="text-muted-foreground" />
+                  {item.name}
+                </Button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+      {(showsNumber || formulaCurrency !== "") && (
+        <Field>
+          <FieldLabel htmlFor={`${id}-currency`}>{t("columnForm.formulaCurrency")}</FieldLabel>
+          <Controller
+            control={form.control}
+            name="formulaCurrency"
+            render={({ field }) => {
+              const items: Record<string, string> = {
+                [NO_CURRENCY]: t("columnForm.formulaNoCurrency"),
+                ...(field.value ? { [field.value]: field.value } : {}),
+                ...currencyItems,
+              };
+              return (
+                <Select
+                  items={items}
+                  value={field.value || NO_CURRENCY}
+                  onValueChange={(value) =>
+                    value && field.onChange(value === NO_CURRENCY ? "" : value)
+                  }
+                >
+                  <SelectTrigger id={`${id}-currency`} className="h-9 w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(items).map(([code, label]) => (
+                      <SelectItem key={code} value={code}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              );
+            }}
+          />
+        </Field>
+      )}
     </>
   );
 }

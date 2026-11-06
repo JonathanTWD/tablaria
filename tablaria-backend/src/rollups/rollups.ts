@@ -180,6 +180,28 @@ function linksSql(source: RollupSource): Prisma.Sql {
     : Prisma.sql`(SELECT b.*, b.data ->> ${column}::text AS link FROM records b) b`;
 }
 
+/** What a rollup shows when nothing links here: none counted and nothing added up. */
+export function emptyRollupValue(source: RollupSource): 0 | null {
+  return source.function === 'count' || source.function === 'sum' ? 0 : null;
+}
+
+/** How a rollup's values compare: dates as dates, everything else as numbers. */
+export function rollupValueType(source: RollupSource): 'number' | 'date' {
+  return source.target?.type === 'date' ? 'date' : 'number';
+}
+
+/**
+ * Every record's rollup value at once, as rows of `link` (the record id, as
+ * text) and `value`: what a listing joins to sort and filter by it. Records
+ * nothing links to have no row (see `emptyRollupValue`).
+ */
+export function rollupValuesSql(source: RollupSource): Prisma.Sql {
+  return Prisma.sql`(SELECT link, ${aggregateSql(source)} AS value
+    FROM ${linksSql(source)}
+    WHERE b."tableId" = ${source.tableId}::uuid
+    GROUP BY link)`;
+}
+
 /**
  * Writes each rollup's value into the records' data, as if it were stored:
  * one grouped query per rollup over the records that link to these.
@@ -203,9 +225,7 @@ export async function fillRollups(
         AND link = ANY(${ids}::text[])
       GROUP BY 1`;
     const byId = new Map(rows.map(({ id, value }) => [id, value]));
-    // Nothing links here: none counted and nothing added up.
-    const empty =
-      source.function === 'count' || source.function === 'sum' ? 0 : null;
+    const empty = emptyRollupValue(source);
     for (const record of records) {
       const value = byId.get(record.id) ?? empty;
       if (value !== null) {

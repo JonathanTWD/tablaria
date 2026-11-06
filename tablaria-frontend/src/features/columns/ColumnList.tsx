@@ -1,4 +1,4 @@
-import { hasRole, type RollupFunction, type TableColumn, type TableDetail } from "@tablaria/shared";
+import { hasRole, renameFormulaColumns, type RollupFunction, type TableColumn, type TableDetail } from "@tablaria/shared";
 import { ArrowDown, ArrowUp, Columns3, Ellipsis, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -88,6 +88,14 @@ export function ColumnList({ table }: { table: TableDetail }) {
                   : undefined
               }
               rollup={column.type === "rollup" ? rollupSummary(table, column) : undefined}
+              formula={
+                column.type === "formula"
+                  ? renameFormulaColumns(
+                      column.options.expression,
+                      (ref) => columns.find(({ id }) => id === ref)?.name,
+                    )
+                  : undefined
+              }
               isFirst={index === 0}
               isLast={index === columns.length - 1}
               onMove={(offset) => move(index, offset)}
@@ -120,6 +128,7 @@ function ColumnRow({
   column,
   lookup,
   rollup,
+  formula,
   canManage,
   isFirst,
   isLast,
@@ -132,6 +141,8 @@ function ColumnRow({
   lookup?: { relation: string; target: string | undefined };
   /** For a rollup: what it sums up, or null when its table can't be opened. */
   rollup?: RollupSummary | null;
+  /** For a formula: its expression, citing columns by name. */
+  formula?: string;
   canManage: boolean;
   isFirst: boolean;
   isLast: boolean;
@@ -166,6 +177,7 @@ function ColumnRow({
         relation: rollup.relation,
         target: rollup.target,
       }),
+    formula && t("columns.formula", { expression: formula }),
   ].filter(Boolean);
 
   return (
