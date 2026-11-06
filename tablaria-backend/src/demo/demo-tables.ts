@@ -81,8 +81,9 @@ export async function createDemoTables(
   spaces: DemoSpaces,
 ): Promise<void> {
   const created = new DemoTables();
-  // Lists show the most recently edited table first: create the first one last.
-  for (const key of [...displayOrder].reverse()) {
+  // Lists show the most recently edited table first. Created in one go, the
+  // tables could share a millisecond: each gets its own edit time, a second apart.
+  for (const [index, key] of displayOrder.entries()) {
     const table = tables.find((item) => item.key === key);
     if (!table) {
       throw new Error(`Demo table "${key}" is not defined`);
@@ -95,6 +96,7 @@ export async function createDemoTables(
         createdById: spaces.visitorId,
         name: table.name,
         description: table.description,
+        updatedAt: new Date(spaces.now.getTime() - index * 1000),
       },
       select: { id: true },
     });
