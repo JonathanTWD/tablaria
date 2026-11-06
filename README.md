@@ -16,6 +16,7 @@ Gestión de inventario flexible: cada usuario crea sus propias tablas, define co
   - alertas de stock bajo por columna y resumen con gráfico de barras.
 - **Compartir y organizaciones**: invitar por email a una tabla como lector o editor, u organizaciones con miembros y roles (lector, editor, administrador y propietario) que ven todas sus tablas. Las invitaciones caducan, son de un solo uso y tienen límites contra el spam.
 - **Tiempo real y presencia**: los cambios de otras personas aparecen sin recargar, y se ve quién tiene la tabla abierta y qué celda está editando.
+- **Etiquetas QR** para imprimir y pegar: al escanearlas se abre la ficha del registro.
 - **Métricas de cada tabla**: totales y medias, registros bajo mínimo, gráficos por grupos (barras o dona) y evolución en el tiempo.
 - **Dashboard** con cifras generales, tablas recientes y selector de espacio, tema claro u oscuro, interfaz en español preparada para más idiomas y diseño adaptado a móvil y a pantallas grandes.
 - **Demo pública** con cuentas temporales: una ferretería con productos, proveedores y pedidos enlazados, con consultas, resúmenes, fórmulas, historial de stock y actividad, y una organización con compañeros ficticios.

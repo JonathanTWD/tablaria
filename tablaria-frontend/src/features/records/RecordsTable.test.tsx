@@ -299,6 +299,7 @@ describe("RecordsTable", () => {
   });
 
   it("shows viewers the records without any way to change them", async () => {
+    const user = userEvent.setup();
     mockApi(() => page);
     renderWithProviders(<RecordsTable table={{ ...table, role: "VIEWER" }} />, {
       route: "/app/tables/x",
@@ -308,9 +309,13 @@ describe("RecordsTable", () => {
     expect(screen.getByText(/Solo lectura/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Nuevo registro/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Precio de Taladro/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Acciones/ })).not.toBeInTheDocument();
-    // Exporting is reading, so viewers keep it.
+    // Exporting and printing labels are reading, so viewers keep them.
     expect(screen.getByRole("button", { name: /Exportar CSV/ })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Etiquetas QR/ })).toBeInTheDocument();
+    // A record's menu only opens its sheet (ADR-038).
+    await user.click(screen.getByRole("button", { name: /Acciones/ }));
+    expect(await screen.findByRole("menuitem", { name: "Ver ficha" })).toBeVisible();
+    expect(screen.queryByRole("menuitem", { name: /Editar|Eliminar/ })).not.toBeInTheDocument();
   });
 
   it("lets editors change records", async () => {

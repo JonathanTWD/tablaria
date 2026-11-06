@@ -16,6 +16,7 @@ import {
 import { Throttle } from '@nestjs/throttler';
 import {
   type RecordInput,
+  type RecordDetail,
   type RecordPage,
   recordInputSchema,
   type RecordExportQuery,
@@ -63,6 +64,16 @@ export class RecordsController {
       'Cache-Control': 'no-store',
     });
     return new StreamableFile(file.content);
+  }
+
+  /** One record: what its QR label opens (ADR-038). */
+  @Get(':recordId')
+  get(
+    @CurrentUserId() userId: string,
+    @Param('tableId', ParseUUIDPipe) tableId: string,
+    @Param('recordId', ParseUUIDPipe) recordId: string,
+  ): Promise<RecordDetail> {
+    return this.records.get(userId, tableId, recordId);
   }
 
   @Post()

@@ -722,6 +722,36 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 - El test de la demo comprueba que cada tipo de columna da su valor (fórmula, consulta, resumen por relación simple y múltiple), que el historial de stock cuadra y que la evolución tiene varios meses.
 - Si se añade una función nueva, la demo debería enseñarla también.
 
+## ADR-038: Etiquetas QR y ficha de cada registro
+
+**Contexto**: en un almacén o una oficina, lo útil es pegar una etiqueta en la estantería o en el equipo y, al escanearla, ver al momento su registro: stock, ubicación, quién lo tiene. No había forma de abrir un registro suelto, ni en la API ni en la interfaz.
+
+**Decisión**:
+- **Un registro suelto en la API:** `GET /tables/:tableId/records/:recordId` devuelve `RecordDetail`, con el registro y las etiquetas de lo que enlaza.
+  - Las consultas, los resúmenes y las fórmulas se rellenan igual que en una página de registros, con los mismos permisos.
+  - Responde 404 si la tabla no se puede abrir, si el registro es de otra tabla o si no existe, sin distinguir entre esos casos.
+- **La ficha vive en la URL** (`/app/tables/:tableId?record=:recordId`).
+  - Muestra todas las celdas, las calculadas incluidas, con su formato.
+  - Desde ella se puede editar el registro (EDITOR o más), ver su stock o imprimir su etiqueta.
+  - Cualquiera que pueda abrir la tabla la ve: la opción «Ver ficha» está en el menú de cada fila, también para quien solo puede ver.
+- **El QR solo lleva ese enlace**, sin datos. Escanearlo pide iniciar sesión y tener acceso a la tabla, así que una etiqueta perdida no revela nada.
+  - Se genera en el navegador con la librería `qrcode`, madura y sin dependencias de servidor.
+  - Se dibuja como un SVG de cuadrados, para que se imprima nítido a cualquier tamaño, con corrección de errores media para aguantar etiquetas rozadas.
+  - En PNG solo se genera para descargarlo.
+- **Etiqueta:**
+  - el nombre (la primera columna);
+  - la referencia: la primera columna de valor único (ADR-023), como el SKU o el número de serie, el código que la gente lee en voz alta;
+  - el nombre de la tabla.
+- **Hoja para imprimir** (`/app/tables/:tableId/labels`), fuera del marco de la app para que solo se impriman las etiquetas.
+  - Imprime la vista actual (búsqueda, filtros y orden), con un máximo de una página de 100 registros, o un solo registro con `?record=`.
+  - Tres etiquetas por fila, sin cortarse entre páginas.
+- **Sin almacenamiento:** los QR se generan al vuelo, así que no hace falta guardar imágenes. Los adjuntos (fotos y documentos) quedan para una decisión aparte, con Filebase como opción sin cobros por exceso.
+
+**Consecuencias**:
+- Un QR pegado sigue sirviendo mientras exista el registro, aunque cambien sus datos.
+- Si el registro se borra, la ficha dice que ya no existe.
+- Las etiquetas dependen del dominio (`window.location.origin`): si cambia el dominio de la app, hay que volver a imprimirlas.
+
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
 Todas están especificadas en [MVP_PROMPT.md](MVP_PROMPT.md):

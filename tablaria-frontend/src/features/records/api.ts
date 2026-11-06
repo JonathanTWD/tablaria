@@ -1,5 +1,6 @@
 import type {
   RecordData,
+  RecordDetail,
   RecordPage,
   TableRecord,
 } from "@tablaria/shared";
@@ -48,6 +49,8 @@ export const recordsApi = {
     }),
   exportCsv: (tableId: string, view: RecordsView) =>
     apiDownload(`/tables/${tableId}/records/export?${toExportQueryString(view)}`, "registros.csv"),
+  get: (tableId: string, recordId: string) =>
+    apiRequest<RecordDetail>(`/tables/${tableId}/records/${recordId}`),
   remove: (tableId: string, recordId: string) =>
     apiRequest<void>(`/tables/${tableId}/records/${recordId}`, { method: "DELETE" }),
 };

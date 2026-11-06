@@ -21,10 +21,12 @@ import {
   ArrowUp,
   ArrowUpDown,
   Ellipsis,
+  FileText,
   FileUp,
   ArrowDownUp,
   Pencil,
   Plus,
+  QrCode,
   Rows3,
   Search,
   Trash2,
@@ -32,7 +34,7 @@ import {
 } from "lucide-react";
 import { type FocusEvent, Fragment, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { FormAlert } from "@/components/form/FormAlert";
 import { Button } from "@/components/ui/button";
@@ -60,6 +62,8 @@ import { FiltersSheet } from "./FiltersSheet";
 import { GroupBySelect } from "./GroupBySelect";
 import { groupValueOf } from "./record-groups";
 import { RecordDialog } from "./RecordDialog";
+import { RecordSheet } from "./RecordSheet";
+import { shownColumn } from "./shown-column";
 import { RecordsPagination } from "./RecordsPagination";
 import { recordsQuery, useUpdateRecord } from "./queries";
 import { StockDialog } from "@/features/stock-movements/StockDialog";
@@ -121,8 +125,6 @@ export function RecordsTable({ table }: { table: TableDetail }) {
   // The API enforces these too; the interface just doesn't offer what would be refused.
   const canEdit = hasRole(table.role, "EDITOR");
   const stockColumns = columns.filter((column) => column.stock);
-  // Anyone who can see the table can read a record's stock history.
-  const hasRowActions = canEdit || stockColumns.length > 0;
   const canManage = hasRole(table.role, "ADMIN");
   const format = useCellFormatter();
   const [dialog, setDialog] = useState<DialogState>({ kind: null });
@@ -199,6 +201,22 @@ export function RecordsTable({ table }: { table: TableDetail }) {
   const closeDialog = (open: boolean) =>
     !open && setDialog((current) => ({ ...current, kind: null }));
 
+  // A record's sheet lives in the URL (`?record=`): what its QR label opens (ADR-038).
+  const [params, setParams] = useSearchParams();
+  const openRecord = params.get("record");
+  const showRecord = (recordId: string | null) =>
+    setParams((current) => {
+      const next = new URLSearchParams(current);
+      if (recordId) {
+        next.set("record", recordId);
+      } else {
+        next.delete("record");
+      }
+      return next;
+    });
+  const labelsParams = new URLSearchParams(params);
+  labelsParams.delete("record");
+
   const importDialog = canEdit && (
     <ImportDialog destination={{ kind: "table", table }} open={importing} onOpenChange={setImporting} />
   );
@@ -269,6 +287,13 @@ export function RecordsTable({ table }: { table: TableDetail }) {
           onChange={(group) => setView({ group })}
         />
         <ExportButton tableId={table.id} view={view} />
+        <Link
+          to={`/app/tables/${table.id}/labels${labelsParams.size > 0 ? `?${labelsParams}` : ""}`}
+          className={cn(buttonVariants({ variant: "outline" }), "h-9")}
+        >
+          <QrCode aria-hidden="true" />
+          {t("qr.labels")}
+        </Link>
         {canEdit && (
           <Button variant="outline" className="h-9" onClick={() => setImporting(true)}>
             <FileUp aria-hidden="true" />
@@ -359,11 +384,9 @@ export function RecordsTable({ table }: { table: TableDetail }) {
                     </th>
                   );
                 })}
-                {hasRowActions && (
-                  <th scope="col" className="w-12 px-1.5">
-                    <span className="sr-only">{t("table.actions")}</span>
-                  </th>
-                )}
+                <th scope="col" className="w-12 px-1.5">
+                  <span className="sr-only">{t("table.actions")}</span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -393,7 +416,7 @@ export function RecordsTable({ table }: { table: TableDetail }) {
                           <tr className="border-b border-border bg-muted/40">
                             <th
                               scope="colgroup"
-                              colSpan={columns.length + (hasRowActions ? 1 : 0)}
+                              colSpan={columns.length + 1}
                               className="px-3 py-2 text-left text-sm font-medium"
                             >
                               {t("group.header", {
@@ -492,47 +515,49 @@ export function RecordsTable({ table }: { table: TableDetail }) {
                             </td>
                             );
                           })}
-                          {hasRowActions && (
-                            <td className="px-1.5 py-1 text-right">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger
-                                  render={
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      aria-label={t("table.rowActions", { label })}
-                                    />
-                                  }
-                                >
-                                  <Ellipsis aria-hidden="true" />
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-52">
-                                  {stockColumns.length > 0 && (
-                                    <DropdownMenuItem onClick={() => setDialog({ kind: "stock", record })}>
-                                      <ArrowDownUp aria-hidden="true" />
-                                      {t("table.stock")}
+                          <td className="px-1.5 py-1 text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger
+                                render={
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    aria-label={t("table.rowActions", { label })}
+                                  />
+                                }
+                              >
+                                <Ellipsis aria-hidden="true" />
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-52">
+                                <DropdownMenuItem onClick={() => showRecord(record.id)}>
+                                  <FileText aria-hidden="true" />
+                                  {t("qr.open")}
+                                </DropdownMenuItem>
+                                {stockColumns.length > 0 && (
+                                  <DropdownMenuItem onClick={() => setDialog({ kind: "stock", record })}>
+                                    <ArrowDownUp aria-hidden="true" />
+                                    {t("table.stock")}
+                                  </DropdownMenuItem>
+                                )}
+                                {canEdit && (
+                                  <>
+                                    <DropdownMenuItem onClick={() => setDialog({ kind: "edit", record })}>
+                                      <Pencil aria-hidden="true" />
+                                      {t("table.edit")}
                                     </DropdownMenuItem>
-                                  )}
-                                  {canEdit && (
-                                    <>
-                                      <DropdownMenuItem onClick={() => setDialog({ kind: "edit", record })}>
-                                        <Pencil aria-hidden="true" />
-                                        {t("table.edit")}
-                                      </DropdownMenuItem>
-                                      <DropdownMenuSeparator />
-                                      <DropdownMenuItem
-                                        variant="destructive"
-                                        onClick={() => setDialog({ kind: "delete", record })}
-                                      >
-                                        <Trash2 aria-hidden="true" />
-                                        {t("table.delete")}
-                                      </DropdownMenuItem>
-                                    </>
-                                  )}
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </td>
-                          )}
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      variant="destructive"
+                                      onClick={() => setDialog({ kind: "delete", record })}
+                                    >
+                                      <Trash2 aria-hidden="true" />
+                                      {t("table.delete")}
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </td>
                         </tr>
                       </Fragment>
                     );
@@ -600,6 +625,29 @@ export function RecordsTable({ table }: { table: TableDetail }) {
           recordId={dialog.record.id}
           label={rowLabel(dialog.record)}
           onOpenChange={closeDialog}
+        />
+      )}
+      {openRecord && (
+        <RecordSheet
+          table={table}
+          recordId={openRecord}
+          onClose={() => showRecord(null)}
+          onEdit={
+            canEdit
+              ? (record) => {
+                  showRecord(null);
+                  setDialog({ kind: "edit", record });
+                }
+              : undefined
+          }
+          onStock={
+            stockColumns.length > 0
+              ? (record) => {
+                  showRecord(null);
+                  setDialog({ kind: "stock", record });
+                }
+              : undefined
+          }
         />
       )}
       {importDialog}
@@ -728,22 +776,4 @@ function EmptyState({
       {action && <div className="mt-5">{action}</div>}
     </div>
   );
-}
-
-/**
- * The column whose type and settings format a cell: what a lookup shows, what
- * a rollup sums up (a plain number when it counts), or the column itself.
- */
-function shownColumn(table: TableDetail, column: TableColumn): TableColumn {
-  if (column.type === "lookup") {
-    return table.lookupTargets[column.id] ?? column;
-  }
-  if (column.type === "rollup") {
-    const target = table.rollupTargets[column.id];
-    // A low-stock threshold is per record: it means nothing for a sum or an average.
-    return target?.type === "currency" || target?.type === "date"
-      ? target
-      : { ...column, type: "number", stock: false, options: null, defaultValue: null };
-  }
-  return column;
 }
