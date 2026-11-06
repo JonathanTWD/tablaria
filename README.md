@@ -4,6 +4,8 @@ Gestión de inventario flexible: cada usuario crea sus propias tablas, define co
 
 **Demo en directo: [tablaria.es](https://tablaria.es).** Pulsa «Probar la demo» y entrarás sin registrarte en una cuenta temporal con tablas de ejemplo, que se borra a las 24 h.
 
+![Tabla de productos de la demo, con categorías de colores, proveedores enlazados y precios](docs/screenshots/tabla.png)
+
 ## Funcionalidades
 
 - **Cuentas**: registro con verificación por email, inicio de sesión, recuperación de contraseña y sesiones con cookies httpOnly y refresh tokens rotatorios.
@@ -20,6 +22,28 @@ Gestión de inventario flexible: cada usuario crea sus propias tablas, define co
 - **Métricas de cada tabla**: totales y medias, registros bajo mínimo, gráficos por grupos (barras o dona) y evolución en el tiempo.
 - **Dashboard** con cifras generales, tablas recientes y selector de espacio, tema claro u oscuro, interfaz en español preparada para más idiomas y diseño adaptado a móvil y a pantallas grandes.
 - **Demo pública** con cuentas temporales: una ferretería con productos, proveedores y pedidos enlazados, con consultas, resúmenes, fórmulas, historial de stock y actividad, y una organización con compañeros ficticios.
+
+## Un caso de uso: etiquetas QR en el almacén
+
+Una ferretería tiene su catálogo en una tabla de productos: referencia, ubicación, stock, stock mínimo y proveedor.
+
+1. **Imprime las etiquetas.** Con «Etiquetas QR» filtra por un pasillo e imprime la hoja en papel adhesivo. Cada etiqueta lleva el QR, el nombre y la referencia.
+2. **Las pega en las estanterías**, cada una en el hueco de su producto.
+3. **Escanea con el móvil** cuando lo necesita: se abre la ficha del producto con su stock, su proveedor y su precio.
+   - Para **reponer**, registra la entrada en los movimientos de stock desde la misma ficha.
+   - Para **hacer inventario**, recorre las estanterías comparando el stock de cada ficha con lo que hay.
+
+El QR solo lleva el enlace, no los datos. Si alguien ajeno escanea una etiqueta, le pide iniciar sesión y no ve nada.
+
+| Hoja de etiquetas para imprimir | Ficha al escanear, en el móvil |
+|---|---|
+| ![Hoja con las etiquetas QR de los productos, tres por fila](docs/screenshots/etiquetas-qr.png) | <img src="docs/screenshots/ficha-movil.png" alt="Ficha del taladro en el móvil, con su QR, botones para imprimir o editar y todas sus columnas" width="260"> |
+
+El mismo esquema sirve para los equipos de una oficina (a quién está asignado cada portátil), material que se presta o las cajas de un trastero.
+
+### Métricas de cada tabla
+
+![Métricas de la tabla de productos: totales, avisos de bajo mínimo, gráfico por categorías y evolución por mes](docs/screenshots/metricas.png)
 
 ## Stack
 
