@@ -112,7 +112,7 @@ export function FiltersSheet({ columns, filters, onApply }: FiltersSheetProps) {
           ? t("toolbar.filtersActive", { count: filters.length })
           : t("toolbar.filters")}
       </SheetTrigger>
-      <SheetContent side="right" closeLabel={t("common:close")} className="w-full sm:max-w-sm">
+      <SheetContent side="right" closeLabel={t("common:close")} className="data-[side=right]:w-full data-[side=right]:sm:max-w-sm">
         <form onSubmit={apply} noValidate className="flex h-full flex-col">
           <div className="border-b border-border p-4">
             <SheetTitle>{t("filters.title")}</SheetTitle>
