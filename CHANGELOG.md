@@ -2,6 +2,11 @@
 
 ## Sin publicar
 
+- **Seguridad: dependencias actualizadas** (los avisos de la auditoría de la v1.5.0 y la v1.6.0):
+  - **body-parser 2.4.0**, que corrige el fallo con cuerpos comprimidos. Se mantiene igualmente el rechazo de cuerpos comprimidos (`inflate: false`), que la app nunca envía.
+  - **multer 2.5.0** y **qs 6.16.1**, en las dependencias de Express y Nest, fijados con `overrides` en `pnpm-workspace.yaml` hasta que ellos mismos los exijan.
+  - **nodemailer 10.2.1**, que solo se usa para enviar por SMTP en desarrollo (producción envía con Resend).
+  - **Pendiente:** minimatch y deepmerge, solo en la CLI de shadcn, que no forma parte de la app. La versión arreglada de minimatch cumple los 14 días de pnpm hacia el 11 de noviembre, y deepmerge no tiene arreglo todavía.
 - **Una demo que lo enseña todo** (ADR-037): la cuenta de demostración llega con una ferretería cuyas tablas están enlazadas, para ver todas las funciones sin montar nada.
   - **Productos** (antes «Ferretería López»): lista de categorías y proveedor enlazado, con su teléfono como consulta. Lleva coste y precio, las fórmulas «Margen» y «Valor del stock», stock con aviso de bajo mínimo e historial de movimientos, y un resumen «Pedidos».
   - **Proveedores:** datos de contacto y los resúmenes «Productos» y «Unidades en stock».
