@@ -1,7 +1,19 @@
 # Changelog
 
-## Sin publicar
+## v1.7.0 — Fórmulas y métricas
 
+- **Seguridad** (auditoría OWASP Top 10:2025 de la release):
+  - **Código:** sin hallazgos. Se revisaron las fórmulas, el orden y filtro por resumen, las métricas, la importación de relaciones y la demo.
+    - Las fórmulas tienen un lenguaje propio, analizado a mano, sin `eval` ni SQL, con un límite de 1.000 caracteres y 100 nodos.
+    - Solo leen lo que el usuario puede ver: una consulta o un resumen sin acceso les llega vacío.
+    - Los enlaces públicos no muestran ninguna columna calculada.
+    - En el CSV, los textos de una fórmula se neutralizan como el resto, así que no pueden convertirse en fórmulas de la hoja de cálculo.
+  - **Dependencias:** de 17 avisos a 2, los dos en la CLI de shadcn, que no forma parte de la app.
+- **Columnas de fórmula** (ADR-033): calculan un valor a partir de las celdas del propio registro, como «Valor del stock» (`{Precio} * {Stock}`), «Margen» o un aviso con `SI`.
+  - **Funciones en español:** `SI`, `Y`, `O`, `NO`, `ESVACIO`, `REDONDEAR`, `ABS`, `MIN`, `MAX`, `MAYUSC`, `MINUSC`, `LARGO`, `HOY` y `DIAS`. También valen sus nombres en inglés. Las columnas se citan entre llaves.
+  - **Se comprueban mientras se escriben:** el formulario avisa de lo que no encaja y dice de qué tipo es el resultado. Una fórmula numérica se puede mostrar como precio.
+  - **Pueden citar** consultas y resúmenes, pero no relaciones ni otras fórmulas.
+  - **Siempre al día:** se calculan al leer y salen en el CSV. Si se renombra una columna, la fórmula sigue funcionando.
 - **Seguridad: dependencias actualizadas** (los avisos de la auditoría de la v1.5.0 y la v1.6.0):
   - **body-parser 2.4.0**, que corrige el fallo con cuerpos comprimidos. Se mantiene igualmente el rechazo de cuerpos comprimidos (`inflate: false`), que la app nunca envía.
   - **multer 2.5.0** y **qs 6.16.1**, en las dependencias de Express y Nest, fijados con `overrides` en `pnpm-workspace.yaml` hasta que ellos mismos los exijan.
