@@ -129,7 +129,7 @@ Así está publicada la demo; los motivos están en [ADR-013](docs/DECISIONS.md)
   - **Variables obligatorias:** `NODE_ENV=production`, `DATABASE_URL`, `JWT_ACCESS_SECRET`, `APP_URL` y `CORS_ORIGINS` (la URL pública de la web).
   - **Proxy:** `TRUST_PROXY_HOPS=1`.
   - **Correo:** `MAIL_TRANSPORT=resend`, `RESEND_API_KEY` y `MAIL_FROM`.
-  - **Adjuntos (Filebase):** un bucket privado y sus claves en `STORAGE_ENDPOINT=https://s3.filebase.com`, `STORAGE_REGION=auto` (lo que pide Filebase; `us-east-1` también sirve), `STORAGE_BUCKET`, `STORAGE_ACCESS_KEY_ID` y `STORAGE_SECRET_ACCESS_KEY`. Sin ellas, la app funciona pero no deja subir archivos ([ADR-039](docs/DECISIONS.md)).
+  - **Adjuntos (Filebase):** un bucket privado y sus claves en `STORAGE_ENDPOINT=https://s3.filebase.io`, `STORAGE_REGION=auto` (lo que pide Filebase; `us-east-1` también sirve), `STORAGE_BUCKET`, `STORAGE_ACCESS_KEY_ID` y `STORAGE_SECRET_ACCESS_KEY`. Sin ellas, la app funciona pero no deja subir archivos ([ADR-039](docs/DECISIONS.md)).
   - **Migraciones:** el contenedor aplica las pendientes antes de arrancar.
   - **Tiempo real:** `REALTIME_URL=wss://<api>.onrender.com/api/realtime`. La rewrite del Static Site no transporta WebSockets de forma fiable, así que el navegador se conecta directamente a la API ([ADR-020](docs/DECISIONS.md)).
 - **Web (Render Static Site)**:
@@ -139,7 +139,7 @@ Así está publicada la demo; los motivos están en [ADR-013](docs/DECISIONS.md)
   - **Rewrites:**
     - `/api/*` → `https://<api>.onrender.com/api/*`, de tipo Rewrite y la primera de la lista;
     - `/*` → `/index.html`.
-  - **Cabeceras:** las mismas que [nginx.conf.template](tablaria-frontend/nginx.conf.template), con la CSP incluida. Añade `wss://<api>.onrender.com` a `connect-src` para el tiempo real, y `https://s3.filebase.com` a `img-src` para las miniaturas de los adjuntos.
+  - **Cabeceras:** las mismas que [nginx.conf.template](tablaria-frontend/nginx.conf.template), con la CSP incluida. Añade `wss://<api>.onrender.com` a `connect-src` para el tiempo real, y el origen de `STORAGE_ENDPOINT` (`https://s3.filebase.io`) a `img-src` para las miniaturas de los adjuntos: tiene que coincidir exactamente, o el navegador las bloquea.
 - **Dominio** (`tablaria.es`, en Hostalia):
   - **Raíz:** un registro `A` a la IP que indica Render.
   - **`www`:** un `CNAME` al Static Site.
