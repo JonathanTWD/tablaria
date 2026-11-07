@@ -840,6 +840,55 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 - Una vista guardada sigue siendo una URL normal al abrirla, así que se puede compartir el enlace como antes.
 - Quien solo puede ver la tabla no ve el botón si no hay vistas, para no ofrecer algo que no puede usar.
 
+## ADR-042: Asistente de IA para preguntar por los datos
+
+**Estado**: propuesta, pendiente de implementar.
+
+**Contexto**: en un almacén o una oficina, la pregunta suele ser concreta y urgente: «¿qué está bajo mínimo en el pasillo A?», «¿cuántos taladros quedan?», «¿qué proveedor nos sirve más productos?». Hoy se responde combinando búsqueda, filtros y métricas. Un asistente que entienda la pregunta y consulte los datos ahorra esos pasos y, con voz, deja las manos libres. El proyecto es gratuito: el proveedor de IA no puede cobrar sin avisar.
+
+**Decisión**:
+- **Proveedor: Groq, plan gratuito.** Sin tarjeta, así que al pasar el límite responde 429 en vez de cobrar. No usa los datos para entrenar. Todos sus modelos admiten herramientas.
+  - **Modelo por defecto:** `openai/gpt-oss-120b`, el más capaz de los gratuitos. `qwen/qwen3.8-27b` como alternativa.
+  - **Configurable** con `AI_BASE_URL`, `AI_API_KEY` y `AI_MODEL`: cualquier API compatible con la de OpenAI (Gemini, por ejemplo) sirve cambiando las variables. Sin `AI_API_KEY`, el asistente no aparece.
+- **El límite real son los tokens:** unos 8.000 por minuto y 200.000 al día. Una pregunta con herramientas gasta entre 3.000 y 6.000. Por eso:
+  - **Respuestas de herramientas compactas:** como mucho 20 registros, solo las columnas que pide el modelo y los valores ya formateados como texto corto.
+  - **Instrucciones de sistema breves** y como mucho 4 pasos de herramientas por pregunta.
+  - **Conversaciones cortas:** se envían como mucho los 6 últimos mensajes.
+  - **Cupo por cuenta:** 15 preguntas al día; en la demo, 3 por sesión. Se guarda en la base de datos (`assistant_usage`, por usuario y día).
+  - **Sin cupo, o con Groq en 429:** el asistente lo dice con claridad («vuelve mañana» o «inténtalo en un minuto»), sin errores genéricos.
+- **Herramientas, solo de lectura**, ejecutadas por la API **como el usuario**, con los mismos servicios y permisos de siempre:
+  - `listar_tablas`: las tablas que puede abrir, con sus columnas (nombre y tipo).
+  - `buscar_registros`: búsqueda, filtros y orden validados con los esquemas de siempre (`recordFilterSchema`); nunca SQL libre.
+  - `resumir`: totales, medias y recuentos por grupos, con el servicio de métricas (ADR-035).
+  - `bajo_minimo`: los avisos de stock (ADR-024).
+  - `historial_stock`: los movimientos de un registro.
+  - Cada herramienta valida sus argumentos con zod: un argumento inventado por el modelo se devuelve como error al propio modelo, no llega a la base de datos.
+- **Inyección de instrucciones:** los datos de las tablas los escriben usuarios, y un registro puede contener «ignora las instrucciones anteriores». Por eso:
+  - Los resultados de las herramientas van marcados como datos, y las instrucciones de sistema dicen que nunca son órdenes.
+  - Aunque el modelo se dejara engañar, solo puede llamar a herramientas de lectura con los permisos del usuario: lo peor que puede pasar es una respuesta equivocada, nunca leer datos ajenos ni cambiar nada.
+  - La respuesta se muestra como texto plano con enlaces a registros generados por la app, sin HTML del modelo.
+- **Privacidad:**
+  - Lo que se envía a Groq es la pregunta y lo que devuelven las herramientas: nombres de columnas y valores de los registros que el usuario puede ver. Nunca emails, contraseñas ni datos de otras cuentas.
+  - El panel lo avisa antes de la primera pregunta, y la política de privacidad lo explicará cuando exista.
+  - No se guardan las conversaciones: solo el contador de uso del día.
+- **API:** `POST /assistant/chat` con `{ messages, tableId? }`.
+  - Responde de una vez (sin streaming) con el texto y los registros o tablas citados, para enlazarlos.
+  - Con `tableId`, el asistente empieza por esa tabla, la que el usuario tiene abierta.
+  - Límite de peticiones propio, además del cupo diario.
+- **Interfaz:** un panel lateral de chat desde la barra superior, con sugerencias («¿Qué está bajo mínimo?», «¿Qué proveedor tiene más productos?») y enlaces a lo que cita.
+  - **Voz:** un botón de micrófono con la API de voz del navegador (gratis), y la opción de escuchar la respuesta. Solo aparece donde el navegador la ofrece. ElevenLabs queda como mejora posterior.
+- **Pruebas:** un modelo falso que pide herramientas según el guion de cada test, sin llamar a Groq. Así se prueban los permisos, la validación de argumentos, el cupo y la inyección de instrucciones.
+
+**Fuera de alcance (por ahora)**:
+- Herramientas que escriben, como «registra una salida de 3 taladros»: necesitarán confirmación explícita del usuario y llegarán después.
+- Buscar dentro de los PDF adjuntos (RAG con `pgvector`).
+- Voz con ElevenLabs.
+
+**Consecuencias**:
+- **Con el plan gratuito caben pocas preguntas al día** (unas 40-60 en total). Para un portfolio basta; si hiciera falta más, se cambia de modelo o de proveedor con las variables.
+- **Las respuestas pueden equivocarse,** como cualquier modelo de lenguaje. El panel enlaza los registros en los que se basa, para comprobarlas.
+- **Groq recibe datos de inventario** de quien usa el asistente. Es opcional y se avisa antes; sin la clave configurada, no existe.
+
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
 Todas están especificadas en [MVP_PROMPT.md](MVP_PROMPT.md):
