@@ -1,5 +1,13 @@
 # Changelog
 
+## Sin publicar
+
+- **Edición en lote** (ADR-040): una casilla en cada fila (y otra para toda la página) selecciona registros, y una barra flotante permite:
+  - **cambiar un valor:** una columna toma el mismo valor en todos, o se vacía;
+  - **eliminarlos** a la vez, con confirmación.
+  - Todo o nada: si un valor no vale, o algún registro ya no existe, no cambia ninguno. Cada cambio queda en el historial de actividad y en los movimientos de stock, como una edición normal.
+  - Hasta 100 registros por vez (una página). Las columnas de valor único no se ofrecen con varios registros, porque se repetiría el valor.
+
 ## v1.8.0 — Etiquetas QR y adjuntos
 
 - **Seguridad** (auditoría OWASP Top 10:2025 de la release):

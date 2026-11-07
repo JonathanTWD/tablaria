@@ -328,4 +328,50 @@ describe("RecordsTable", () => {
     expect(screen.getByRole("button", { name: /Nuevo registro/ })).toBeInTheDocument();
     expect(screen.queryByText(/Solo lectura/)).not.toBeInTheDocument();
   });
+
+  it("changes a value in the ticked records at once", async () => {
+    const user = userEvent.setup();
+    const saw = {
+      ...page.data[0],
+      id: "3e1a9f5b-4d5e-4f60-9b1c-3d4e5f607183",
+      data: { [NAME_ID]: "Sierra", [PRICE_ID]: 74 },
+    };
+    const fetchMock = mockApi((_url, init) =>
+      init.method === "PATCH" ? { count: 2 } : { ...page, data: [...page.data, saw] },
+    );
+    renderWithProviders(<RecordsTable table={{ ...table, role: "EDITOR" }} />, {
+      route: "/app/tables/x",
+    });
+
+    await user.click(await screen.findByRole("checkbox", { name: "Seleccionar Taladro" }));
+    expect(screen.getByRole("checkbox", { name: /todos los registros/ })).toHaveProperty("indeterminate", true);
+    await user.click(screen.getByRole("checkbox", { name: "Seleccionar Sierra" }));
+    const toolbar = screen.getByRole("toolbar", { name: /registros seleccionados/ });
+    expect(toolbar).toHaveTextContent("2 registros seleccionados");
+
+    await user.click(screen.getByRole("button", { name: "Cambiar un valor" }));
+    await user.type(await screen.findByLabelText("Nuevo valor"), "Sin nombre");
+    await user.click(screen.getByRole("button", { name: "Cambiar 2 registros" }));
+
+    await waitFor(() => {
+      const patch = fetchMock.mock.calls.find(([, init]) => init?.method === "PATCH");
+      expect(String(patch?.[0])).toBe(`/api/tables/${table.id}/records/batch`);
+      expect(JSON.parse(String(patch?.[1]?.body))).toEqual({
+        ids: [page.data[0].id, saw.id],
+        data: { [NAME_ID]: "Sin nombre" },
+      });
+    });
+    // Done: the selection is cleared.
+    await waitFor(() => expect(screen.queryByRole("toolbar")).not.toBeInTheDocument());
+  });
+
+  it("offers no selection to viewers", async () => {
+    mockApi(() => page);
+    renderWithProviders(<RecordsTable table={{ ...table, role: "VIEWER" }} />, {
+      route: "/app/tables/x",
+    });
+
+    expect(await screen.findByText("Taladro")).toBeInTheDocument();
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+  });
 });

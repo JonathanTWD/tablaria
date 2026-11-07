@@ -15,6 +15,11 @@ import {
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import {
+  type RecordBatchDelete,
+  recordBatchDeleteSchema,
+  type RecordBatchResult,
+  type RecordBatchUpdate,
+  recordBatchUpdateSchema,
   type RecordInput,
   type RecordDetail,
   type RecordPage,
@@ -32,6 +37,8 @@ import { RecordsService } from './records.service';
 
 /** Exports read a whole table, so they get a tighter limit than the API default. */
 const EXPORT_THROTTLE = { default: { limit: 10, ttl: 60_000 } };
+/** Each batch writes up to a page of records. */
+const BATCH_THROTTLE = { default: { limit: 20, ttl: 60_000 } };
 
 @Controller('tables/:tableId/records')
 export class RecordsController {
@@ -64,6 +71,32 @@ export class RecordsController {
       'Cache-Control': 'no-store',
     });
     return new StreamableFile(file.content);
+  }
+
+  // Declared before any ':recordId' route so "batch" is never read as an id.
+  @Patch('batch')
+  @Throttle(BATCH_THROTTLE)
+  updateMany(
+    @CurrentUserId() userId: string,
+    @Param('tableId', ParseUUIDPipe) tableId: string,
+    @Body(new ZodValidationPipe(recordBatchUpdateSchema))
+    body: RecordBatchUpdate,
+  ): Promise<RecordBatchResult> {
+    return this.records.updateMany(userId, tableId, body);
+  }
+
+  // A POST, not a DELETE with a body: proxies (such as the static site's
+  // /api rewrite) are not required to forward a DELETE's body.
+  @Post('batch-delete')
+  @HttpCode(HttpStatus.OK)
+  @Throttle(BATCH_THROTTLE)
+  removeMany(
+    @CurrentUserId() userId: string,
+    @Param('tableId', ParseUUIDPipe) tableId: string,
+    @Body(new ZodValidationPipe(recordBatchDeleteSchema))
+    body: RecordBatchDelete,
+  ): Promise<RecordBatchResult> {
+    return this.records.removeMany(userId, tableId, body.ids);
   }
 
   /** One record: what its QR label opens (ADR-038). */
