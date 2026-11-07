@@ -2,6 +2,13 @@
 
 ## Sin publicar
 
+- **Adjuntos en cada registro** (ADR-039):
+  - **En la ficha:** fotos (JPG, PNG o WebP) y documentos PDF de hasta 5 MB, con miniaturas. Se abren en una pestaña nueva.
+  - **Quién puede:** quien edita la tabla sube y borra archivos (pidiendo confirmación); quien solo la ve puede abrirlos.
+  - **Límites:** 10 archivos por registro y 50 MB por espacio. La demo no puede subir archivos.
+  - **Seguridad:** el tipo se comprueba leyendo el propio archivo, no su nombre. Los archivos se guardan en un bucket privado y se abren con enlaces que caducan a los 5 minutos.
+- **Arreglo:** la ficha del registro y el panel de filtros ocupan todo el ancho en el móvil.
+
 - **Etiquetas QR y ficha de cada registro** (ADR-038):
   - **Ficha:** «Ver ficha» en el menú de cada fila abre un panel con todas sus celdas, también las calculadas, y su etiqueta QR. Se puede imprimir la etiqueta, descargar el QR en PNG, ver los movimientos de stock o editar el registro.
   - **Etiquetas para imprimir:** «Etiquetas QR» genera una hoja con la etiqueta de cada registro de la vista actual (búsqueda, filtros y orden), hasta 100. Lleva el nombre, la referencia (la primera columna de valor único, como el SKU) y la tabla.

@@ -9,6 +9,7 @@ import { buttonVariants } from "@/components/ui/button-variants";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCellFormatter } from "@/features/columns/format-value";
+import { RecordAttachments } from "@/features/attachments/RecordAttachments";
 import { downloadQrPng } from "@/features/qr/qr-png";
 import { QrLabel } from "@/features/qr/QrLabel";
 import { recordUrl } from "@/features/qr/record-label";
@@ -26,12 +27,15 @@ import { shownColumn } from "./shown-column";
 export function RecordSheet({
   table,
   recordId,
+  canEdit,
   onClose,
   onEdit,
   onStock,
 }: {
   table: TableDetail;
   recordId: string;
+  /** Editors can add and remove attachments. */
+  canEdit: boolean;
   onClose: () => void;
   /** Editors only: opens the record's form. */
   onEdit?: (record: TableRecord) => void;
@@ -127,6 +131,8 @@ export function RecordSheet({
                   );
                 })}
               </dl>
+
+              <RecordAttachments tableId={table.id} recordId={recordId} canEdit={canEdit} />
             </>
           )}
         </div>

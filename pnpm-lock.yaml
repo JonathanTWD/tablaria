@@ -67,6 +67,9 @@ importers:
       '@tablaria/shared':
         specifier: workspace:*
         version: link:../packages/shared
+      aws4fetch:
+        specifier: ^1.0.20
+        version: 1.0.20
       cookie-parser:
         specifier: ^1.4.7
         version: 1.4.7
@@ -2566,6 +2569,9 @@ packages:
   aws-ssl-profiles@1.1.2:
     resolution: {integrity: sha512-NZKeq9AfyQvEeNlN0zSYAaWrmBffJh3IELMZfRpJVWgrpEbtEpnjvzqBPf+mxoI287JohRDoa+/nsfqqiZmF6g==}
     engines: {node: '>= 6.0.0'}
+
+  aws4fetch@1.0.20:
+    resolution: {integrity: sha512-/djoAN709iY65ETD6LKCtyyEI04XIBP5xVvfmNxsEP0uJB5tyaGBztSryRr4HqMStr9R06PisQE7m9zDTXKu6g==}
 
   babel-jest@30.5.2:
     resolution: {integrity: sha512-ES8WeJ2fNWPEDunyAtUfJ12nHyaWUloCHdkfK2oW5uSoQSUmjNKdWiGaXJITJwvFEWoD/evHEg/QoCXAvLaQqQ==}
@@ -8195,6 +8201,8 @@ snapshots:
   atomically@1.7.0: {}
 
   aws-ssl-profiles@1.1.2: {}
+
+  aws4fetch@1.0.20: {}
 
   babel-jest@30.5.2(@babel/core@7.29.7):
     dependencies:

@@ -631,6 +631,7 @@ export function RecordsTable({ table }: { table: TableDetail }) {
         <RecordSheet
           table={table}
           recordId={openRecord}
+          canEdit={canEdit}
           onClose={() => showRecord(null)}
           onEdit={
             canEdit

@@ -30,6 +30,15 @@ interface RequestOptions {
 }
 
 function send(path: string, method: HttpMethod, body: unknown, headers: Record<string, string> = {}) {
+  // A file goes as it is: the API reads uploads as the raw body (ADR-039).
+  if (body instanceof Blob) {
+    return fetch(`${API_BASE}${path}`, {
+      method,
+      credentials: "same-origin",
+      headers: { ...headers, "Content-Type": body.type || "application/octet-stream" },
+      body,
+    });
+  }
   return fetch(`${API_BASE}${path}`, {
     method,
     credentials: "same-origin",
