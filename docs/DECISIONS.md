@@ -814,6 +814,32 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 - Seleccionar más de una página a la vez queda fuera. Si hiciera falta, el siguiente paso sería «aplicar a todos los que cumplen el filtro», con su propio límite.
 - Un lote de 100 registros escribe hasta 100 eventos de actividad: la historia es completa, aunque más larga.
 
+## ADR-041: Vistas guardadas
+
+**Contexto**: la vista de una tabla (búsqueda, filtros, orden y agrupación) ya vivía en la URL, así que se podía compartir un enlace. Pero quien vuelve cada día a «lo que está bajo mínimo» o «los equipos de la oficina de Madrid» tenía que montarla otra vez o guardar enlaces aparte.
+
+**Decisión**:
+- **Las vistas son de la tabla, no de cada persona.** En un inventario compartido, «Bajo stock» le sirve a todo el equipo.
+  - Las ve y las abre cualquiera que pueda abrir la tabla.
+  - Las guarda, renombra, actualiza o borra quien la edita (EDITOR), igual que los registros.
+  - Las vistas personales quedan para más adelante, si hacen falta.
+- **Qué se guarda:** búsqueda, filtros, orden, agrupación y tamaño de página. No la página: una vista se abre siempre por la primera.
+  - El esquema es `savedViewQuerySchema`, con los mismos filtros que la URL, y se guarda como JSON en `saved_views.view`.
+  - La API rechaza (400) columnas que no son de la tabla. Si una columna desaparece después, la vista sigue abriéndose y la parte que ya no encaja se descarta, como pasa con un enlace antiguo (`applicableView`).
+- **API:** `GET/POST /tables/:tableId/views` y `PATCH/DELETE /tables/:tableId/views/:viewId`.
+  - Nombres de 1 a 60 caracteres, sin repetirse en la tabla (409, por un índice único).
+  - Como mucho 20 por tabla (422).
+  - Guardar una vista no cuenta como editar la tabla: no cambia su «Editada hace…».
+- **Tiempo real:** un nuevo ámbito `views` hace que los demás vuelvan a pedir la lista al momento.
+- **Interfaz:** un botón «Vistas» al principio de la barra de la tabla.
+  - Muestra el nombre de la vista guardada que coincide con lo que se ve; si no coincide ninguna, pone «Vistas».
+  - Abrir una vista es un clic.
+  - «Guardar la vista actual…» pide un nombre, y «Gestionar vistas…» permite renombrar, actualizar con lo que se ve o eliminar (con confirmación).
+
+**Consecuencias**:
+- Una vista guardada sigue siendo una URL normal al abrirla, así que se puede compartir el enlace como antes.
+- Quien solo puede ver la tabla no ve el botón si no hay vistas, para no ofrecer algo que no puede usar.
+
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
 Todas están especificadas en [MVP_PROMPT.md](MVP_PROMPT.md):

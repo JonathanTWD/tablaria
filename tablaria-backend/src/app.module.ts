@@ -17,6 +17,7 @@ import { MetricsModule } from './metrics/metrics.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { PublicLinksModule } from './public-links/public-links.module';
 import { RecordsModule } from './records/records.module';
+import { SavedViewsModule } from './saved-views/saved-views.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { SharingModule } from './sharing/sharing.module';
 import { StockAlertsModule } from './stock-alerts/stock-alerts.module';
@@ -34,6 +35,7 @@ import { TablesModule } from './tables/tables.module';
     TablesModule,
     ColumnsModule,
     RecordsModule,
+    SavedViewsModule,
     AttachmentsModule,
     ImportsModule,
     StockAlertsModule,

@@ -36,6 +36,9 @@ function refresh(queryClient: QueryClient, tableId: string, scope: RealtimeScope
   if (scope === "sharing") {
     keys.push(tableKeys.sharing(tableId));
   }
+  if (scope === "views") {
+    keys.push(tableKeys.views(tableId));
+  }
   if (scope === "deleted") {
     // The page refetches, gets a 404 and says the table is gone.
     keys.push(tableKeys.detail(tableId), tableKeys.list(), tableKeys.shared(), stockAlertsKey);
