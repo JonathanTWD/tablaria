@@ -2,6 +2,11 @@
 
 ## Sin publicar
 
+- **Vistas guardadas** (ADR-041): la búsqueda, los filtros, el orden, la agrupación y el tamaño de página se guardan con un nombre («Bajo stock», «Pasillo A») desde el botón «Vistas».
+  - **Para todos:** las vistas son de la tabla; las abre cualquiera que pueda verla, con un clic, y el botón muestra el nombre de la que estás viendo.
+  - **Quién las gestiona:** quien edita la tabla las guarda, les cambia el nombre, las actualiza con lo que ve en ese momento o las elimina.
+  - **En directo:** si alguien guarda o cambia una vista, los demás la ven al momento.
+  - Hasta 20 por tabla, con nombres que no se repiten.
 - **Edición en lote** (ADR-040): una casilla en cada fila (y otra para toda la página) selecciona registros, y una barra flotante permite:
   - **cambiar un valor:** una columna toma el mismo valor en todos, o se vacía;
   - **eliminarlos** a la vez, con confirmación.

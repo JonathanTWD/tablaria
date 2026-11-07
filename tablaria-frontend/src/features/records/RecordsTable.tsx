@@ -62,6 +62,7 @@ import { ImportDialog } from "@/features/imports/ImportDialog";
 import { FiltersSheet } from "./FiltersSheet";
 import { GroupBySelect } from "./GroupBySelect";
 import { groupValueOf } from "./record-groups";
+import { SavedViewsMenu } from "@/features/saved-views/SavedViewsMenu";
 import { BatchDeleteDialog, BatchEditDialog } from "./BatchDialogs";
 import { RecordDialog } from "./RecordDialog";
 import { RecordSheet } from "./RecordSheet";
@@ -281,6 +282,7 @@ export function RecordsTable({ table }: { table: TableDetail }) {
         <p className="mb-3 text-sm text-muted-foreground">{t("readOnly")}</p>
       )}
       <div className="flex flex-wrap items-center gap-2">
+        <SavedViewsMenu tableId={table.id} view={view} canEdit={canEdit} onOpen={(next) => setView(next)} />
         <SearchField
           initial={view.search}
           onSearch={(search) => setView({ search }, { replace: true })}

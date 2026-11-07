@@ -16,3 +16,4 @@ export * from "./account.js";
 export * from "./activity.js";
 export * from "./public-links.js";
 export * from "./attachments.js";
+export * from "./saved-views.js";

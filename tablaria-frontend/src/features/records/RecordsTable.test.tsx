@@ -56,6 +56,11 @@ const page: Paginated<TableRecord> = {
   meta: { page: 1, pageSize: 25, total: 1, pageCount: 1 },
 };
 
+/** The API for the table: no saved views, and `handler` for everything else. */
+function mockTableApi(handler: Parameters<typeof mockApi>[0]) {
+  return mockApi((url, init) => (url.pathname.endsWith("/views") ? [] : handler(url, init)));
+}
+
 /** Query strings of the record listings the table requested. */
 function listRequests(fetchMock: ReturnType<typeof mockApi>) {
   return fetchMock.mock.calls
@@ -87,7 +92,7 @@ describe("RecordsTable", () => {
       ],
       rollupTargets: { [COUNT_ID]: null, [SUM_ID]: salary },
     };
-    mockApi(() => ({
+    mockTableApi(() => ({
       ...page,
       data: [{ ...page.data[0], data: { ...page.data[0].data, [COUNT_ID]: 12, [SUM_ID]: 25400 } }],
       linked: {},
@@ -123,7 +128,7 @@ describe("RecordsTable", () => {
       ],
       lookupTargets: { [LEAD_ID]: days },
     };
-    mockApi(() => ({
+    mockTableApi(() => ({
       ...page,
       data: [{ ...page.data[0], data: { ...page.data[0].data, [LEAD_ID]: 4.5 } }],
       linked: {},
@@ -162,7 +167,7 @@ describe("RecordsTable", () => {
       createdAt: "2026-01-01T00:00:00.000Z",
       updatedAt: "2026-01-01T00:00:00.000Z",
     });
-    const fetchMock = mockApi(() => ({
+    const fetchMock = mockTableApi(() => ({
       data: [
         record("3e1a9f5b-0000-4f60-9b1c-000000000001", "Sierra", "Disponible"),
         record("3e1a9f5b-0000-4f60-9b1c-000000000002", "Cinta", "Disponible"),
@@ -204,14 +209,14 @@ describe("RecordsTable", () => {
         }),
       ],
     };
-    mockApi(() => ({ ...page, linked: {}, labelledRelations: [SUPPLIER_ID] }));
+    mockTableApi(() => ({ ...page, linked: {}, labelledRelations: [SUPPLIER_ID] }));
     const { unmount } = renderWithProviders(<RecordsTable table={withSupplier} />, {
       route: "/app/tables/x",
     });
     expect(await screen.findByRole("button", { name: "Proveedor" })).toBeVisible();
     unmount();
 
-    mockApi(() => ({ ...page, linked: {}, labelledRelations: [] }));
+    mockTableApi(() => ({ ...page, linked: {}, labelledRelations: [] }));
     renderWithProviders(<RecordsTable table={withSupplier} />, { route: "/app/tables/x" });
     expect(await screen.findByRole("button", { name: "Precio" })).toBeVisible();
     expect(screen.queryByRole("button", { name: "Proveedor" })).not.toBeInTheDocument();
@@ -219,7 +224,7 @@ describe("RecordsTable", () => {
 
   it("keeps the sort in the URL and asks the API for it", async () => {
     const user = userEvent.setup();
-    const fetchMock = mockApi(() => page);
+    const fetchMock = mockTableApi(() => page);
     renderWithProviders(<RecordsTable table={table} />, { route: "/app/tables/x" });
 
     // Exact name: the cells' buttons ("Precio de Taladro: …") contain it too.
@@ -241,7 +246,7 @@ describe("RecordsTable", () => {
 
   it("restores search and filters from the URL and shows them", async () => {
     const filters = [{ columnId: PRICE_ID, op: "between", min: 10 }];
-    const fetchMock = mockApi(() => page);
+    const fetchMock = mockTableApi(() => page);
     renderWithProviders(<RecordsTable table={table} />, {
       route: `/app/tables/x?q=tala&filters=${encodeURIComponent(JSON.stringify(filters))}`,
     });
@@ -257,7 +262,7 @@ describe("RecordsTable", () => {
 
   it("writes the search to the URL once the user stops typing", async () => {
     const user = userEvent.setup();
-    mockApi(() => page);
+    mockTableApi(() => page);
     renderWithProviders(<RecordsTable table={table} />, { route: "/app/tables/x" });
 
     await user.type(await screen.findByRole("searchbox", { name: "Buscar registros" }), "tal");
@@ -269,7 +274,7 @@ describe("RecordsTable", () => {
 
   it("exports the current view without pagination", async () => {
     const user = userEvent.setup();
-    const fetchMock = mockApi(() => page);
+    const fetchMock = mockTableApi(() => page);
     // jsdom has no object URLs; a subclass keeps the real URL untouched for other tests.
     vi.stubGlobal(
       "URL",
@@ -300,7 +305,7 @@ describe("RecordsTable", () => {
 
   it("shows viewers the records without any way to change them", async () => {
     const user = userEvent.setup();
-    mockApi(() => page);
+    mockTableApi(() => page);
     renderWithProviders(<RecordsTable table={{ ...table, role: "VIEWER" }} />, {
       route: "/app/tables/x",
     });
@@ -319,7 +324,7 @@ describe("RecordsTable", () => {
   });
 
   it("lets editors change records", async () => {
-    mockApi(() => page);
+    mockTableApi(() => page);
     renderWithProviders(<RecordsTable table={{ ...table, role: "EDITOR" }} />, {
       route: "/app/tables/x",
     });
@@ -336,7 +341,7 @@ describe("RecordsTable", () => {
       id: "3e1a9f5b-4d5e-4f60-9b1c-3d4e5f607183",
       data: { [NAME_ID]: "Sierra", [PRICE_ID]: 74 },
     };
-    const fetchMock = mockApi((_url, init) =>
+    const fetchMock = mockTableApi((_url, init) =>
       init.method === "PATCH" ? { count: 2 } : { ...page, data: [...page.data, saw] },
     );
     renderWithProviders(<RecordsTable table={{ ...table, role: "EDITOR" }} />, {
@@ -366,7 +371,7 @@ describe("RecordsTable", () => {
   });
 
   it("offers no selection to viewers", async () => {
-    mockApi(() => page);
+    mockTableApi(() => page);
     renderWithProviders(<RecordsTable table={{ ...table, role: "VIEWER" }} />, {
       route: "/app/tables/x",
     });
