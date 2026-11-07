@@ -21,18 +21,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { RelationPicker } from "@/features/relations/RelationPicker";
 import { ApiError } from "@/lib/api-client";
 import { apiErrorMessage, repeatedValues } from "@/lib/error-message";
 import { fromDraft, toDraft } from "./cell-draft";
+import { ColumnValueInput } from "./ColumnValueInput";
 import { useCreateRecord, useUpdateRecord } from "./queries";
 
 /** One text draft per column id. */
@@ -182,72 +174,23 @@ function RecordForm({
           return (
             <Field key={column.id} data-invalid={Boolean(message)}>
               <FieldLabel htmlFor={id}>{label}</FieldLabel>
-              {column.type === "relation" ? (
-                <Controller
-                  control={form.control}
-                  name={column.id}
-                  render={({ field }) => (
-                    <RelationPicker
-                      id={id}
-                      column={column}
-                      value={fromDraft(column, field.value ?? "")}
-                      linked={linked}
-                      label={column.name}
-                      onChange={(next) => field.onChange(toDraft(next))}
-                      className="h-9 border border-input"
-                    />
-                  )}
-                />
-              ) : column.type === "boolean" || column.type === "select" ? (
-                <Controller
-                  control={form.control}
-                  name={column.id}
-                  render={({ field }) => {
-                    const options: Record<string, string> =
-                      column.type === "boolean"
-                        ? { true: t("filters.yes"), false: t("filters.no") }
-                        : Object.fromEntries(
-                            column.options.choices.map((choice) => [choice.label, choice.label]),
-                          );
-                    const items = { "": t("dialog.empty"), ...options };
-                    return (
-                      <Select
-                        items={items}
-                        value={field.value}
-                        onValueChange={(value) => field.onChange(value ?? "")}
-                      >
-                        <SelectTrigger
-                          id={id}
-                          aria-invalid={Boolean(message)}
-                          aria-describedby={describedBy}
-                          onBlur={field.onBlur}
-                          className="h-9 w-full"
-                        >
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Object.entries(items).map(([value, text]) => (
-                            <SelectItem key={value} value={value}>
-                              {text}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    );
-                  }}
-                />
-              ) : (
-                <Input
-                  id={id}
-                  type={column.type === "date" ? "date" : "text"}
-                  inputMode={column.type === "text" || column.type === "date" ? undefined : "decimal"}
-                  autoComplete="off"
-                  aria-invalid={Boolean(message)}
-                  aria-describedby={describedBy}
-                  className="h-9"
-                  {...form.register(column.id)}
-                />
-              )}
+              <Controller
+                control={form.control}
+                name={column.id}
+                render={({ field }) => (
+                  <ColumnValueInput
+                    ref={field.ref}
+                    id={id}
+                    column={column}
+                    value={field.value ?? ""}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    invalid={Boolean(message)}
+                    describedBy={describedBy}
+                    linked={linked}
+                  />
+                )}
+              />
               {message && <FieldError id={describedBy}>{message}</FieldError>}
             </Field>
           );

@@ -58,6 +58,24 @@ export function useDeleteRecord(tableId: string) {
   });
 }
 
+/** The same changes for several records (a page at most), all or nothing. */
+export function useUpdateRecords(tableId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ ids, changes }: { ids: string[]; changes: RecordData }) =>
+      recordsApi.updateMany(tableId, ids, changes),
+    onSuccess: () => refreshAfterWrite(queryClient, tableId),
+  });
+}
+
+export function useDeleteRecords(tableId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: string[]) => recordsApi.removeMany(tableId, ids),
+    onSuccess: () => refreshAfterWrite(queryClient, tableId),
+  });
+}
+
 function applyChanges(record: TableRecord, changes: RecordData): TableRecord {
   const data = { ...record.data, ...changes };
   for (const [columnId, value] of Object.entries(changes)) {

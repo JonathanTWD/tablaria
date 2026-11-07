@@ -61,7 +61,7 @@ Cada tarea indica qué modelo conviene: **Opus** para lo que toca seguridad, per
 - Parche de dependencias (~6-nov): body-parser ≥ 2.4.0, multer ≥ 2.5.0, qs ≥ 6.16.1, nodemailer ≥ 10.1.4, respetando los 14 días de pnpm.
 - Selección múltiple como tipo de columna.
 - Vistas guardadas (búsqueda, filtros y orden con nombre).
-- Edición en lote y papelera recuperable.
+- Edición en lote (hecho, ADR-040) y papelera recuperable.
 - Tablas bloqueadas o archivadas de solo lectura.
 - Escáner de códigos de barras y QR con la cámara.
 - Notificaciones (por ejemplo, resumen semanal de stock bajo por email).

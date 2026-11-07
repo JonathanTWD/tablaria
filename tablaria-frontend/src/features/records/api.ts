@@ -1,4 +1,5 @@
 import type {
+  RecordBatchResult,
   RecordData,
   RecordDetail,
   RecordPage,
@@ -53,4 +54,14 @@ export const recordsApi = {
     apiRequest<RecordDetail>(`/tables/${tableId}/records/${recordId}`),
   remove: (tableId: string, recordId: string) =>
     apiRequest<void>(`/tables/${tableId}/records/${recordId}`, { method: "DELETE" }),
+  updateMany: (tableId: string, ids: string[], data: RecordData) =>
+    apiRequest<RecordBatchResult>(`/tables/${tableId}/records/batch`, {
+      method: "PATCH",
+      body: { ids, data },
+    }),
+  removeMany: (tableId: string, ids: string[]) =>
+    apiRequest<RecordBatchResult>(`/tables/${tableId}/records/batch-delete`, {
+      method: "POST",
+      body: { ids },
+    }),
 };

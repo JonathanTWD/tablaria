@@ -788,6 +788,32 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 - Las miniaturas son las propias imágenes reducidas en el navegador. Con 5 MB por archivo y 10 por registro, no compensa generar versiones pequeñas.
 - Si cambia el proveedor de almacenamiento, basta con cambiar las variables `STORAGE_*` y la CSP, pero los archivos ya subidos hay que copiarlos a mano.
 
+## ADR-040: Edición en lote
+
+**Contexto**: en un inventario es habitual cambiar lo mismo en muchos registros a la vez: marcar como agotados los productos de un proveedor, mover equipos a otra oficina o borrar una tanda de pruebas. Hasta ahora había que hacerlo registro a registro.
+
+**Decisión**:
+- **Dos rutas nuevas:** `PATCH /tables/:tableId/records/batch` (`{ ids, data }`) y `POST /tables/:tableId/records/batch-delete` (`{ ids }`).
+  - El borrado es un POST y no un DELETE con cuerpo: los proxies, como la rewrite `/api` del Static Site, no están obligados a reenviar el cuerpo de un DELETE.
+  - Como mucho 100 ids distintos, el tamaño máximo de una página.
+  - Tienen un límite de peticiones propio, más estricto que el general.
+- **Todo o nada:** una transacción con la tabla bloqueada.
+  - Si un id no existe o es de otra tabla, responde 404 sin cambiar nada.
+  - Los valores pasan por la misma validación que una edición normal: tipos, obligatorios, relaciones con acceso y valores únicos.
+- **Valores únicos:** con varios registros, un valor no vacío en una columna única daría un duplicado seguro, así que responde 409. La interfaz no ofrece esas columnas al seleccionar más de uno.
+- **Historial:** cada registro cambiado o borrado deja su evento en la actividad (ADR-025), y los cambios de stock su movimiento (ADR-024), igual que si se hubiera editado a mano.
+  - Al borrar, los registros se quitan de las relaciones de otras tablas.
+  - Se emite un aviso en tiempo real por cada tabla afectada, no uno por registro.
+- **Interfaz:**
+  - Casillas en la primera columna fija, solo para quien puede editar, y otra en la cabecera para toda la página.
+  - La selección solo cuenta los registros de la página visible: cambiar de página, filtro u orden nunca actúa sobre filas que no se ven.
+  - Una barra flotante abajo, para que marcar una fila no mueva la tabla, con «Cambiar un valor», «Eliminar» y «Quitar la selección».
+  - El diálogo de cambio reutiliza el campo de cada tipo del formulario de registro (`ColumnValueInput`).
+
+**Consecuencias**:
+- Seleccionar más de una página a la vez queda fuera. Si hiciera falta, el siguiente paso sería «aplicar a todos los que cumplen el filtro», con su propio límite.
+- Un lote de 100 registros escribe hasta 100 eventos de actividad: la historia es completa, aunque más larga.
+
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
 Todas están especificadas en [MVP_PROMPT.md](MVP_PROMPT.md):
