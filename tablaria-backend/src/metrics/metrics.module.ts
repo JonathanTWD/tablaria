@@ -5,5 +5,7 @@ import { MetricsService } from './metrics.service';
 @Module({
   controllers: [MetricsController],
   providers: [MetricsService],
+  // The AI assistant reads through it, with the same permissions (ADR-042).
+  exports: [MetricsService],
 })
 export class MetricsModule {}

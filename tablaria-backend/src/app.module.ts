@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ActivityModule } from './activity/activity.module';
+import { AssistantModule } from './assistant/assistant.module';
 import { AttachmentsModule } from './attachments/attachments.module';
 import { AuthModule } from './auth/auth.module';
 import { ColumnsModule } from './columns/columns.module';
@@ -37,6 +38,7 @@ import { TablesModule } from './tables/tables.module';
     RecordsModule,
     SavedViewsModule,
     AttachmentsModule,
+    AssistantModule,
     ImportsModule,
     StockAlertsModule,
     MetricsModule,

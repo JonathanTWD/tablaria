@@ -842,7 +842,7 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 
 ## ADR-042: Asistente de IA para preguntar por los datos
 
-**Estado**: propuesta, pendiente de implementar.
+**Estado**: aceptada e implementada.
 
 **Contexto**: en un almacén o una oficina, la pregunta suele ser concreta y urgente: «¿qué está bajo mínimo en el pasillo A?», «¿cuántos taladros quedan?», «¿qué proveedor nos sirve más productos?». Hoy se responde combinando búsqueda, filtros y métricas. Un asistente que entienda la pregunta y consulte los datos ahorra esos pasos y, con voz, deja las manos libres. El proyecto es gratuito: el proveedor de IA no puede cobrar sin avisar.
 
@@ -854,17 +854,22 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
   - **Respuestas de herramientas compactas:** como mucho 20 registros, solo las columnas que pide el modelo y los valores ya formateados como texto corto.
   - **Instrucciones de sistema breves** y como mucho 4 pasos de herramientas por pregunta.
   - **Conversaciones cortas:** se envían como mucho los 6 últimos mensajes.
-  - **Cupo por cuenta:** 15 preguntas al día; en la demo, 3 por sesión. Se guarda en la base de datos (`assistant_usage`, por usuario y día).
+  - **Cupo por cuenta:** 15 preguntas al día; en la demo, 5 por sesión. Se guarda en la base de datos (`assistant_usage`, por usuario y día).
+    - Se cuenta con una sola sentencia (`INSERT … ON CONFLICT … WHERE count < límite`), así que dos preguntas a la vez no se saltan el límite.
+    - Una pregunta que el proveedor no llegó a responder (429, caída o tiempo agotado) se devuelve al cupo.
   - **Sin cupo, o con Groq en 429:** el asistente lo dice con claridad («vuelve mañana» o «inténtalo en un minuto»), sin errores genéricos.
 - **Herramientas, solo de lectura**, ejecutadas por la API **como el usuario**, con los mismos servicios y permisos de siempre:
   - `listar_tablas`: las tablas que puede abrir, con sus columnas (nombre y tipo).
   - `buscar_registros`: búsqueda, filtros y orden validados con los esquemas de siempre (`recordFilterSchema`); nunca SQL libre.
   - `resumir`: totales, medias y recuentos por grupos, con el servicio de métricas (ADR-035).
-  - `bajo_minimo`: los avisos de stock (ADR-024).
+  - `bajo_minimo`: los avisos de stock (ADR-024), con todas las celdas de cada registro: así una sola llamada responde también «¿y a qué proveedor lo pido?».
   - `historial_stock`: los movimientos de un registro.
   - Cada herramienta valida sus argumentos con zod: un argumento inventado por el modelo se devuelve como error al propio modelo, no llega a la base de datos.
+  - Las columnas se nombran por su nombre, no por su id, y los enlaces llegan con el nombre del registro enlazado: menos tokens y menos errores del modelo.
+  - **Última vuelta sin herramientas:** si se acaban los 4 pasos, se le pide responder con lo que tiene y no se le ofrece ninguna herramienta. Con `tool_choice: "none"`, algunos modelos intentaban usar una igualmente y el proveedor rechazaba la petición.
 - **Inyección de instrucciones:** los datos de las tablas los escriben usuarios, y un registro puede contener «ignora las instrucciones anteriores». Por eso:
   - Los resultados de las herramientas van marcados como datos, y las instrucciones de sistema dicen que nunca son órdenes.
+  - Las instrucciones de sistema no llevan nada escrito por usuarios: de la tabla abierta solo va su id, y el nombre llega por las herramientas, como dato.
   - Aunque el modelo se dejara engañar, solo puede llamar a herramientas de lectura con los permisos del usuario: lo peor que puede pasar es una respuesta equivocada, nunca leer datos ajenos ni cambiar nada.
   - La respuesta se muestra como texto plano con enlaces a registros generados por la app, sin HTML del modelo.
 - **Privacidad:**
