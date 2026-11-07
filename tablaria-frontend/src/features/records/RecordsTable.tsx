@@ -58,6 +58,7 @@ import { presenceColor } from "@/features/realtime/presence-colors";
 import { useTablePresence } from "@/features/realtime/realtime-context";
 import { EditableCell, ReadOnlyCell } from "./EditableCell";
 import { ExportButton } from "./ExportButton";
+import { MoreActionsMenu } from "./MoreActionsMenu";
 import { ImportDialog } from "@/features/imports/ImportDialog";
 import { FiltersSheet } from "./FiltersSheet";
 import { GroupBySelect } from "./GroupBySelect";
@@ -242,6 +243,7 @@ export function RecordsTable({ table }: { table: TableDetail }) {
     });
   const labelsParams = new URLSearchParams(params);
   labelsParams.delete("record");
+  const labelsUrl = `/app/tables/${table.id}/labels${labelsParams.size > 0 ? `?${labelsParams}` : ""}`;
 
   const importDialog = canEdit && (
     <ImportDialog destination={{ kind: "table", table }} open={importing} onOpenChange={setImporting} />
@@ -281,6 +283,8 @@ export function RecordsTable({ table }: { table: TableDetail }) {
       {!canEdit && (
         <p className="mb-3 text-sm text-muted-foreground">{t("readOnly")}</p>
       )}
+      {/* Sized by its own width, so it adapts to the sidebar as well as the screen. */}
+      <div className="@container/toolbar">
       <div className="flex flex-wrap items-center gap-2">
         <SavedViewsMenu tableId={table.id} view={view} canEdit={canEdit} onOpen={(next) => setView(next)} />
         <SearchField
@@ -314,26 +318,37 @@ export function RecordsTable({ table }: { table: TableDetail }) {
           value={view.group}
           onChange={(group) => setView({ group })}
         />
-        <ExportButton tableId={table.id} view={view} />
-        <Link
-          to={`/app/tables/${table.id}/labels${labelsParams.size > 0 ? `?${labelsParams}` : ""}`}
-          className={cn(buttonVariants({ variant: "outline" }), "h-9")}
-        >
-          <QrCode aria-hidden="true" />
-          {t("qr.labels")}
-        </Link>
-        {canEdit && (
-          <Button variant="outline" className="h-9" onClick={() => setImporting(true)}>
-            <FileUp aria-hidden="true" />
-            {t("toolbar.import")}
-          </Button>
-        )}
-        {canEdit && (
-          <Button className="h-9 sm:ml-auto" onClick={() => setDialog({ kind: "create" })}>
-            <Plus aria-hidden="true" />
-            {t("toolbar.add")}
-          </Button>
-        )}
+        {/* Actions on the right; the occasional ones fold into "Más" when the
+            row has no room for them (about 1,430px with every button). */}
+        <div className="ml-auto flex items-center gap-2">
+          <div className="hidden items-center gap-2 @min-[96rem]/toolbar:flex">
+            <ExportButton tableId={table.id} view={view} />
+            <Link to={labelsUrl} className={cn(buttonVariants({ variant: "outline" }), "h-9")}>
+              <QrCode aria-hidden="true" />
+              {t("qr.labels")}
+            </Link>
+            {canEdit && (
+              <Button variant="outline" className="h-9" onClick={() => setImporting(true)}>
+                <FileUp aria-hidden="true" />
+                {t("toolbar.import")}
+              </Button>
+            )}
+          </div>
+          <MoreActionsMenu
+            tableId={table.id}
+            view={view}
+            labelsUrl={labelsUrl}
+            onImport={canEdit ? () => setImporting(true) : undefined}
+            className="h-9 @min-[96rem]/toolbar:hidden"
+          />
+          {canEdit && (
+            <Button className="h-9" onClick={() => setDialog({ kind: "create" })}>
+              <Plus aria-hidden="true" />
+              {t("toolbar.add")}
+            </Button>
+          )}
+        </div>
+      </div>
       </div>
 
       {view.filters.length > 0 && (
