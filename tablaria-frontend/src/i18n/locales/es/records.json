@@ -8,6 +8,8 @@
     "metrics": "Métricas"
   },
   "toolbar": {
+    "more": "Más",
+    "moreLabel": "Más acciones",
     "search": "Buscar registros",
     "searchPlaceholder": "Buscar en texto, opciones y enlaces…",
     "filters": "Filtros",

@@ -2,6 +2,10 @@
 
 ## Sin publicar
 
+- **Barra de la tabla que siempre cabe:** «Nuevo registro» ya no se cae a otra línea cuando falta sitio, por ejemplo con el menú lateral abierto en un portátil.
+  - **Sin sitio:** exportar, etiquetas QR e importar se agrupan en un botón «Más».
+  - **Con sitio** (pantallas grandes o el menú plegado): se ven como siempre.
+  - Se decide por el ancho real de la barra, no por el de la pantalla.
 - **Vistas guardadas** (ADR-041): la búsqueda, los filtros, el orden, la agrupación y el tamaño de página se guardan con un nombre («Bajo stock», «Pasillo A») desde el botón «Vistas».
   - **Para todos:** las vistas son de la tabla; las abre cualquiera que pueda verla, con un clic, y el botón muestra el nombre de la que estás viendo.
   - **Quién las gestiona:** quien edita la tabla las guarda, les cambia el nombre, las actualiza con lo que ve en ese momento o las elimina.

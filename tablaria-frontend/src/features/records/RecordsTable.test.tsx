@@ -379,4 +379,17 @@ describe("RecordsTable", () => {
     expect(await screen.findByText("Taladro")).toBeInTheDocument();
     expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
   });
+
+  it("keeps export, labels and import one click away in the «Más» menu", async () => {
+    const user = userEvent.setup();
+    mockTableApi(() => page);
+    renderWithProviders(<RecordsTable table={{ ...table, role: "EDITOR" }} />, {
+      route: "/app/tables/x",
+    });
+
+    await user.click(await screen.findByRole("button", { name: "Más acciones" }));
+    expect(await screen.findByRole("menuitem", { name: "Exportar CSV" })).toBeVisible();
+    expect(screen.getByRole("menuitem", { name: "Etiquetas QR" })).toBeVisible();
+    expect(screen.getByRole("menuitem", { name: "Importar CSV" })).toBeVisible();
+  });
 });
