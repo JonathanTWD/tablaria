@@ -1,6 +1,14 @@
 # Changelog
 
-## Sin publicar
+## v1.8.0 — Etiquetas QR y adjuntos
+
+- **Seguridad** (auditoría OWASP Top 10:2025 de la release):
+  - **Código:** sin hallazgos de gravedad media o alta. Se revisaron la ficha de un registro, las etiquetas QR y los adjuntos.
+    - Los adjuntos se comprueban por su contenido real, se guardan en un bucket privado y se sirven desde su dominio con enlaces de 5 minutos. Solo los ve quien puede abrir la tabla, y solo los sube o borra quien la edita.
+    - La cuota se cuenta con el espacio bloqueado, y la demo no puede subir archivos.
+  - **Pendiente, de gravedad baja:** subir o borrar adjuntos aún no queda en el historial de actividad de la tabla. Además, la API lee el archivo entero antes de comprobar el límite de peticiones, como ya pasaba con las importaciones.
+  - **Dependencias:** los mismos 2 avisos que en la v1.7.0 (minimatch y deepmerge), solo en la CLI de shadcn, que no forma parte de la app.
+- **README** con capturas de la demo y un caso de uso de las etiquetas QR.
 
 - **Adjuntos en cada registro** (ADR-039):
   - **En la ficha:** fotos (JPG, PNG o WebP) y documentos PDF de hasta 5 MB, con miniaturas. Se abren en una pestaña nueva.
