@@ -752,6 +752,42 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 - Si el registro se borra, la ficha dice que ya no existe.
 - Las etiquetas dependen del dominio (`window.location.origin`): si cambia el dominio de la app, hay que volver a imprimirlas.
 
+## ADR-039: Adjuntos en cada registro
+
+**Contexto**: al escanear la etiqueta de un producto o de un equipo (ADR-038), lo útil es ver también su foto, su factura o su manual. Los archivos no caben en la base de datos (el plan gratuito de Neon tiene 0,5 GB), y el proyecto es gratuito: el almacenamiento no puede cobrar por pasarse de un límite.
+
+**Decisión**:
+- **Adjuntos del registro, no un tipo de columna.** Se ven y se gestionan en la ficha del registro.
+  - Una columna habría tenido que encajar en la conversión de tipos, los filtros, el orden, la exportación, la importación, las fórmulas y los valores únicos, sin que nada de eso tenga sentido para un archivo.
+  - Queda pendiente una columna de imagen que muestre la foto principal en la tabla.
+- **Almacenamiento:** un bucket privado compatible con S3. En producción, Filebase: 5 GB gratis, sin coste de descarga y sin cobros por exceso en el plan gratuito.
+  - Las peticiones se firman con `aws4fetch`, una librería pequeña y sin dependencias, en vez del SDK de AWS.
+  - **En desarrollo y en los tests,** sin bucket configurado, los archivos van a una carpeta del disco (`STORAGE_DIR`). **En producción sin bucket,** la app funciona igual pero no deja subir archivos (503).
+- **Subida a través de la API**, con el archivo como cuerpo de la petición (`POST …/records/:recordId/attachments?name=`).
+  - Así la API ve los bytes antes de guardarlos y el bucket no necesita CORS.
+  - El coste es que el archivo pasa por la API: con 5 MB como máximo, es asumible.
+- **Lo que se comprueba al subir:**
+  - **Permisos:** hay que ser EDITOR de la tabla, y el registro tiene que ser de esa tabla.
+  - **Tamaño:** como máximo 5 MB. El parser solo acepta un cuerpo así de grande con una sesión válida, como en las importaciones.
+  - **Tipo real:** se lee de los primeros bytes (JPG, PNG, WebP o PDF), sin fiarse del nombre ni del `Content-Type`. Un SVG o un HTML nunca entran.
+  - **Nombre:** se limpia, sin carpetas ni caracteres de control.
+  - **Límites:** 10 archivos por registro y 50 MB entre todos los registros de un espacio. Se cuentan con la fila del espacio bloqueada, así que dos subidas a la vez, aunque sean a tablas distintas, no se los saltan.
+  - **Demo:** no puede subir archivos, igual que no puede crear enlaces públicos.
+- **Descarga:** `GET …/attachments/:attachmentId` comprueba que el usuario puede ver la tabla y redirige a una URL firmada que caduca a los 5 minutos.
+  - La URL fija el tipo y el nombre con que responde el bucket.
+  - El archivo se sirve desde el dominio del bucket, no desde el nuestro, así que no puede ejecutar nada en la app. La CSP de la web permite imágenes de ese dominio.
+  - En desarrollo la API sirve los bytes ella misma, y a las imágenes les añade una CSP con `sandbox`.
+- **Borrado:**
+  - **El registro** al que pertenece un adjunto se pone a `NULL` cuando desaparece (`ON DELETE SET NULL`), lo borre quien lo borre: el registro, su tabla, su espacio o la cuenta de su dueño, también la de una demo caducada.
+  - **Una limpieza periódica** (cada 15 minutos, y al momento al borrar un adjunto) quita del bucket los archivos sin registro y después sus filas.
+    - Deja en paz las filas de menos de 5 minutos: una subida guarda su fila antes de que el archivo llegue al bucket, y borrarla entremedias dejaría ese archivo sin rastro. Si el bucket falla, la fila se queda y la siguiente limpieza lo reintenta, así que nunca queda un archivo sin rastro en la base de datos.
+- **Fuera de alcance:** los enlaces públicos no muestran adjuntos.
+
+**Consecuencias**:
+- Los archivos de un registro borrado siguen en el bucket hasta la siguiente limpieza, como mucho unos 20 minutos mientras la API esté despierta.
+- Las miniaturas son las propias imágenes reducidas en el navegador. Con 5 MB por archivo y 10 por registro, no compensa generar versiones pequeñas.
+- Si cambia el proveedor de almacenamiento, basta con cambiar las variables `STORAGE_*` y la CSP, pero los archivos ya subidos hay que copiarlos a mano.
+
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
 Todas están especificadas en [MVP_PROMPT.md](MVP_PROMPT.md):

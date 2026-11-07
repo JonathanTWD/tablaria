@@ -59,7 +59,7 @@ describe("QR labels", () => {
 describe("RecordSheet", () => {
   it("shows every cell of the record with its label, and offers to edit it", async () => {
     const detail: RecordDetail = { record: drill, linked: {} };
-    mockApi(() => detail);
+    mockApi((url) => (url.pathname.endsWith("/attachments") ? [] : detail));
     const onEdit = vi.fn();
     const table = {
       id: TABLE_ID,
@@ -69,7 +69,7 @@ describe("RecordSheet", () => {
       rollupTargets: {},
     } as unknown as TableDetail;
     renderWithProviders(
-      <RecordSheet table={table} recordId={RECORD_ID} onClose={() => undefined} onEdit={onEdit} />,
+      <RecordSheet table={table} recordId={RECORD_ID} canEdit onClose={() => undefined} onEdit={onEdit} />,
     );
 
     expect(await screen.findByRole("img", { name: "Código QR de Taladro percutor" })).toBeVisible();
