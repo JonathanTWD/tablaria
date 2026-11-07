@@ -302,5 +302,41 @@
       "caption": "{{measure}} por {{interval}}, según {{date}}",
       "noDates": "Ningún registro tiene esa fecha todavía."
     }
+  },
+  "qr": {
+    "open": "Ver ficha",
+    "labels": "Etiquetas QR",
+    "codeOf": "Código QR de {{name}}",
+    "sheetTitle": "Registro",
+    "sheetDescription": "Ficha de un registro de {{table}}, con su etiqueta QR para imprimir.",
+    "notFound": "Este registro ya no existe o no tienes acceso a su tabla.",
+    "printOne": "Imprimir etiqueta",
+    "download": "Descargar QR",
+    "labelsTitle": "Etiquetas QR",
+    "labelsHeading": "Etiquetas QR de {{table}}",
+    "back": "Volver a la tabla",
+    "print": "Imprimir",
+    "printHint": "Al escanear una etiqueta se abre la ficha del registro. Solo la ve quien tiene acceso a la tabla.",
+    "firstOnly": "Se muestran los primeros {{count}} de {{total}} registros. Filtra la tabla para imprimir otros.",
+    "none": "No hay registros con esta búsqueda o estos filtros."
+  },
+  "attachments": {
+    "title": "Adjuntos",
+    "count": "{{count}} de {{max}}",
+    "add": "Añadir archivos",
+    "uploading": "Subiendo…",
+    "empty": "Este registro no tiene adjuntos.",
+    "emptyEditor": "Añade fotos o documentos: JPG, PNG, WebP o PDF de hasta 5 MB.",
+    "demo": "En la demo no se pueden subir archivos. Crea una cuenta gratis para adjuntar fotos y documentos.",
+    "delete": "Eliminar {{name}}",
+    "deleteTitle": "¿Eliminar {{name}}?",
+    "deleteDescription": "El archivo se borrará y no se podrá recuperar.",
+    "deleteSubmit": "Eliminar archivo",
+    "wrongType": "No se puede subir {{name}}: solo se admiten imágenes JPG, PNG o WebP y documentos PDF.",
+    "tooLarge": "{{name}} ocupa más de 5 MB. Redúcelo o sube otro archivo.",
+    "limit": "Este registro ya tiene el máximo de 10 adjuntos. Elimina alguno para añadir más.",
+    "quota": "Este espacio ha llenado sus 50 MB de adjuntos. Elimina archivos que ya no necesites para subir más.",
+    "forbidden": "Necesitas permiso de edición en esta tabla para subir archivos.",
+    "unavailable": "Los adjuntos no están disponibles ahora mismo. Inténtalo más tarde."
   }
 }

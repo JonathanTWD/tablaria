@@ -23,6 +23,7 @@ function refresh(queryClient: QueryClient, tableId: string, scope: RealtimeScope
     keys.push(
       tableKeys.records(tableId),
       tableKeys.metrics(tableId),
+      tableKeys.recordDetails(tableId),
       tableKeys.movements(tableId),
       tableKeys.activity(tableId),
       stockAlertsKey,

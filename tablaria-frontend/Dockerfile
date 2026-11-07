@@ -16,6 +16,8 @@ RUN pnpm --filter @tablaria/shared build && pnpm --filter tablaria-frontend buil
 # origin and the httpOnly session cookies just work.
 FROM nginxinc/nginx-unprivileged:1.27-alpine
 ENV API_UPSTREAM=http://api:3000
+# Origin of the attachments bucket, allowed in the CSP for images (empty: none).
+ENV STORAGE_ORIGIN=""
 COPY tablaria-frontend/nginx.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=build /repo/tablaria-frontend/dist /usr/share/nginx/html
 EXPOSE 8080

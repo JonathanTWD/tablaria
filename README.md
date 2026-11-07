@@ -4,6 +4,8 @@ Gestión de inventario flexible: cada usuario crea sus propias tablas, define co
 
 **Demo en directo: [tablaria.es](https://tablaria.es).** Pulsa «Probar la demo» y entrarás sin registrarte en una cuenta temporal con tablas de ejemplo, que se borra a las 24 h.
 
+![Tabla de productos de la demo, con categorías de colores, proveedores enlazados y precios](docs/screenshots/tabla.png)
+
 ## Funcionalidades
 
 - **Cuentas**: registro con verificación por email, inicio de sesión, recuperación de contraseña y sesiones con cookies httpOnly y refresh tokens rotatorios.
@@ -16,9 +18,33 @@ Gestión de inventario flexible: cada usuario crea sus propias tablas, define co
   - alertas de stock bajo por columna y resumen con gráfico de barras.
 - **Compartir y organizaciones**: invitar por email a una tabla como lector o editor, u organizaciones con miembros y roles (lector, editor, administrador y propietario) que ven todas sus tablas. Las invitaciones caducan, son de un solo uso y tienen límites contra el spam.
 - **Tiempo real y presencia**: los cambios de otras personas aparecen sin recargar, y se ve quién tiene la tabla abierta y qué celda está editando.
+- **Etiquetas QR** para imprimir y pegar: al escanearlas se abre la ficha del registro.
+- **Adjuntos**: fotos y PDF en la ficha de cada registro, guardados en un bucket privado compatible con S3.
 - **Métricas de cada tabla**: totales y medias, registros bajo mínimo, gráficos por grupos (barras o dona) y evolución en el tiempo.
 - **Dashboard** con cifras generales, tablas recientes y selector de espacio, tema claro u oscuro, interfaz en español preparada para más idiomas y diseño adaptado a móvil y a pantallas grandes.
 - **Demo pública** con cuentas temporales: una ferretería con productos, proveedores y pedidos enlazados, con consultas, resúmenes, fórmulas, historial de stock y actividad, y una organización con compañeros ficticios.
+
+## Un caso de uso: etiquetas QR en el almacén
+
+Una ferretería tiene su catálogo en una tabla de productos: referencia, ubicación, stock, stock mínimo y proveedor.
+
+1. **Imprime las etiquetas.** Con «Etiquetas QR» filtra por un pasillo e imprime la hoja en papel adhesivo. Cada etiqueta lleva el QR, el nombre y la referencia.
+2. **Las pega en las estanterías**, cada una en el hueco de su producto.
+3. **Escanea con el móvil** cuando lo necesita: se abre la ficha del producto con su stock, su proveedor y su precio.
+   - Para **reponer**, registra la entrada en los movimientos de stock desde la misma ficha.
+   - Para **hacer inventario**, recorre las estanterías comparando el stock de cada ficha con lo que hay.
+
+El QR solo lleva el enlace, no los datos. Si alguien ajeno escanea una etiqueta, le pide iniciar sesión y no ve nada.
+
+| Hoja de etiquetas para imprimir | Ficha al escanear, en el móvil |
+|---|---|
+| ![Hoja con las etiquetas QR de los productos, tres por fila](docs/screenshots/etiquetas-qr.png) | <img src="docs/screenshots/ficha-movil.png" alt="Ficha del taladro en el móvil, con su QR, botones para imprimir o editar y todas sus columnas" width="260"> |
+
+El mismo esquema sirve para los equipos de una oficina (a quién está asignado cada portátil), material que se presta o las cajas de un trastero.
+
+### Métricas de cada tabla
+
+![Métricas de la tabla de productos: totales, avisos de bajo mínimo, gráfico por categorías y evolución por mes](docs/screenshots/metricas.png)
 
 ## Stack
 
@@ -103,6 +129,7 @@ Así está publicada la demo; los motivos están en [ADR-013](docs/DECISIONS.md)
   - **Variables obligatorias:** `NODE_ENV=production`, `DATABASE_URL`, `JWT_ACCESS_SECRET`, `APP_URL` y `CORS_ORIGINS` (la URL pública de la web).
   - **Proxy:** `TRUST_PROXY_HOPS=1`.
   - **Correo:** `MAIL_TRANSPORT=resend`, `RESEND_API_KEY` y `MAIL_FROM`.
+  - **Adjuntos (Filebase):** un bucket privado y sus claves en `STORAGE_ENDPOINT=https://s3.filebase.com`, `STORAGE_REGION=auto` (lo que pide Filebase; `us-east-1` también sirve), `STORAGE_BUCKET`, `STORAGE_ACCESS_KEY_ID` y `STORAGE_SECRET_ACCESS_KEY`. Sin ellas, la app funciona pero no deja subir archivos ([ADR-039](docs/DECISIONS.md)).
   - **Migraciones:** el contenedor aplica las pendientes antes de arrancar.
   - **Tiempo real:** `REALTIME_URL=wss://<api>.onrender.com/api/realtime`. La rewrite del Static Site no transporta WebSockets de forma fiable, así que el navegador se conecta directamente a la API ([ADR-020](docs/DECISIONS.md)).
 - **Web (Render Static Site)**:
@@ -112,7 +139,7 @@ Así está publicada la demo; los motivos están en [ADR-013](docs/DECISIONS.md)
   - **Rewrites:**
     - `/api/*` → `https://<api>.onrender.com/api/*`, de tipo Rewrite y la primera de la lista;
     - `/*` → `/index.html`.
-  - **Cabeceras:** las mismas que [nginx.conf.template](tablaria-frontend/nginx.conf.template), con la CSP incluida. Añade `wss://<api>.onrender.com` a `connect-src` para el tiempo real.
+  - **Cabeceras:** las mismas que [nginx.conf.template](tablaria-frontend/nginx.conf.template), con la CSP incluida. Añade `wss://<api>.onrender.com` a `connect-src` para el tiempo real, y `https://s3.filebase.com` a `img-src` para las miniaturas de los adjuntos.
 - **Dominio** (`tablaria.es`, en Hostalia):
   - **Raíz:** un registro `A` a la IP que indica Render.
   - **`www`:** un `CNAME` al Static Site.

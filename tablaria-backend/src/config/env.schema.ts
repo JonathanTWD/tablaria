@@ -71,6 +71,23 @@ export const envSchema = z
         .transform((value) => value === 'true')
         .optional(),
     ),
+    // S3-compatible bucket for attachments (ADR-039). Unset: files go to
+    // STORAGE_DIR on disk outside production, and uploads are off in production.
+    STORAGE_ENDPOINT: z.preprocess(emptyAsUnset, z.url().optional()),
+    STORAGE_REGION: z.preprocess(
+      emptyAsUnset,
+      z.string().min(1).default('us-east-1'),
+    ),
+    STORAGE_BUCKET: z.preprocess(emptyAsUnset, z.string().min(1).optional()),
+    STORAGE_ACCESS_KEY_ID: z.preprocess(
+      emptyAsUnset,
+      z.string().min(1).optional(),
+    ),
+    STORAGE_SECRET_ACCESS_KEY: z.preprocess(
+      emptyAsUnset,
+      z.string().min(1).optional(),
+    ),
+    STORAGE_DIR: z.preprocess(emptyAsUnset, z.string().min(1).optional()),
   })
   .superRefine((env, ctx) => {
     if (env.MAIL_TRANSPORT === 'resend' && !env.RESEND_API_KEY) {
@@ -79,6 +96,24 @@ export const envSchema = z
         path: ['RESEND_API_KEY'],
         message: 'Required when MAIL_TRANSPORT is "resend"',
       });
+    }
+    const bucketSettings = [
+      'STORAGE_ENDPOINT',
+      'STORAGE_BUCKET',
+      'STORAGE_ACCESS_KEY_ID',
+      'STORAGE_SECRET_ACCESS_KEY',
+    ] as const;
+    // Half a bucket configuration is a mistake, not a choice of the disk.
+    if (bucketSettings.some((key) => env[key])) {
+      for (const key of bucketSettings) {
+        if (!env[key]) {
+          ctx.addIssue({
+            code: 'custom',
+            path: [key],
+            message: 'Required when any STORAGE_ bucket setting is set',
+          });
+        }
+      }
     }
   });
 

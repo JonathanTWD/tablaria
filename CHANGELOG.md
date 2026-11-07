@@ -1,5 +1,27 @@
 # Changelog
 
+## v1.8.0 — Etiquetas QR y adjuntos
+
+- **Seguridad** (auditoría OWASP Top 10:2025 de la release):
+  - **Código:** sin hallazgos de gravedad media o alta. Se revisaron la ficha de un registro, las etiquetas QR y los adjuntos.
+    - Los adjuntos se comprueban por su contenido real, se guardan en un bucket privado y se sirven desde su dominio con enlaces de 5 minutos. Solo los ve quien puede abrir la tabla, y solo los sube o borra quien la edita.
+    - La cuota se cuenta con el espacio bloqueado, y la demo no puede subir archivos.
+  - **Pendiente, de gravedad baja:** subir o borrar adjuntos aún no queda en el historial de actividad de la tabla. Además, la API lee el archivo entero antes de comprobar el límite de peticiones, como ya pasaba con las importaciones.
+  - **Dependencias:** los mismos 2 avisos que en la v1.7.0 (minimatch y deepmerge), solo en la CLI de shadcn, que no forma parte de la app.
+- **README** con capturas de la demo y un caso de uso de las etiquetas QR.
+
+- **Adjuntos en cada registro** (ADR-039):
+  - **En la ficha:** fotos (JPG, PNG o WebP) y documentos PDF de hasta 5 MB, con miniaturas. Se abren en una pestaña nueva.
+  - **Quién puede:** quien edita la tabla sube y borra archivos (pidiendo confirmación); quien solo la ve puede abrirlos.
+  - **Límites:** 10 archivos por registro y 50 MB por espacio. La demo no puede subir archivos.
+  - **Seguridad:** el tipo se comprueba leyendo el propio archivo, no su nombre. Los archivos se guardan en un bucket privado y se abren con enlaces que caducan a los 5 minutos.
+- **Arreglo:** la ficha del registro y el panel de filtros ocupan todo el ancho en el móvil.
+
+- **Etiquetas QR y ficha de cada registro** (ADR-038):
+  - **Ficha:** «Ver ficha» en el menú de cada fila abre un panel con todas sus celdas, también las calculadas, y su etiqueta QR. Se puede imprimir la etiqueta, descargar el QR en PNG, ver los movimientos de stock o editar el registro.
+  - **Etiquetas para imprimir:** «Etiquetas QR» genera una hoja con la etiqueta de cada registro de la vista actual (búsqueda, filtros y orden), hasta 100. Lleva el nombre, la referencia (la primera columna de valor único, como el SKU) y la tabla.
+  - **Al escanear** una etiqueta con el móvil se abre la ficha de ese registro. Solo la ve quien tiene acceso a la tabla: el código no lleva datos, solo el enlace.
+
 ## v1.7.0 — Fórmulas y métricas
 
 - **Seguridad** (auditoría OWASP Top 10:2025 de la release):

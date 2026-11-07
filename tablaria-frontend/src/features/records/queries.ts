@@ -23,11 +23,20 @@ export function recordsQuery(tableId: string, view: RecordsView) {
   });
 }
 
+/** One record with its computed columns and linked labels (ADR-038). */
+export function recordDetailQuery(tableId: string, recordId: string) {
+  return queryOptions({
+    queryKey: [...tableKeys.recordDetails(tableId), recordId],
+    queryFn: () => recordsApi.get(tableId, recordId),
+  });
+}
+
 /** Record counts and "last edited" live on the table, so they change too. */
 export function refreshAfterWrite(queryClient: QueryClient, tableId: string) {
   return Promise.all([
     queryClient.invalidateQueries({ queryKey: tableKeys.records(tableId) }),
     queryClient.invalidateQueries({ queryKey: tableKeys.metrics(tableId) }),
+    queryClient.invalidateQueries({ queryKey: tableKeys.recordDetails(tableId) }),
     queryClient.invalidateQueries({ queryKey: tableKeys.detail(tableId) }),
     queryClient.invalidateQueries({ queryKey: tableKeys.list() }),
   ]);
@@ -91,6 +100,7 @@ export function useUpdateRecord(tableId: string) {
       Promise.all([
         queryClient.invalidateQueries({ queryKey: key }),
         queryClient.invalidateQueries({ queryKey: tableKeys.metrics(tableId) }),
+        queryClient.invalidateQueries({ queryKey: tableKeys.recordDetails(tableId) }),
         queryClient.invalidateQueries({ queryKey: tableKeys.list() }),
       ]),
   });

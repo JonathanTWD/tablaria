@@ -75,6 +75,7 @@ model User {
   stockMovements       StockMovement[]
   activityEvents       ActivityEvent[]
   publicLinks          PublicLink[]
+  attachments          Attachment[]
 
   @@index([demoExpiresAt])
   @@map("users")
@@ -217,6 +218,7 @@ model Record {
 
   table          InventoryTable  @relation(fields: [tableId], references: [id], onDelete: Cascade)
   stockMovements StockMovement[]
+  attachments    Attachment[]
 
   @@index([tableId, createdAt])
   @@index([data], type: Gin)
@@ -313,4 +315,25 @@ model PublicLink {
 
   @@index([createdById])
   @@map("public_links")
+}
+
+/// A photo or document of a record, stored in object storage under its id (ADR-039).
+model Attachment {
+  id           String   @id @default(uuid()) @db.Uuid
+  /// Null once the record is gone, however it went (the record, its table, its
+  /// space or its owner's account): the file still has to be removed from
+  /// storage, and the cleanup deletes the row after it.
+  recordId     String?  @db.Uuid
+  uploadedById String?  @db.Uuid
+  name         String
+  contentType  String
+  size         Int
+  createdAt    DateTime @default(now())
+
+  record     Record? @relation(fields: [recordId], references: [id], onDelete: SetNull)
+  uploadedBy User?   @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@index([recordId, createdAt])
+  @@index([uploadedById])
+  @@map("attachments")
 }
