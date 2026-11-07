@@ -20,6 +20,7 @@ describe('validateEnv', () => {
       SMTP_HOST: '127.0.0.1',
       SMTP_PORT: 1025,
       DEMO_ENABLED: true,
+      STORAGE_REGION: 'us-east-1',
     });
   });
 
@@ -78,5 +79,24 @@ describe('validateEnv', () => {
       'RESEND_API_KEY',
       '',
     );
+  });
+
+  it('requires every bucket setting once any of them is set', () => {
+    const bucket = {
+      STORAGE_ENDPOINT: 'https://s3.filebase.com',
+      STORAGE_BUCKET: 'tablaria-adjuntos',
+      STORAGE_ACCESS_KEY_ID: 'key',
+      STORAGE_SECRET_ACCESS_KEY: 'secret',
+    };
+    expect(validateEnv({ ...validEnv, ...bucket })).toMatchObject(bucket);
+    // A misnamed key leaves the bucket half configured.
+    expect(() =>
+      validateEnv({
+        ...validEnv,
+        ...bucket,
+        STORAGE_ACCESS_KEY_ID: undefined,
+        STORAGE_ACCESS_TOKEN: 'key',
+      }),
+    ).toThrow(/STORAGE_ACCESS_KEY_ID/);
   });
 });
