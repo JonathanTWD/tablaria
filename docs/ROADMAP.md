@@ -53,7 +53,7 @@ Cada tarea indica qué modelo conviene: **Opus** para lo que toca seguridad, per
 - Adjuntos en cada registro (hecho, ADR-039). Pendiente: una columna con la foto principal en la tabla y subidas directas al bucket.
 - API pública con tokens y webhooks.
 - Relaciones entre tablas (hechas las básicas, ADR-022; buscar, filtrar y ordenar por nombre, ADR-028; columnas de consulta, ADR-030; columnas de resumen, ADR-031; relaciones con varios registros, ADR-032; columnas de fórmula, ADR-033; ordenar y filtrar por resumen, ADR-034): ordenar y filtrar por fórmula, resúmenes con condición y consultas a través de relaciones múltiples.
-- Preguntas sobre los datos con IA (necesita una API key de pago).
+- Preguntas sobre los datos con IA (diseño en ADR-042, con el plan gratuito de Groq).
 - Tiempo real con varias instancias (Redis), solo si hace falta escalar.
 
 **Medias (básico, con cuidado; Opus si hay tiempo)**
