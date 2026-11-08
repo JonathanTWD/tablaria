@@ -34,9 +34,9 @@ La especificación completa del MVP está en [MVP_PROMPT.md](MVP_PROMPT.md).
 
 ### Prioridades tras el MVP
 
-1. **Exportar**, respetando la vista actual (búsqueda, filtros y orden). El CSV ya está hecho; falta Excel (`.xlsx` con ExcelJS), que se añadirá cuando las versiones recientes del lockfile cumplan la antigüedad mínima de pnpm.
+1. **Exportar**, respetando la vista actual (búsqueda, filtros y orden). Hechos el CSV y el Excel (`.xlsx`, ADR-043).
 2. **Alertas de stock bajo** y **gráficos** (hecho: umbral por columna numérica; desde ADR-035, pestaña «Métricas» en cada tabla con resumen, bajo mínimo, grupos y evolución).
-3. **Importar** con un asistente paso a paso (hecho para CSV, fase 10, ADR-021): elegir el archivo, emparejar columnas o crearlas con su tipo detectado, revisar errores y opciones nuevas, e importar todo o nada, también en una tabla vacía o como tabla nueva. Falta Excel (`.xlsx`), que se leerá en el navegador con ExcelJS cuando cumpla la antigüedad mínima de pnpm.
+3. **Importar** con un asistente paso a paso (hecho para CSV, fase 10, ADR-021): elegir el archivo, emparejar columnas o crearlas con su tipo detectado, revisar errores y opciones nuevas, e importar todo o nada, también en una tabla vacía o como tabla nueva. También para Excel (`.xlsx`, ADR-043), leído en el navegador.
 4. **Preguntas sobre los datos con IA**: el modelo consulta la API mediante herramientas (filtros validados y un endpoint de agregaciones), nunca con SQL libre. Las herramientas solo leen.
 
 ### Plan por dificultad
@@ -57,7 +57,7 @@ Cada tarea indica qué modelo conviene: **Opus** para lo que toca seguridad, per
 - Tiempo real con varias instancias (Redis), solo si hace falta escalar.
 
 **Medias (básico, con cuidado; Opus si hay tiempo)**
-- Excel `.xlsx` para exportar e importar con ExcelJS (desde ~8-nov): convertir el libro a filas y reutilizar el asistente.
+- Excel `.xlsx` para exportar e importar (hecho, ADR-043).
 - Parche de dependencias (~6-nov): body-parser ≥ 2.4.0, multer ≥ 2.5.0, qs ≥ 6.16.1, nodemailer ≥ 10.1.4, respetando los 14 días de pnpm.
 - Selección múltiple como tipo de columna.
 - Vistas guardadas (búsqueda, filtros y orden con nombre) (hecho, ADR-041).

@@ -13,8 +13,8 @@ Gestión de inventario flexible: cada usuario crea sus propias tablas, define co
 - **Columnas** de seis tipos: texto, número, fecha, sí/no, lista de opciones con colores y precio en cualquier moneda. Se pueden marcar como obligatorias, tener valor por defecto, reordenarse y cambiar de tipo convirtiendo los valores guardados.
 - **Registros**: edición directa en la celda (Enter guarda, Escape cancela), formulario completo, búsqueda, filtros por tipo, orden y paginación. La vista vive en la URL, así que se puede compartir. Varios registros se pueden seleccionar para cambiarles un valor o borrarlos a la vez, y cada combinación de búsqueda, filtros y orden se puede guardar como una vista con nombre.
 - **Exportar, importar y avisos**:
-  - exportación a CSV de la vista actual, lista para Excel en español;
-  - importación de CSV con un asistente que empareja columnas y valida cada celda antes de guardar nada;
+  - exportación de la vista actual a Excel (.xlsx, con números, precios y fechas de verdad) o a CSV;
+  - importación de Excel o CSV con un asistente que empareja columnas y valida cada celda antes de guardar nada;
   - alertas de stock bajo por columna y resumen con gráfico de barras.
 - **Compartir y organizaciones**: invitar por email a una tabla como lector o editor, u organizaciones con miembros y roles (lector, editor, administrador y propietario) que ven todas sus tablas. Las invitaciones caducan, son de un solo uso y tienen límites contra el spam.
 - **Tiempo real y presencia**: los cambios de otras personas aparecen sin recargar, y se ve quién tiene la tabla abierta y qué celda está editando.

@@ -41,6 +41,7 @@ import { apiErrorMessage } from "@/lib/error-message";
 import { cn } from "@/lib/utils";
 import { matchColumns } from "./column-matching";
 import { decodeText, parseCsv } from "./csv";
+import { isXlsx, parseXlsx } from "./xlsx";
 import { columnForFile, IMPORTABLE_TYPES, type ImportableType, inferType } from "./infer-column";
 import { type ImportBody, type ImportDestination, useCheckImport, useRunImport } from "./queries";
 
@@ -229,7 +230,8 @@ function ImportWizard({ destination, onDone }: { destination: ImportDestination;
     }
     let rows: string[][];
     try {
-      rows = parseCsv(decodeText(await selected.arrayBuffer()));
+      const buffer = await selected.arrayBuffer();
+      rows = isXlsx(selected) ? await parseXlsx(buffer) : parseCsv(decodeText(buffer));
     } catch {
       setFileError(t("import.errors.unreadable"));
       return;
@@ -397,7 +399,7 @@ function FileStep({
         <input
           id={`${ids}-file`}
           type="file"
-          accept=".csv,text/csv"
+          accept=".csv,text/csv,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
           aria-describedby={`${ids}-file-hint`}
           onChange={(event) => onFile(event.target.files?.[0])}
           className="block w-full rounded-lg border border-dashed border-border p-4 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-primary-foreground focus-visible:outline-2 focus-visible:outline-ring"

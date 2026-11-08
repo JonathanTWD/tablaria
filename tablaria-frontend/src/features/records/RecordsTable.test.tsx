@@ -288,7 +288,8 @@ describe("RecordsTable", () => {
       route: `/app/tables/x?q=tala&page=2&sort=${PRICE_ID}&order=desc`,
     });
 
-    await user.click(await screen.findByRole("button", { name: "Exportar CSV" }));
+    await user.click(await screen.findByRole("button", { name: "Exportar" }));
+    await user.click(await screen.findByRole("menuitem", { name: "CSV (.csv)" }));
 
     await waitFor(() => expect(click).toHaveBeenCalledOnce());
     const exportUrl = fetchMock.mock.calls
@@ -315,7 +316,7 @@ describe("RecordsTable", () => {
     expect(screen.queryByRole("button", { name: /Nuevo registro/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Precio de Taladro/ })).not.toBeInTheDocument();
     // Exporting and printing labels are reading, so viewers keep them.
-    expect(screen.getByRole("button", { name: /Exportar CSV/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Exportar/ })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Etiquetas QR/ })).toBeInTheDocument();
     // A record's menu only opens its sheet (ADR-038).
     await user.click(screen.getByRole("button", { name: /Acciones/ }));
@@ -388,8 +389,9 @@ describe("RecordsTable", () => {
     });
 
     await user.click(await screen.findByRole("button", { name: "Más acciones" }));
-    expect(await screen.findByRole("menuitem", { name: "Exportar CSV" })).toBeVisible();
+    expect(await screen.findByRole("menuitem", { name: "Exportar a Excel" })).toBeVisible();
+    expect(screen.getByRole("menuitem", { name: "Exportar a CSV" })).toBeVisible();
     expect(screen.getByRole("menuitem", { name: "Etiquetas QR" })).toBeVisible();
-    expect(screen.getByRole("menuitem", { name: "Importar CSV" })).toBeVisible();
+    expect(screen.getByRole("menuitem", { name: "Importar" })).toBeVisible();
   });
 });

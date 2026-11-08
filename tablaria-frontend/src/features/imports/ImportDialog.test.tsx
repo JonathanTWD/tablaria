@@ -1,3 +1,4 @@
+import ExcelJS from "exceljs";
 import { columnDefinitionSchema, type ImportCheck, type TableColumn, type TableDetail } from "@tablaria/shared";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -65,7 +66,7 @@ describe("ImportDialog", () => {
     renderWithProviders(<ImportDialog destination={{ kind: "table", table }} open onOpenChange={() => undefined} />);
 
     await user.upload(
-      screen.getByLabelText("Archivo CSV"),
+      screen.getByLabelText("Archivo de Excel (.xlsx) o CSV"),
       csvFile("Producto;Notas;Stock\r\nTaladro;nuevo;5\r\nSierra;;1,5\r\n"),
     );
     expect(await screen.findByText("inventario.csv: 2 filas de datos.")).toBeVisible();
@@ -117,7 +118,7 @@ describe("ImportDialog", () => {
       <ImportDialog destination={{ kind: "table", table: withSku }} open onOpenChange={() => undefined} />,
     );
 
-    await user.upload(screen.getByLabelText("Archivo CSV"), csvFile("Stock;Producto\n5;Taladro\n1;Sierra\n"));
+    await user.upload(screen.getByLabelText("Archivo de Excel (.xlsx) o CSV"), csvFile("Stock;Producto\n5;Taladro\n1;Sierra\n"));
     // The unique column is the key by default.
     expect(await screen.findByLabelText("Actualizar los registros que coincidan en")).toHaveTextContent(
       "Producto",
@@ -148,7 +149,7 @@ describe("ImportDialog", () => {
     }));
     renderWithProviders(<ImportDialog destination={{ kind: "table", table }} open onOpenChange={() => undefined} />);
 
-    await user.upload(screen.getByLabelText("Archivo CSV"), csvFile("Producto;Stock\nTaladro;5\nSierra;12 uds\n"));
+    await user.upload(screen.getByLabelText("Archivo de Excel (.xlsx) o CSV"), csvFile("Producto;Stock\nTaladro;5\nSierra;12 uds\n"));
     await user.click(await screen.findByRole("button", { name: "Comprobar" }));
 
     // Row 2 of the data is line 3 of the file, after the header.
@@ -192,7 +193,7 @@ describe("ImportDialog", () => {
     );
 
     await user.upload(
-      screen.getByLabelText("Archivo CSV"),
+      screen.getByLabelText("Archivo de Excel (.xlsx) o CSV"),
       csvFile("Producto;Proveedor\nTaladro;Dewalt\nSierra;Stanley\n"),
     );
     await user.click(await screen.findByRole("button", { name: "Comprobar" }));
@@ -232,7 +233,7 @@ describe("ImportDialog", () => {
     );
 
     await user.upload(
-      screen.getByLabelText("Archivo CSV"),
+      screen.getByLabelText("Archivo de Excel (.xlsx) o CSV"),
       csvFile("Producto;Precio;Compra\nTaladro;89,90 €;15/03/2025\nSierra;12 €;2025-02-01\n"),
     );
     // Named after the file, with every column new and typed from its values.
@@ -276,7 +277,7 @@ describe("ImportDialog", () => {
     renderWithProviders(<ImportDialog destination={{ kind: "table", table }} open onOpenChange={() => undefined} />);
 
     await user.upload(
-      screen.getByLabelText("Archivo CSV"),
+      screen.getByLabelText("Archivo de Excel (.xlsx) o CSV"),
       csvFile("Producto;Stock\nTaladro;5\nSierra;2\nSierra;2\n"),
     );
     await user.click(screen.getByRole("button", { name: "Comprobar" }));
@@ -290,5 +291,24 @@ describe("ImportDialog", () => {
     await user.click(screen.getByRole("switch", { name: "Omitir las filas repetidas" }));
     expect(await screen.findByRole("button", { name: "Importar 3 registros" })).toBeEnabled();
     expect(sent).toEqual([true, false]);
+  });
+
+  it("reads an Excel workbook like a CSV", async () => {
+    const user = userEvent.setup();
+    mockApi(() => ({}));
+    const book = new ExcelJS.Workbook();
+    const sheet = book.addWorksheet("Inventario");
+    sheet.addRow(["Producto", "Stock"]);
+    sheet.addRow(["Taladro", 5]);
+    sheet.addRow(["Sierra", 1.5]);
+    const file = new File([await book.xlsx.writeBuffer()], "inventario.xlsx", {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    renderWithProviders(<ImportDialog destination={{ kind: "table", table }} open onOpenChange={() => undefined} />);
+
+    await user.upload(screen.getByLabelText("Archivo de Excel (.xlsx) o CSV"), file);
+    expect(await screen.findByText("inventario.xlsx: 2 filas de datos.")).toBeVisible();
+    // Columns with the table's names are matched, as with a CSV.
+    expect(screen.getByRole("button", { name: "Comprobar" })).toBeEnabled();
   });
 });

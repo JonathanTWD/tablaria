@@ -16,9 +16,13 @@
     "filtersActive_one": "Filtros ({{count}} activo)",
     "filtersActive_other": "Filtros ({{count}} activos)",
     "add": "Nuevo registro",
-    "export": "Exportar CSV",
+    "export": "Exportar",
+    "exportXlsx": "Excel (.xlsx)",
+    "exportCsv": "CSV (.csv)",
+    "exportToXlsx": "Exportar a Excel",
+    "exportToCsv": "Exportar a CSV",
     "exportError": "No se pudo exportar. {{message}}",
-    "import": "Importar CSV"
+    "import": "Importar"
   },
   "table": {
     "caption": "Registros de {{name}}",
@@ -120,12 +124,12 @@
   "cancel": "Cancelar",
   "import": {
     "title": "Importar en «{{name}}»",
-    "description": "Añade los registros de un archivo CSV, como los que guarda Excel o exporta Tablaria.",
-    "newTableTitle": "Nueva tabla desde un archivo CSV",
-    "newTableDescription": "Crea la tabla con las columnas y los registros de un archivo, como los que guarda Excel o exporta Tablaria.",
+    "description": "Añade los registros de un archivo de Excel (.xlsx) o CSV, como los que exporta Tablaria.",
+    "newTableTitle": "Nueva tabla desde un archivo",
+    "newTableDescription": "Crea la tabla con las columnas y los registros de un archivo de Excel (.xlsx) o CSV, como los que exporta Tablaria.",
     "step": "Paso {{step}} de {{total}}",
-    "file": "Archivo CSV",
-    "fileHint": "Hasta {{max}} filas.",
+    "file": "Archivo de Excel (.xlsx) o CSV",
+    "fileHint": "Hasta {{max}} filas. De un libro de Excel se lee la primera hoja con datos.",
     "hasHeader": "La primera fila tiene los nombres de las columnas",
     "fileSummary_one": "{{name}}: {{count}} fila de datos.",
     "fileSummary_other": "{{name}}: {{count}} filas de datos.",
