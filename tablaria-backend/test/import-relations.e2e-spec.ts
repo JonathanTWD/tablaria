@@ -6,6 +6,7 @@ import type {
   TableColumn,
   TableDetail,
 } from '@tablaria/shared';
+import ExcelJS from 'exceljs';
 import { App } from 'supertest/types';
 import { PrismaService } from '../src/database/prisma.service';
 import {
@@ -119,6 +120,30 @@ describe('Importing relations by name (e2e)', () => {
     // What the export writes imports back as the same links.
     const csv = await s.owner.get(`${s.base}/records/export`).expect(200);
     expect(csv.text).toContain('Taladro;Bosch;Makita, Bosch');
+
+    // And so does an Excel workbook, with the same labels.
+    const xlsx = await s.owner
+      .get(`${s.base}/records/export`)
+      .query({ format: 'xlsx', sort: s.product.id })
+      .buffer(true)
+      .parse((response, done) => {
+        const chunks: Buffer[] = [];
+        response.on('data', (chunk: Buffer) => chunks.push(chunk));
+        response.on('end', () => done(null, Buffer.concat(chunks)));
+      })
+      .expect(200);
+    expect(xlsx.headers['content-type']).toContain('spreadsheetml');
+    expect(xlsx.headers['content-disposition']).toMatch(/productos-.*\.xlsx/);
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(new Uint8Array(xlsx.body as Buffer).buffer);
+    const sheet = workbook.worksheets[0];
+    expect(sheet.name).toBe('Productos');
+    expect(sheet.getRow(4).values).toEqual([
+      undefined,
+      'Taladro',
+      'Bosch',
+      'Makita, Bosch',
+    ]);
   });
 
   it('reports names no record has, or several do, and imports nothing', async () => {

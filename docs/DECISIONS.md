@@ -896,6 +896,29 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 - **Las respuestas pueden equivocarse,** como cualquier modelo de lenguaje. El panel enlaza los registros en los que se basa, para comprobarlas.
 - **Groq recibe datos de inventario** de quien usa el asistente. Es opcional y se avisa antes; sin la clave configurada, no existe.
 
+## ADR-043: Exportar e importar Excel (.xlsx)
+
+**Contexto**: el CSV que exporta Tablaria abre en Excel, pero pierde los tipos: los precios y las fechas son texto, y cada versión de Excel decide cómo leer el separador y los decimales. Al revés pasa lo mismo: la mayoría de la gente tiene su inventario en un libro de Excel, no en un CSV, y tenía que guardarlo como CSV antes de importarlo.
+
+**Decisión**:
+- **Librería: ExcelJS** (MIT), en el backend para escribir y en el frontend para leer. Es la más usada que hace las dos cosas.
+  - Su última versión es de 2023, pero es estable.
+  - Arrastra `uuid@8`, con un aviso (GHSA-w5hq-g745-h8pq) que solo afecta a `v3/v5/v6` cuando se les pasa un buffer. ExcelJS solo llama a `v4()` sin argumentos, así que no es alcanzable.
+- **Exportar en el servidor:** `GET /records/export?format=xlsx`, con la misma vista, los mismos permisos y el mismo límite que el CSV.
+  - Los números y precios se guardan como números, con la moneda en el formato de celda (`#,##0.00 "€"`).
+  - Las fechas se guardan como fechas, a medianoche UTC para que se vea el mismo día en cualquier zona horaria; Sí/No y las relaciones, como texto.
+  - Las consultas y los resúmenes van con el formato de la columna que muestran.
+  - El texto siempre se escribe como texto: un valor que empieza por `=` nunca se convierte en una fórmula (en el CSV hacía falta neutralizarlo, ADR-021).
+  - Una hoja con el nombre de la tabla (sin los caracteres que Excel no admite), cabecera fija y con filtros, y anchos ajustados al contenido.
+- **Importar en el navegador:** el libro se convierte en filas de texto con el mismo formato que un CSV (números con coma decimal, fechas ISO, Sí/No), y sigue el asistente de siempre (ADR-021, ADR-036).
+  - **Por qué en el navegador:** un `.xlsx` es un zip, y uno pequeño puede descomprimirse en cientos de megas («bomba zip»). Leerlo en el servidor expondría la API, que tiene poca memoria en el plan gratuito. En el navegador, como mucho se cuelga la pestaña de quien sube su propio archivo.
+  - **Qué se lee:** la primera hoja con datos. De las fórmulas, su valor calculado; del texto con formato, solo el texto; los errores (`#N/A`) quedan vacíos.
+  - ExcelJS se carga solo al elegir un libro: son ~250 KB comprimidos que el resto de la app no descarga.
+
+**Consecuencias**:
+- Lo exportado se vuelve a importar tal cual, en los dos formatos.
+- Los libros con varias hojas solo aportan la primera con datos. Elegir la hoja queda para más adelante, si hace falta.
+
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
 Todas están especificadas en [MVP_PROMPT.md](MVP_PROMPT.md):

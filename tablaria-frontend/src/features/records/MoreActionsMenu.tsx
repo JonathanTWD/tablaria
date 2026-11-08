@@ -1,4 +1,4 @@
-import { Download, Ellipsis, FileUp, QrCode } from "lucide-react";
+import { Ellipsis, FileSpreadsheet, FileText, FileUp, QrCode } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useExportCsv } from "./queries";
+import { useExportRecords } from "./queries";
 import type { RecordsView } from "./records-view";
 
 /**
@@ -31,7 +31,7 @@ export function MoreActionsMenu({
 }) {
   const { t } = useTranslation("records");
   const navigate = useNavigate();
-  const exportCsv = useExportCsv(tableId, view);
+  const exportRecords = useExportRecords(tableId, view);
 
   return (
     <DropdownMenu>
@@ -41,7 +41,7 @@ export function MoreActionsMenu({
             variant="outline"
             className={className}
             aria-label={t("toolbar.moreLabel")}
-            aria-busy={exportCsv.isPending}
+            aria-busy={exportRecords.isPending}
           />
         }
       >
@@ -49,9 +49,13 @@ export function MoreActionsMenu({
         {t("toolbar.more")}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-52">
-        <DropdownMenuItem disabled={exportCsv.isPending} onClick={() => exportCsv.mutate()}>
-          <Download aria-hidden="true" />
-          {t("toolbar.export")}
+        <DropdownMenuItem disabled={exportRecords.isPending} onClick={() => exportRecords.mutate("xlsx")}>
+          <FileSpreadsheet aria-hidden="true" />
+          {t("toolbar.exportToXlsx")}
+        </DropdownMenuItem>
+        <DropdownMenuItem disabled={exportRecords.isPending} onClick={() => exportRecords.mutate("csv")}>
+          <FileText aria-hidden="true" />
+          {t("toolbar.exportToCsv")}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => void navigate(labelsUrl)}>
           <QrCode aria-hidden="true" />

@@ -7,6 +7,7 @@ import {
 } from "@tanstack/react-query";
 import type {
   Paginated,
+  RecordExportFormat,
   RecordData,
   TableRecord,
 } from "@tablaria/shared";
@@ -128,9 +129,9 @@ export function useUpdateRecord(tableId: string) {
 }
 
 /** Downloads every record that matches the current search, filters and sort. */
-export function useExportCsv(tableId: string, view: RecordsView) {
+export function useExportRecords(tableId: string, view: RecordsView) {
   return useMutation({
-    mutationFn: () => recordsApi.exportCsv(tableId, view),
+    mutationFn: (format: RecordExportFormat) => recordsApi.exportFile(tableId, view, format),
     onError: (error) =>
       toast.error(i18n.t("records:toolbar.exportError", { message: apiErrorMessage(error) })),
   });
