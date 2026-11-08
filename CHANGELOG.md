@@ -1,7 +1,13 @@
 # Changelog
 
-## Sin publicar
+## v1.9.0 — Asistente de IA y productividad
 
+- **Seguridad** (auditoría OWASP Top 10:2025 de la release):
+  - **Código:** un hallazgo de gravedad baja, arreglado antes de publicar: todas las demos juntas podían agotar el presupuesto diario de Groq del asistente (ver abajo). Se revisaron el asistente, la edición en lote, las vistas guardadas, el Excel y la importación con repetidos.
+    - El asistente solo lee, con los permisos del usuario, y los datos de las tablas le llegan marcados como datos: sus instrucciones no llevan nada escrito por usuarios.
+    - La exportación a Excel escribe el texto como texto: nada se convierte en fórmula. Los libros se leen en el navegador, nunca en el servidor.
+  - **Pendiente de la v1.8.0, de gravedad baja:** los adjuntos en el historial de actividad y el límite de peticiones antes de leer un archivo subido.
+  - **Dependencias:** ExcelJS trae `uuid@8` con un aviso que no le afecta (solo usa `v4()`). Siguen minimatch y deepmerge, solo en la CLI de shadcn.
 - **Asistente: tope común para la demo** (auditoría de la v1.9.0): todas las sesiones de demo juntas pueden hacer como mucho 30 preguntas al día, para que abrir demos seguidas no agote el presupuesto de Groq que comparten las cuentas registradas. Al llegar al tope, la demo invita a crear una cuenta.
 - **Importar con vista previa y sin repetidos** (ADR-044):
   - **Vista previa:** antes de importar, una tabla con las 5 primeras filas bajo la columna de Tablaria que llenará cada una, con las celdas con error en rojo.
