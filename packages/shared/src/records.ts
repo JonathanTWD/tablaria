@@ -269,7 +269,7 @@ export const recordListQuerySchema = z.object({
 
 export type RecordListQuery = z.output<typeof recordListQuerySchema>;
 
-export const RECORD_EXPORT_FORMATS = ["csv"] as const;
+export const RECORD_EXPORT_FORMATS = ["csv", "xlsx"] as const;
 export type RecordExportFormat = (typeof RECORD_EXPORT_FORMATS)[number];
 
 /** Same view as the listing (search, filters, sort) without pagination: every match is exported. */

@@ -2,6 +2,14 @@
 
 ## Sin publicar
 
+- **Excel (.xlsx)** (ADR-043):
+  - **Exportar:** el botón «Exportar» ofrece Excel o CSV, siempre con la vista actual (búsqueda, filtros y orden).
+    - El libro guarda los números y los precios como números (con su moneda), las fechas como fechas, y las relaciones con el nombre del registro enlazado.
+    - La cabecera queda fija y con filtros, y las columnas con un ancho que encaja con su contenido.
+  - **Importar:** el asistente acepta también libros de Excel. Lee la primera hoja con datos y sigue igual que con un CSV: emparejar columnas, revisar errores e importar todo o nada.
+    - El libro se lee en el navegador y nunca se sube entero.
+    - De una fórmula se toma su valor, no la fórmula.
+
 - **Asistente: grabación con ondas y acceso más a mano** (ADR-042):
   - **Al preguntar por voz,** la caja de texto se convierte en una barra con la onda de tu voz en directo, un punto de grabación y el tiempo, como una nota de voz. Con «reducir movimiento» activado, la onda se sustituye por un texto.
   - **«Pensando…»** brilla mientras el asistente responde.

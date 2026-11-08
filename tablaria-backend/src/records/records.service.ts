@@ -54,6 +54,7 @@ import { logStockChanges } from '../stock-movements/stock-log';
 import { toTableRecord, withoutEmptyCells } from './record-data';
 import { requireUniqueBatchValues, requireUniqueValues } from './unique-values';
 import { exportFileName, toCsv } from './record-export';
+import { toXlsx } from './record-export-xlsx';
 
 export interface ExportedFile {
   fileName: string;
@@ -180,30 +181,28 @@ export class RecordsService {
     await fillRollups(this.prisma, rollups, rows);
     fillFormulas(columns, rows);
 
+    const data = rows.map((row) => row.data);
+    // Linked records by their label, as the table shows them.
+    const linked = await linkedLabels(this.prisma, userId, columns, data);
+    // Lookups and rollups are formatted like the column they show.
+    const shownAs = new Map([
+      ...[...lookups].map(([id, { target }]) => [id, target] as const),
+      ...[...rollups].flatMap(([id, { target }]) =>
+        target ? [[id, target] as const] : [],
+      ),
+    ]);
+    if (query.format === 'xlsx') {
+      return {
+        fileName: exportFileName(table.name, 'xlsx'),
+        contentType:
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        content: await toXlsx(table.name, columns, data, linked, shownAs),
+      };
+    }
     return {
       fileName: exportFileName(table.name, 'csv'),
       contentType: 'text/csv; charset=utf-8',
-      content: Buffer.from(
-        toCsv(
-          columns,
-          rows.map(({ data }) => data),
-          // Linked records by their label, as the table shows them.
-          await linkedLabels(
-            this.prisma,
-            userId,
-            columns,
-            rows.map(({ data }) => data),
-          ),
-          // Lookups and rollups are formatted like the column they show.
-          new Map([
-            ...[...lookups].map(([id, { target }]) => [id, target] as const),
-            ...[...rollups].flatMap(([id, { target }]) =>
-              target ? [[id, target] as const] : [],
-            ),
-          ]),
-        ),
-        'utf8',
-      ),
+      content: Buffer.from(toCsv(columns, data, linked, shownAs), 'utf8'),
     };
   }
 
