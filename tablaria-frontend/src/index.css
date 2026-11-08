@@ -5,7 +5,18 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* The assistant's "thinking" text (ADR-042). */
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
 @theme inline {
+  --animate-shimmer: shimmer 2s linear infinite;
     --font-heading: var(--font-sans);
     --font-sans: 'Geist Variable', sans-serif;
     --color-sidebar-ring: var(--sidebar-ring);
