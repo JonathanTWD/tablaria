@@ -3,6 +3,11 @@ import { z } from "zod";
 /** Questions a day for each account, and for each demo session (ADR-042). */
 export const ASSISTANT_DAILY_LIMIT = 15;
 export const ASSISTANT_DEMO_LIMIT = 5;
+/**
+ * Questions a day for every demo session together: demos are free and
+ * anonymous, and the provider's daily budget is shared by every account.
+ */
+export const ASSISTANT_DEMO_DAILY_TOTAL = 30;
 /** The latest messages sent with each question: older ones are left out. */
 export const ASSISTANT_MAX_MESSAGES = 6;
 export const ASSISTANT_MESSAGE_MAX_LENGTH = 1000;

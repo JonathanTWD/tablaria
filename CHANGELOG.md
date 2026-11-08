@@ -2,6 +2,7 @@
 
 ## Sin publicar
 
+- **Asistente: tope común para la demo** (auditoría de la v1.9.0): todas las sesiones de demo juntas pueden hacer como mucho 30 preguntas al día, para que abrir demos seguidas no agote el presupuesto de Groq que comparten las cuentas registradas. Al llegar al tope, la demo invita a crear una cuenta.
 - **Importar con vista previa y sin repetidos** (ADR-044):
   - **Vista previa:** antes de importar, una tabla con las 5 primeras filas bajo la columna de Tablaria que llenará cada una, con las celdas con error en rojo.
   - **Filas repetidas:** al comprobar, avisa de las filas iguales a un registro de la tabla y de las que repiten otra del mismo archivo, comparando las columnas que trae el archivo sin distinguir mayúsculas. Se omiten por defecto (tachadas en la vista previa) y se pueden importar igualmente.
