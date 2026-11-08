@@ -5,17 +5,25 @@ import {
   type AssistantMessage,
   type AssistantSource,
 } from "@tablaria/shared";
-import { Loader2, Mic, MicOff, Send, Sparkles, Volume2, VolumeX } from "lucide-react";
-import { type FormEvent, useEffect, useId, useRef, useState } from "react";
+import { Mic, Send, Sparkles, Square, Volume2, VolumeX } from "lucide-react";
+import { type FormEvent, type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useMatch } from "react-router";
 import { FormAlert } from "@/components/form/FormAlert";
 import { Button } from "@/components/ui/button";
+import { LiveWaveform } from "@/components/ui/live-waveform";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ApiError } from "@/lib/api-client";
 import { apiErrorMessage } from "@/lib/error-message";
 import { cn } from "@/lib/utils";
+import {
+  AssistantContext,
+  isAssistantShortcut,
+  shortcutLabel,
+  useAssistant,
+} from "./assistant-context";
 import { assistantStatusQuery, useAskAssistant } from "./queries";
 import {
   canListen,
@@ -35,28 +43,35 @@ interface Turn extends AssistantMessage {
 const SUGGESTIONS = ["suggestions.lowStock", "suggestions.biggestSupplier", "suggestions.total"] as const;
 
 /**
- * The AI assistant (ADR-042): a button in the app's header and a side panel
- * to ask about the data. Offered only when the API has a model configured.
+ * The AI assistant (ADR-042) for the whole app: its side panel, the
+ * conversation (kept while the user moves between pages) and Ctrl+K. Offered
+ * only when the API has a model configured.
  */
-export function Assistant() {
-  const { t } = useTranslation("assistant");
+export function AssistantProvider({ children }: { children: ReactNode }) {
   const status = useQuery(assistantStatusQuery);
   const [open, setOpen] = useState(false);
-  // Kept here, so closing the panel or changing page keeps the conversation.
   const [turns, setTurns] = useState<Turn[]>([]);
+  const enabled = Boolean(status.data?.enabled);
 
-  if (!status.data?.enabled) {
-    return null;
-  }
+  // A shortcut from any page, even while typing elsewhere.
+  useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (isAssistantShortcut(event)) {
+        event.preventDefault();
+        setOpen(true);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [enabled]);
 
   return (
-    <>
-      <Button variant="outline" className="h-9" onClick={() => setOpen(true)}>
-        <Sparkles aria-hidden="true" />
-        {/* Only the icon on phones, where the header is short of room. */}
-        <span className="sr-only sm:not-sr-only">{t("button")}</span>
-      </Button>
-      {open && (
+    <AssistantContext value={{ enabled, open: () => setOpen(true) }}>
+      {children}
+      {open && status.data && (
         <AssistantPanel
           turns={turns}
           setTurns={setTurns}
@@ -68,7 +83,38 @@ export function Assistant() {
           }}
         />
       )}
-    </>
+    </AssistantContext>
+  );
+}
+
+/** The header's entry to the assistant, in the brand color: it's the star feature. */
+export function AssistantButton() {
+  const { t } = useTranslation("assistant");
+  const { enabled, open } = useAssistant();
+  if (!enabled) {
+    return null;
+  }
+  const shortcut = shortcutLabel();
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Button
+            variant="outline"
+            className="h-9 border-primary/30 bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary"
+            aria-keyshortcuts="Control+K Meta+K"
+            onClick={open}
+          />
+        }
+      >
+        <Sparkles aria-hidden="true" />
+        {/* Only the icon on phones, where the header is short of room. */}
+        <span className="sr-only sm:not-sr-only">{t("button")}</span>
+      </TooltipTrigger>
+      <TooltipContent>
+        {t("tooltip")} <kbd className="ml-1 rounded border border-border/40 px-1 font-sans text-[0.7rem]">{shortcut}</kbd>
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -94,6 +140,18 @@ function AssistantPanel({
   const [speakAnswers, setSpeakAnswers] = useState(speakPreference.read);
   const [listening, setListening] = useState(false);
   const recognizer = useRef<SpeechRecognizer | null>(null);
+  const [seconds, setSeconds] = useState(0);
+  const [micError, setMicError] = useState(false);
+  const reducedMotion = useReducedMotion();
+
+  // The recording's clock, like a voice note's.
+  useEffect(() => {
+    if (!listening) {
+      return;
+    }
+    const timer = window.setInterval(() => setSeconds((value) => value + 1), 1000);
+    return () => window.clearInterval(timer);
+  }, [listening]);
   const log = useRef<HTMLDivElement>(null);
 
   // Keeps the latest message in view as the conversation grows.
@@ -146,6 +204,8 @@ function AssistantPanel({
       return;
     }
     stopSpeaking();
+    setMicError(false);
+    setSeconds(0);
     setListening(true);
     // Hands-free: what is heard goes out as the question.
     recognizer.current = listen(send, () => setListening(false));
@@ -248,18 +308,53 @@ function AssistantPanel({
                   </div>
                 ))}
                 {ask.isPending && (
-                  <p className="flex items-center gap-2 self-start text-sm text-muted-foreground">
-                    <Loader2 aria-hidden="true" className="size-4 animate-spin motion-reduce:animate-none" />
+                  <p className="animate-shimmer self-start bg-[linear-gradient(90deg,var(--muted-foreground)_30%,var(--foreground)_50%,var(--muted-foreground)_70%)] bg-size-[200%_100%] bg-clip-text text-sm font-medium text-transparent motion-reduce:animate-none motion-reduce:bg-none motion-reduce:text-muted-foreground">
                     {t("thinking")}
                   </p>
                 )}
                 {errorMessage && <FormAlert>{errorMessage}</FormAlert>}
+                {micError && <FormAlert>{t("errors.mic")}</FormAlert>}
               </div>
 
               <form onSubmit={submit} className="flex flex-col gap-2 border-t border-border p-3">
                 <label htmlFor={id} className="sr-only">
                   {t("question")}
                 </label>
+                {listening ? (
+                  <div
+                    role="status"
+                    className="flex h-16 items-center gap-3 rounded-lg border border-primary/40 bg-primary/5 px-3"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="size-2.5 shrink-0 animate-pulse rounded-full bg-destructive motion-reduce:animate-none"
+                    />
+                    {reducedMotion ? (
+                      <span className="flex-1 text-sm">{t("listening")}</span>
+                    ) : (
+                      <>
+                        <span className="sr-only">{t("listening")}</span>
+                        <LiveWaveform
+                          active
+                          mode="static"
+                          height={44}
+                          barWidth={3}
+                          barGap={2}
+                          sensitivity={2.2}
+                          aria-hidden="true"
+                          className="min-w-0 flex-1 text-primary"
+                          onError={() => {
+                            setMicError(true);
+                            recognizer.current?.stop();
+                          }}
+                        />
+                      </>
+                    )}
+                    <span className="shrink-0 text-sm text-muted-foreground tabular-nums">
+                      {formatSeconds(seconds)}
+                    </span>
+                  </div>
+                ) : (
                 <Textarea
                   id={id}
                   value={draft}
@@ -277,6 +372,7 @@ function AssistantPanel({
                     }
                   }}
                 />
+                )}
                 <div className="flex items-center gap-2">
                   {canListen() && (
                     <Button
@@ -290,7 +386,7 @@ function AssistantPanel({
                       disabled={remaining <= 0 || ask.isPending}
                       onClick={toggleListening}
                     >
-                      {listening ? <MicOff aria-hidden="true" /> : <Mic aria-hidden="true" />}
+                      {listening ? <Square aria-hidden="true" className="fill-current" /> : <Mic aria-hidden="true" />}
                     </Button>
                   )}
                   {canSpeak() && (
@@ -314,7 +410,7 @@ function AssistantPanel({
                   <Button
                     type="submit"
                     className="ml-auto h-9"
-                    disabled={!draft.trim() || ask.isPending || remaining <= 0}
+                    disabled={listening || !draft.trim() || ask.isPending || remaining <= 0}
                     aria-busy={ask.isPending}
                   >
                     <Send aria-hidden="true" />
@@ -328,4 +424,15 @@ function AssistantPanel({
       </SheetContent>
     </Sheet>
   );
+}
+
+/** "0:07", "1:12". */
+function formatSeconds(total: number): string {
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
+}
+
+/** Whether the user asked for less motion: the waveform then stays still. */
+function useReducedMotion(): boolean {
+  const [reduced] = useState(() => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false);
+  return reduced;
 }

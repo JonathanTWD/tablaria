@@ -1,5 +1,8 @@
 {
   "button": "Asistente",
+  "tooltip": "Pregunta a la IA por tus datos",
+  "askTable": "Preguntar al asistente por esta tabla",
+  "listening": "Escuchando… habla ahora",
   "title": "Asistente",
   "remaining_one": "Te queda {{count}} pregunta de {{limit}} hoy.",
   "remaining_other": "Te quedan {{count}} preguntas de {{limit}} hoy.",
@@ -27,6 +30,7 @@
   "speakAnswers": "Leer las respuestas en voz alta",
   "errors": {
     "limit": "Has usado todas las preguntas de hoy. Vuelve mañana.",
-    "busy": "El asistente está muy ocupado ahora mismo. Inténtalo en un minuto."
+    "busy": "El asistente está muy ocupado ahora mismo. Inténtalo en un minuto.",
+    "mic": "No se ha podido usar el micrófono. Revisa el permiso del navegador para este sitio."
   }
 }

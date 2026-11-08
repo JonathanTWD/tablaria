@@ -3,7 +3,7 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { mockApi, renderWithProviders } from "@/test/render";
-import { Assistant } from "./Assistant";
+import { AssistantButton, AssistantProvider } from "./Assistant";
 
 const TABLE_ID = "6a7b8c9d-1111-4aaa-8bbb-000000000001";
 const RECORD_ID = "6a7b8c9d-2222-4aaa-8bbb-000000000002";
@@ -22,7 +22,7 @@ describe("Assistant", () => {
       url.pathname === "/api/assistant/chat" ? reply : { enabled: true, limit: 15, remaining: 15 },
     );
     const user = userEvent.setup();
-    renderWithProviders(<Assistant />, { route: `/app/tables/${TABLE_ID}`, path: "/app/tables/:tableId" });
+    renderWithProviders(<AssistantProvider><AssistantButton /></AssistantProvider>, { route: `/app/tables/${TABLE_ID}`, path: "/app/tables/:tableId" });
 
     await user.click(await screen.findByRole("button", { name: "Asistente" }));
     expect(screen.getByText(/envía tu pregunta y los datos de las tablas que puedes ver/)).toBeVisible();
@@ -48,7 +48,7 @@ describe("Assistant", () => {
     localStorage.setItem("tablaria:assistant-notice", "1");
     mockApi(() => ({ enabled: true, limit: 5, remaining: 0 }));
     const user = userEvent.setup();
-    renderWithProviders(<Assistant />);
+    renderWithProviders(<AssistantProvider><AssistantButton /></AssistantProvider>);
 
     await user.click(await screen.findByRole("button", { name: "Asistente" }));
     expect(screen.getByLabelText("Tu pregunta")).toBeDisabled();
@@ -57,9 +57,20 @@ describe("Assistant", () => {
 
   it("is not offered when the API has no model", async () => {
     const fetchMock = mockApi(() => ({ enabled: false, limit: 15, remaining: 15 }));
-    renderWithProviders(<Assistant />);
+    renderWithProviders(<AssistantProvider><AssistantButton /></AssistantProvider>);
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalled());
     expect(screen.queryByRole("button", { name: "Asistente" })).not.toBeInTheDocument();
+  });
+
+  it("opens with Ctrl+K from anywhere", async () => {
+    localStorage.setItem("tablaria:assistant-notice", "1");
+    mockApi(() => ({ enabled: true, limit: 15, remaining: 15 }));
+    const user = userEvent.setup();
+    renderWithProviders(<AssistantProvider><AssistantButton /></AssistantProvider>);
+
+    await screen.findByRole("button", { name: "Asistente" });
+    await user.keyboard("{Control>}k{/Control}");
+    expect(await screen.findByLabelText("Tu pregunta")).toBeVisible();
   });
 });

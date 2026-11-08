@@ -882,6 +882,8 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
   - Límite de peticiones propio, además del cupo diario.
 - **Interfaz:** un panel lateral de chat desde la barra superior, con sugerencias («¿Qué está bajo mínimo?», «¿Qué proveedor tiene más productos?») y enlaces a lo que cita.
   - **Voz:** un botón de micrófono con la API de voz del navegador (gratis), y la opción de escuchar la respuesta. Solo aparece donde el navegador la ofrece. ElevenLabs queda como mejora posterior.
+    - Mientras escucha, una barra muestra la onda de la voz en directo (`LiveWaveform` de ElevenLabs UI, un registro de shadcn con licencia MIT que solo usa el micrófono y un canvas) y el tiempo. Con `prefers-reduced-motion`, un texto en su lugar.
+  - **Acceso:** el botón de la barra superior en el color de la marca, `Ctrl/⌘ + K` desde cualquier página y «Preguntar al asistente por esta tabla» en el menú de cada tabla. Se descartó un botón flotante: chocaría con la barra de la edición en lote y con los avisos, y en el móvil taparía la tabla.
 - **Pruebas:** un modelo falso que pide herramientas según el guion de cada test, sin llamar a Groq. Así se prueban los permisos, la validación de argumentos, el cupo y la inyección de instrucciones.
 
 **Fuera de alcance (por ahora)**:

@@ -2,6 +2,11 @@
 
 ## Sin publicar
 
+- **Asistente: grabación con ondas y acceso más a mano** (ADR-042):
+  - **Al preguntar por voz,** la caja de texto se convierte en una barra con la onda de tu voz en directo, un punto de grabación y el tiempo, como una nota de voz. Con «reducir movimiento» activado, la onda se sustituye por un texto.
+  - **«Pensando…»** brilla mientras el asistente responde.
+  - **El botón «Asistente»** va en el color de la marca, con un tooltip que enseña el atajo.
+  - **`Ctrl + K`** (o `⌘ + K`) abre el asistente desde cualquier página, y el menú «⋯» de cada tabla tiene «Preguntar al asistente por esta tabla».
 - **Asistente de IA** (ADR-042): un botón «Asistente» en la barra superior abre un chat para preguntar por los datos, como «¿qué está bajo mínimo y a qué proveedor lo pido?».
   - **Lee las tablas que puede ver el usuario,** con sus permisos y sin cambiar nada, y enlaza los registros en los que se basa la respuesta.
   - **Con voz:** micrófono para preguntar y lectura de la respuesta en voz alta, con la voz del navegador.
