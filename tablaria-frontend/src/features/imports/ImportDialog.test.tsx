@@ -1,6 +1,6 @@
 import ExcelJS from "exceljs";
 import { columnDefinitionSchema, type ImportCheck, type TableColumn, type TableDetail } from "@tablaria/shared";
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { mockApi, renderWithProviders } from "@/test/render";
@@ -58,6 +58,7 @@ describe("ImportDialog", () => {
           errors: [],
           missingChoices: [],
           missingRequired: [],
+          duplicates: { existing: 0, inFile: 0, rows: [] },
         } satisfies ImportCheck;
       }
       return { tableId: table.id, imported: 2, updated: 0, addedChoices: 0, addedColumns: 0 };
@@ -81,6 +82,8 @@ describe("ImportDialog", () => {
         ["Sierra", "", "1,5"],
       ],
       addMissingChoices: false,
+      // Repeated rows are left out unless the user says otherwise.
+      skipDuplicates: true,
     };
     expect(sent).toEqual([
       { path: `/api/tables/${table.id}/import/check`, body },
@@ -106,6 +109,7 @@ describe("ImportDialog", () => {
           errors: [],
           missingChoices: [],
           missingRequired: [],
+          duplicates: { existing: 0, inFile: 0, rows: [] },
         } satisfies ImportCheck;
       }
       return { tableId: table.id, imported: 1, updated: 1, addedChoices: 0, addedColumns: 0 };
@@ -141,6 +145,7 @@ describe("ImportDialog", () => {
       errors: [{ row: 2, column: 1, value: "12 uds", reason: "invalid" }],
       missingChoices: [],
       missingRequired: [],
+          duplicates: { existing: 0, inFile: 0, rows: [] },
     }));
     renderWithProviders(<ImportDialog destination={{ kind: "table", table }} open onOpenChange={() => undefined} />);
 
@@ -180,6 +185,7 @@ describe("ImportDialog", () => {
         ],
         missingChoices: [],
         missingRequired: [],
+          duplicates: { existing: 0, inFile: 0, rows: [] },
       };
     });
     renderWithProviders(
@@ -217,6 +223,7 @@ describe("ImportDialog", () => {
           errors: [],
           missingChoices: [],
           missingRequired: [],
+          duplicates: { existing: 0, inFile: 0, rows: [] },
         } satisfies ImportCheck;
       }
       return { tableId: "new-table", imported: 2, updated: 0, addedChoices: 0, addedColumns: 3 };
@@ -248,6 +255,42 @@ describe("ImportDialog", () => {
       },
     });
     expect(screen.getByTestId("location")).toHaveTextContent("/app/tables/new-table");
+  });
+
+  it("previews the first rows and marks the repeated ones, which it can keep", async () => {
+    const user = userEvent.setup();
+    const sent: unknown[] = [];
+    mockApi((_url, init) => {
+      const body = JSON.parse(String(init.body)) as { skipDuplicates: boolean };
+      sent.push(body.skipDuplicates);
+      return {
+        rows: 3,
+        validRows: body.skipDuplicates ? 1 : 3,
+        toUpdate: 0,
+        errorCount: 0,
+        errors: [],
+        missingChoices: [],
+        missingRequired: [],
+        duplicates: { existing: 1, inFile: 1, rows: [1, 3] },
+      } satisfies ImportCheck;
+    });
+    renderWithProviders(<ImportDialog destination={{ kind: "table", table }} open onOpenChange={() => undefined} />);
+
+    await user.upload(
+      screen.getByLabelText("Archivo de Excel (.xlsx) o CSV"),
+      csvFile("Producto;Stock\nTaladro;5\nSierra;2\nSierra;2\n"),
+    );
+    await user.click(screen.getByRole("button", { name: "Comprobar" }));
+
+    expect(await screen.findByText(/1 fila es igual a un registro que ya está en la tabla/)).toBeVisible();
+    const preview = screen.getByRole("table");
+    expect(within(preview).getAllByRole("row")).toHaveLength(4);
+    expect(within(preview).getAllByText("Se omite")).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "Importar 1 registro" })).toBeEnabled();
+
+    await user.click(screen.getByRole("switch", { name: "Omitir las filas repetidas" }));
+    expect(await screen.findByRole("button", { name: "Importar 3 registros" })).toBeEnabled();
+    expect(sent).toEqual([true, false]);
   });
 
   it("reads an Excel workbook like a CSV", async () => {

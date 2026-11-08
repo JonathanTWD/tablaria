@@ -2,6 +2,10 @@
 
 ## Sin publicar
 
+- **Importar con vista previa y sin repetidos** (ADR-044):
+  - **Vista previa:** antes de importar, una tabla con las 5 primeras filas bajo la columna de Tablaria que llenará cada una, con las celdas con error en rojo.
+  - **Filas repetidas:** al comprobar, avisa de las filas iguales a un registro de la tabla y de las que repiten otra del mismo archivo, comparando las columnas que trae el archivo sin distinguir mayúsculas. Se omiten por defecto (tachadas en la vista previa) y se pueden importar igualmente.
+
 - **Excel (.xlsx)** (ADR-043):
   - **Exportar:** el botón «Exportar» ofrece Excel o CSV, siempre con la vista actual (búsqueda, filtros y orden).
     - El libro guarda los números y los precios como números (con su moneda), las fechas como fechas, y las relaciones con el nombre del registro enlazado.

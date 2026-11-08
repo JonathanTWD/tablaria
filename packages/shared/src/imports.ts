@@ -51,6 +51,11 @@ export const importSchema = z.object({
    * value matches a record update it instead of adding a new one (ADR-023).
    */
   updateBy: z.number().int().min(0).max(MAX_COLUMNS_PER_TABLE - 1).optional(),
+  /**
+   * Leaves out rows equal to a record of the table, or to an earlier row of
+   * the file, in every column the file fills.
+   */
+  skipDuplicates: z.boolean().default(false),
 });
 export type ImportInput = z.input<typeof importSchema>;
 
@@ -95,6 +100,16 @@ export interface ImportCheck {
   missingChoices: { column: number; values: string[] }[];
   /** Table columns that are required but get no column of the file. */
   missingRequired: string[];
+  /**
+   * Rows that would add a record equal, in every column the file fills, to
+   * one of the table (`existing`) or to an earlier row of the file (`inFile`).
+   */
+  duplicates: {
+    existing: number;
+    inFile: number;
+    /** The first MAX_IMPORT_ERRORS of them, 1 being the first data row. */
+    rows: number[];
+  };
 }
 
 export interface ImportResult {
@@ -103,6 +118,8 @@ export interface ImportResult {
   imported: number;
   /** Records updated through `updateBy`. */
   updated: number;
+  /** Repeated rows left out with `skipDuplicates`. */
+  skipped: number;
   addedChoices: number;
   addedColumns: number;
 }

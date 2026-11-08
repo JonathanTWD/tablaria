@@ -69,7 +69,7 @@ Cada tarea indica qué modelo conviene: **Opus** para lo que toca seguridad, per
 - PWA instalable.
 
 **Fáciles (básico)**
-- Pegar celdas copiadas de Excel en el asistente de importación.
+- Pegar celdas copiadas de Excel en el asistente de importación. (Hecho: vista previa y filas repetidas, ADR-044.)
 - Descargar una plantilla CSV con las columnas de la tabla.
 - Páginas legales: privacidad, aviso legal y cookies (el texto lo revisas tú).
 - `pnpm audit --prod --audit-level=high` en el CI.
