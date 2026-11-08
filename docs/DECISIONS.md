@@ -896,6 +896,24 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 - **Las respuestas pueden equivocarse,** como cualquier modelo de lenguaje. El panel enlaza los registros en los que se basa, para comprobarlas.
 - **Groq recibe datos de inventario** de quien usa el asistente. Es opcional y se avisa antes; sin la clave configurada, no existe.
 
+## ADR-044: Vista previa y filas repetidas al importar
+
+**Contexto**: el asistente de importación (ADR-021) ya validaba cada celda y detectaba duplicados en las columnas de valor único (ADR-023). Faltaban dos cosas: ver cómo iban a quedar las filas antes de confirmar, y frenar el error más típico, importar dos veces el mismo archivo en una tabla sin columnas únicas, que duplicaba todo sin avisar.
+
+**Decisión**:
+- **Una fila es repetida** si, en todas las columnas que trae el archivo, tiene los mismos valores que un registro de la tabla o que una fila anterior del archivo.
+  - Se compara la «firma» de la fila (`rowSignature`): sus valores ya convertidos (la opción con su nombre canónico, las relaciones por id, sin el orden de los enlaces), sin distinguir mayúsculas ni espacios alrededor.
+  - Las columnas que el archivo no trae no cuentan, y las columnas nuevas están vacías en los registros existentes.
+  - Solo cuentan las filas que añadirían un registro; las que actualizan uno por su clave (`updateBy`) no son repetidas.
+- **La comprobación lo cuenta siempre** (`duplicates: { existing, inFile, rows }`, con las primeras filas). Con `skipDuplicates`, las repetidas no se importan, y el resultado dice cuántas se omitieron (`skipped`).
+  - En la API, `skipDuplicates` es `false` por defecto, para no cambiar lo que ya hacía. En la interfaz viene activado, porque repetir es casi siempre un error, y se puede desactivar.
+- **Vista previa en el último paso:** las 5 primeras filas bajo el nombre de la columna que llenarán, con las celdas con error marcadas (en rojo y en texto para lectores de pantalla) y las filas repetidas con «Se omite» o «Repetida».
+  - Muestra el texto del archivo tal cual, sin pedir más al servidor: lo que importa es ver si cada columna va a su sitio.
+
+**Consecuencias**:
+- Comprobar e importar leen los datos de la tabla una vez más (como mucho 10.000 registros), un coste pequeño para el tamaño de las tablas.
+- Dos registros legítimamente iguales (por ejemplo, dos sillas idénticas sin número de serie) necesitan desactivar la opción. Se explica junto al interruptor.
+
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
 Todas están especificadas en [MVP_PROMPT.md](MVP_PROMPT.md):

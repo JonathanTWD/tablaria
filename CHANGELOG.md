@@ -2,6 +2,9 @@
 
 ## Sin publicar
 
+- **Importar con vista previa y sin repetidos** (ADR-044):
+  - **Vista previa:** antes de importar, una tabla con las 5 primeras filas bajo la columna de Tablaria que llenará cada una, con las celdas con error en rojo.
+  - **Filas repetidas:** al comprobar, avisa de las filas iguales a un registro de la tabla y de las que repiten otra del mismo archivo, comparando las columnas que trae el archivo sin distinguir mayúsculas. Se omiten por defecto (tachadas en la vista previa) y se pueden importar igualmente.
 - **Asistente: grabación con ondas y acceso más a mano** (ADR-042):
   - **Al preguntar por voz,** la caja de texto se convierte en una barra con la onda de tu voz en directo, un punto de grabación y el tiempo, como una nota de voz. Con «reducir movimiento» activado, la onda se sustituye por un texto.
   - **«Pensando…»** brilla mientras el asistente responde.

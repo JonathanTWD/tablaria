@@ -99,6 +99,46 @@ describe('Importing rows (e2e)', () => {
       .body as Paginated<TableRecord>;
   }
 
+  it('finds rows the table already has, or the file repeats, and can leave them out', async () => {
+    const context = await setup();
+    const { owner, base } = context;
+    const first = {
+      columns: columnsOf(context),
+      rows: [['Taladro', '5', '', '', 'disponible']],
+    };
+    await owner.post(`${base}/import`).send(first).expect(201);
+
+    // The same product again (spelled differently), a repeated new row and a new one.
+    const again = {
+      columns: columnsOf(context),
+      rows: [
+        ['  taladro ', '5', 'otra', '', 'Disponible'],
+        ['Sierra', '2', '', '', ''],
+        ['Sierra', '2', '', '', ''],
+        ['Lijadora', '1', '', '', ''],
+      ],
+    };
+    const check = (
+      await owner.post(`${base}/import/check`).send(again).expect(200)
+    ).body as ImportCheck;
+    expect(check.duplicates).toEqual({ existing: 1, inFile: 1, rows: [1, 3] });
+    // Without skipping, every valid row is imported, repeated or not.
+    expect(check.validRows).toBe(4);
+
+    const skipping = { ...again, skipDuplicates: true };
+    expect(
+      (
+        (await owner.post(`${base}/import/check`).send(skipping).expect(200))
+          .body as ImportCheck
+      ).validRows,
+    ).toBe(2);
+    const result = (
+      await owner.post(`${base}/import`).send(skipping).expect(201)
+    ).body as ImportResult;
+    expect(result).toMatchObject({ imported: 2, skipped: 2 });
+    expect((await records(owner, base)).meta.total).toBe(3);
+  });
+
   it('checks a file without writing, then imports it whole', async () => {
     const context = await setup();
     const { owner, base, product, stock, checked, status } = context;
@@ -121,6 +161,7 @@ describe('Importing rows (e2e)', () => {
       missingChoices: [],
       missingRequired: [],
       toUpdate: 0,
+      duplicates: { existing: 0, inFile: 0, rows: [] },
     });
     expect((await records(owner, base)).meta.total).toBe(0);
 
@@ -130,6 +171,7 @@ describe('Importing rows (e2e)', () => {
       tableId: context.table.id,
       imported: 2,
       updated: 0,
+      skipped: 0,
       addedChoices: 0,
       addedColumns: 0,
     });
