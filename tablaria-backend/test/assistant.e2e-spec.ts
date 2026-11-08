@@ -259,4 +259,32 @@ describe('Assistant (e2e)', () => {
       .expect(400);
     await createClient(app).get('/api/assistant').expect(401);
   });
+
+  it('caps the questions of every demo together, so demos never use up the shared budget', async () => {
+    script(...Array.from({ length: 40 }, () => say('Hola')));
+    const demos: TestClient[] = [];
+    for (let index = 0; index < 7; index++) {
+      const visitor = createClient(app);
+      await visitor.post('/api/auth/demo').expect(201);
+      demos.push(visitor);
+    }
+    // Six demos use five questions each: the total for today.
+    for (const visitor of demos.slice(0, 6)) {
+      for (let question = 0; question < ASSISTANT_DEMO_LIMIT; question++) {
+        await ask(visitor, 'Hola').expect(200);
+      }
+    }
+    const last = demos[6];
+    const refused = await ask(last, 'Hola').expect(429);
+    expect((refused.body as { message: string }).message).toBe(
+      'Demo assistant limit reached',
+    );
+    expect(
+      ((await last.get('/api/assistant').expect(200)).body as AssistantStatus)
+        .remaining,
+    ).toBe(0);
+    // Accounts keep their own questions.
+    const { owner } = await setup();
+    await ask(owner, 'Hola').expect(200);
+  });
 });

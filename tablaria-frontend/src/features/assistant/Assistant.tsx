@@ -213,7 +213,9 @@ function AssistantPanel({
 
   const errorMessage =
     ask.error instanceof ApiError && ask.error.status === 429
-      ? t("errors.limit")
+      ? ask.error.body?.message === "Demo assistant limit reached"
+        ? t("errors.demoLimit")
+        : t("errors.limit")
       : ask.error instanceof ApiError && ask.error.status === 503
         ? t("errors.busy")
         : ask.error && apiErrorMessage(ask.error);

@@ -8,6 +8,7 @@ import {
 import {
   type AssistantChat,
   ASSISTANT_DAILY_LIMIT,
+  ASSISTANT_DEMO_DAILY_TOTAL,
   ASSISTANT_DEMO_LIMIT,
   type AssistantReply,
   type AssistantStatus,
@@ -55,15 +56,22 @@ export class AssistantService {
   ) {}
 
   async status(userId: string): Promise<AssistantStatus> {
-    const limit = await this.limitFor(userId);
+    const { limit, demo } = await this.limitFor(userId);
     const usage = await this.prisma.assistantUsage.findUnique({
       where: { userId_day: { userId, day: today() } },
       select: { count: true },
     });
+    const own = Math.max(limit - (usage?.count ?? 0), 0);
+    const shared = demo
+      ? Math.max(
+          ASSISTANT_DEMO_DAILY_TOTAL - (await this.demoQuestionsToday()),
+          0,
+        )
+      : own;
     return {
       enabled: this.model.enabled,
       limit,
-      remaining: Math.max(limit - (usage?.count ?? 0), 0),
+      remaining: Math.min(own, shared),
     };
   }
 
@@ -71,7 +79,17 @@ export class AssistantService {
     if (!this.model.enabled) {
       throw new ServiceUnavailableException('The assistant is not available');
     }
-    const limit = await this.limitFor(userId);
+    const { limit, demo } = await this.limitFor(userId);
+    // A demo can't use up the budget every account shares (see ASSISTANT_DEMO_DAILY_TOTAL).
+    if (
+      demo &&
+      (await this.demoQuestionsToday()) >= ASSISTANT_DEMO_DAILY_TOTAL
+    ) {
+      throw new HttpException(
+        'Demo assistant limit reached',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
     const used = await this.takeQuestion(userId, limit);
 
     const context: ToolContext = {
@@ -198,12 +216,28 @@ export class AssistantService {
     ].join('\n');
   }
 
-  private async limitFor(userId: string): Promise<number> {
+  private async limitFor(
+    userId: string,
+  ): Promise<{ limit: number; demo: boolean }> {
     const user = await this.prisma.user.findUniqueOrThrow({
       where: { id: userId },
       select: { demoExpiresAt: true },
     });
-    return user.demoExpiresAt ? ASSISTANT_DEMO_LIMIT : ASSISTANT_DAILY_LIMIT;
+    const demo = user.demoExpiresAt !== null;
+    return { limit: demo ? ASSISTANT_DEMO_LIMIT : ASSISTANT_DAILY_LIMIT, demo };
+  }
+
+  /**
+   * Questions every demo session asked today, together. Two at once may pass
+   * the total by one: it caps a budget, not a security boundary.
+   */
+  private async demoQuestionsToday(): Promise<number> {
+    const [{ total }] = await this.prisma.$queryRaw<{ total: number }[]>`
+      SELECT COALESCE(sum(u.count), 0)::int AS total
+      FROM assistant_usage u
+      JOIN users ON users.id = u."userId"
+      WHERE u.day = ${today()}::date AND users."demoExpiresAt" IS NOT NULL`;
+    return total;
   }
 
   /** Counts the question, in one statement so two at once never pass the limit. */

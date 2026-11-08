@@ -30,6 +30,7 @@
   "speakAnswers": "Leer las respuestas en voz alta",
   "errors": {
     "limit": "Has usado todas las preguntas de hoy. Vuelve mañana.",
+    "demoLimit": "La demo ha agotado las preguntas al asistente de hoy. Crea una cuenta gratis para tener las tuyas.",
     "busy": "El asistente está muy ocupado ahora mismo. Inténtalo en un minuto.",
     "mic": "No se ha podido usar el micrófono. Revisa el permiso del navegador para este sitio."
   }

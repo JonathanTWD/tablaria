@@ -857,6 +857,7 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
   - **Cupo por cuenta:** 15 preguntas al día; en la demo, 5 por sesión. Se guarda en la base de datos (`assistant_usage`, por usuario y día).
     - Se cuenta con una sola sentencia (`INSERT … ON CONFLICT … WHERE count < límite`), así que dos preguntas a la vez no se saltan el límite.
     - Una pregunta que el proveedor no llegó a responder (429, caída o tiempo agotado) se devuelve al cupo.
+    - **Tope común de la demo:** como mucho 30 preguntas al día entre todas las sesiones de demo (`ASSISTANT_DEMO_DAILY_TOTAL`). Las demos son gratis y anónimas: sin este tope, abrir muchas seguidas agotaría el presupuesto diario del proveedor, compartido con las cuentas registradas (auditoría de la v1.9.0).
   - **Sin cupo, o con Groq en 429:** el asistente lo dice con claridad («vuelve mañana» o «inténtalo en un minuto»), sin errores genéricos.
 - **Herramientas, solo de lectura**, ejecutadas por la API **como el usuario**, con los mismos servicios y permisos de siempre:
   - `listar_tablas`: las tablas que puede abrir, con sus columnas (nombre y tipo).
