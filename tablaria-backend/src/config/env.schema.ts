@@ -88,6 +88,17 @@ export const envSchema = z
       z.string().min(1).optional(),
     ),
     STORAGE_DIR: z.preprocess(emptyAsUnset, z.string().min(1).optional()),
+    // AI assistant (ADR-042): any OpenAI-compatible chat API, Groq by default.
+    // Without a key the assistant is off.
+    AI_API_KEY: z.preprocess(emptyAsUnset, z.string().min(1).optional()),
+    AI_BASE_URL: z.preprocess(
+      emptyAsUnset,
+      z.url().default('https://api.groq.com/openai/v1'),
+    ),
+    AI_MODEL: z.preprocess(
+      emptyAsUnset,
+      z.string().min(1).default('openai/gpt-oss-120b'),
+    ),
   })
   .superRefine((env, ctx) => {
     if (env.MAIL_TRANSPORT === 'resend' && !env.RESEND_API_KEY) {

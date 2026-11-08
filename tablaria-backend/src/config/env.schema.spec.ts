@@ -21,6 +21,8 @@ describe('validateEnv', () => {
       SMTP_PORT: 1025,
       DEMO_ENABLED: true,
       STORAGE_REGION: 'us-east-1',
+      AI_BASE_URL: 'https://api.groq.com/openai/v1',
+      AI_MODEL: 'openai/gpt-oss-120b',
     });
   });
 

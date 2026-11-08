@@ -2,6 +2,10 @@
 
 ## Sin publicar
 
+- **Asistente de IA** (ADR-042): un botón «Asistente» en la barra superior abre un chat para preguntar por los datos, como «¿qué está bajo mínimo y a qué proveedor lo pido?».
+  - **Lee las tablas que puede ver el usuario,** con sus permisos y sin cambiar nada, y enlaza los registros en los que se basa la respuesta.
+  - **Con voz:** micrófono para preguntar y lectura de la respuesta en voz alta, con la voz del navegador.
+  - **Gratis:** usa el plan gratuito de Groq, con 15 preguntas al día por cuenta y 5 en la demo. No se guardan las conversaciones, y un aviso explica qué datos se envían antes de la primera pregunta.
 - **Barra de la tabla que siempre cabe:** «Nuevo registro» ya no se cae a otra línea cuando falta sitio, por ejemplo con el menú lateral abierto en un portátil.
   - **Sin sitio:** exportar, etiquetas QR e importar se agrupan en un botón «Más».
   - **Con sitio** (pantallas grandes o el menú plegado): se ven como siempre.

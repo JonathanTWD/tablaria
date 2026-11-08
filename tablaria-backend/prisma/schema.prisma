@@ -77,6 +77,7 @@ model User {
   publicLinks          PublicLink[]
   attachments          Attachment[]
   savedViews           SavedView[]
+  assistantUsage       AssistantUsage[]
 
   @@index([demoExpiresAt])
   @@map("users")
@@ -357,4 +358,17 @@ model SavedView {
   @@unique([tableId, name])
   @@index([createdById])
   @@map("saved_views")
+}
+
+/// Questions a user asked the assistant on a day, for its daily limit (ADR-042).
+/// Conversations themselves are never stored.
+model AssistantUsage {
+  userId String   @db.Uuid
+  day    DateTime @db.Date
+  count  Int      @default(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, day])
+  @@map("assistant_usage")
 }

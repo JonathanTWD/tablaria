@@ -18,3 +18,6 @@ for (const key of [
 ]) {
   process.env[key] = '';
 }
+// The assistant is on in tests, with a fake key: they script the model and
+// never reach the provider.
+process.env.AI_API_KEY = 'test-key';

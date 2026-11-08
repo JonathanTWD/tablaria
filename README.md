@@ -20,6 +20,7 @@ Gestión de inventario flexible: cada usuario crea sus propias tablas, define co
 - **Tiempo real y presencia**: los cambios de otras personas aparecen sin recargar, y se ve quién tiene la tabla abierta y qué celda está editando.
 - **Etiquetas QR** para imprimir y pegar: al escanearlas se abre la ficha del registro.
 - **Adjuntos**: fotos y PDF en la ficha de cada registro, guardados en un bucket privado compatible con S3.
+- **Asistente de IA**: preguntas sobre los datos, por escrito o con voz («¿qué está bajo mínimo?»), respondidas por un modelo de Groq que consulta las tablas con herramientas de solo lectura y los permisos del usuario.
 - **Métricas de cada tabla**: totales y medias, registros bajo mínimo, gráficos por grupos (barras o dona) y evolución en el tiempo.
 - **Dashboard** con cifras generales, tablas recientes y selector de espacio, tema claro u oscuro, interfaz en español preparada para más idiomas y diseño adaptado a móvil y a pantallas grandes.
 - **Demo pública** con cuentas temporales: una ferretería con productos, proveedores y pedidos enlazados, con consultas, resúmenes, fórmulas, historial de stock y actividad, y una organización con compañeros ficticios.
@@ -130,6 +131,7 @@ Así está publicada la demo; los motivos están en [ADR-013](docs/DECISIONS.md)
   - **Proxy:** `TRUST_PROXY_HOPS=1`.
   - **Correo:** `MAIL_TRANSPORT=resend`, `RESEND_API_KEY` y `MAIL_FROM`.
   - **Adjuntos (Filebase):** un bucket privado y sus claves en `STORAGE_ENDPOINT=https://s3.filebase.io`, `STORAGE_REGION=auto` (lo que pide Filebase; `us-east-1` también sirve), `STORAGE_BUCKET`, `STORAGE_ACCESS_KEY_ID` y `STORAGE_SECRET_ACCESS_KEY`. Sin ellas, la app funciona pero no deja subir archivos ([ADR-039](docs/DECISIONS.md)).
+  - **Asistente de IA (Groq):** `AI_API_KEY` con una clave del plan gratuito de [console.groq.com](https://console.groq.com). Opcionales: `AI_BASE_URL` y `AI_MODEL` para otro proveedor compatible con OpenAI. Sin clave, el asistente no aparece ([ADR-042](docs/DECISIONS.md)).
   - **Migraciones:** el contenedor aplica las pendientes antes de arrancar.
   - **Tiempo real:** `REALTIME_URL=wss://<api>.onrender.com/api/realtime`. La rewrite del Static Site no transporta WebSockets de forma fiable, así que el navegador se conecta directamente a la API ([ADR-020](docs/DECISIONS.md)).
 - **Web (Render Static Site)**:

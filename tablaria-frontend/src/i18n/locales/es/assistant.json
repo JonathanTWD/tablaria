@@ -1,0 +1,32 @@
+{
+  "button": "Asistente",
+  "title": "Asistente",
+  "remaining_one": "Te queda {{count}} pregunta de {{limit}} hoy.",
+  "remaining_other": "Te quedan {{count}} preguntas de {{limit}} hoy.",
+  "notice": {
+    "body": "El asistente responde preguntas sobre tus tablas con un modelo de inteligencia artificial de Groq. Para responder, envía tu pregunta y los datos de las tablas que puedes ver (nombres de columnas y valores). Nunca envía tu email, tu contraseña ni datos de otras cuentas, y las conversaciones no se guardan.",
+    "limits": "Solo lee: no cambia nada de tus tablas. Puede equivocarse, así que enlaza los registros en los que se basa para que lo compruebes.",
+    "accept": "Entendido, empezar"
+  },
+  "conversation": "Conversación con el asistente",
+  "empty": "Pregunta lo que quieras sobre tus tablas, por ejemplo:",
+  "suggestions": {
+    "lowStock": "¿Qué está bajo mínimo?",
+    "biggestSupplier": "¿Qué proveedor tiene más productos?",
+    "total": "¿Cuánto vale todo el stock?"
+  },
+  "you": "Tú:",
+  "assistantSaid": "Asistente:",
+  "sources": "Basado en:",
+  "thinking": "Pensando…",
+  "question": "Tu pregunta",
+  "placeholder": "Escribe tu pregunta. Enter para enviar.",
+  "send": "Preguntar",
+  "listen": "Preguntar en voz alta",
+  "stopListening": "Dejar de escuchar",
+  "speakAnswers": "Leer las respuestas en voz alta",
+  "errors": {
+    "limit": "Has usado todas las preguntas de hoy. Vuelve mañana.",
+    "busy": "El asistente está muy ocupado ahora mismo. Inténtalo en un minuto."
+  }
+}
