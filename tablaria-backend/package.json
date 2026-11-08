@@ -37,6 +37,7 @@
     "@prisma/client": "7.10.1",
     "@tablaria/shared": "workspace:*",
     "aws4fetch": "^1.0.20",
+    "exceljs": "^4.4.0",
     "cookie-parser": "^1.4.7",
     "dotenv": "^18.0.9",
     "express": "^5.2.1",

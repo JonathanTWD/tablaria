@@ -1,5 +1,6 @@
+import ExcelJS from "exceljs";
 import { columnDefinitionSchema, type ImportCheck, type TableColumn, type TableDetail } from "@tablaria/shared";
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { mockApi, renderWithProviders } from "@/test/render";
@@ -57,6 +58,7 @@ describe("ImportDialog", () => {
           errors: [],
           missingChoices: [],
           missingRequired: [],
+          duplicates: { existing: 0, inFile: 0, rows: [] },
         } satisfies ImportCheck;
       }
       return { tableId: table.id, imported: 2, updated: 0, addedChoices: 0, addedColumns: 0 };
@@ -64,7 +66,7 @@ describe("ImportDialog", () => {
     renderWithProviders(<ImportDialog destination={{ kind: "table", table }} open onOpenChange={() => undefined} />);
 
     await user.upload(
-      screen.getByLabelText("Archivo CSV"),
+      screen.getByLabelText("Archivo de Excel (.xlsx) o CSV"),
       csvFile("Producto;Notas;Stock\r\nTaladro;nuevo;5\r\nSierra;;1,5\r\n"),
     );
     expect(await screen.findByText("inventario.csv: 2 filas de datos.")).toBeVisible();
@@ -80,6 +82,8 @@ describe("ImportDialog", () => {
         ["Sierra", "", "1,5"],
       ],
       addMissingChoices: false,
+      // Repeated rows are left out unless the user says otherwise.
+      skipDuplicates: true,
     };
     expect(sent).toEqual([
       { path: `/api/tables/${table.id}/import/check`, body },
@@ -105,6 +109,7 @@ describe("ImportDialog", () => {
           errors: [],
           missingChoices: [],
           missingRequired: [],
+          duplicates: { existing: 0, inFile: 0, rows: [] },
         } satisfies ImportCheck;
       }
       return { tableId: table.id, imported: 1, updated: 1, addedChoices: 0, addedColumns: 0 };
@@ -113,7 +118,7 @@ describe("ImportDialog", () => {
       <ImportDialog destination={{ kind: "table", table: withSku }} open onOpenChange={() => undefined} />,
     );
 
-    await user.upload(screen.getByLabelText("Archivo CSV"), csvFile("Stock;Producto\n5;Taladro\n1;Sierra\n"));
+    await user.upload(screen.getByLabelText("Archivo de Excel (.xlsx) o CSV"), csvFile("Stock;Producto\n5;Taladro\n1;Sierra\n"));
     // The unique column is the key by default.
     expect(await screen.findByLabelText("Actualizar los registros que coincidan en")).toHaveTextContent(
       "Producto",
@@ -140,10 +145,11 @@ describe("ImportDialog", () => {
       errors: [{ row: 2, column: 1, value: "12 uds", reason: "invalid" }],
       missingChoices: [],
       missingRequired: [],
+          duplicates: { existing: 0, inFile: 0, rows: [] },
     }));
     renderWithProviders(<ImportDialog destination={{ kind: "table", table }} open onOpenChange={() => undefined} />);
 
-    await user.upload(screen.getByLabelText("Archivo CSV"), csvFile("Producto;Stock\nTaladro;5\nSierra;12 uds\n"));
+    await user.upload(screen.getByLabelText("Archivo de Excel (.xlsx) o CSV"), csvFile("Producto;Stock\nTaladro;5\nSierra;12 uds\n"));
     await user.click(await screen.findByRole("button", { name: "Comprobar" }));
 
     // Row 2 of the data is line 3 of the file, after the header.
@@ -179,6 +185,7 @@ describe("ImportDialog", () => {
         ],
         missingChoices: [],
         missingRequired: [],
+          duplicates: { existing: 0, inFile: 0, rows: [] },
       };
     });
     renderWithProviders(
@@ -186,7 +193,7 @@ describe("ImportDialog", () => {
     );
 
     await user.upload(
-      screen.getByLabelText("Archivo CSV"),
+      screen.getByLabelText("Archivo de Excel (.xlsx) o CSV"),
       csvFile("Producto;Proveedor\nTaladro;Dewalt\nSierra;Stanley\n"),
     );
     await user.click(await screen.findByRole("button", { name: "Comprobar" }));
@@ -216,6 +223,7 @@ describe("ImportDialog", () => {
           errors: [],
           missingChoices: [],
           missingRequired: [],
+          duplicates: { existing: 0, inFile: 0, rows: [] },
         } satisfies ImportCheck;
       }
       return { tableId: "new-table", imported: 2, updated: 0, addedChoices: 0, addedColumns: 3 };
@@ -225,7 +233,7 @@ describe("ImportDialog", () => {
     );
 
     await user.upload(
-      screen.getByLabelText("Archivo CSV"),
+      screen.getByLabelText("Archivo de Excel (.xlsx) o CSV"),
       csvFile("Producto;Precio;Compra\nTaladro;89,90 €;15/03/2025\nSierra;12 €;2025-02-01\n"),
     );
     // Named after the file, with every column new and typed from its values.
@@ -248,5 +256,59 @@ describe("ImportDialog", () => {
     });
     expect(screen.getByTestId("location")).toHaveTextContent("/app/tables/new-table");
   });
-});
 
+  it("previews the first rows and marks the repeated ones, which it can keep", async () => {
+    const user = userEvent.setup();
+    const sent: unknown[] = [];
+    mockApi((_url, init) => {
+      const body = JSON.parse(String(init.body)) as { skipDuplicates: boolean };
+      sent.push(body.skipDuplicates);
+      return {
+        rows: 3,
+        validRows: body.skipDuplicates ? 1 : 3,
+        toUpdate: 0,
+        errorCount: 0,
+        errors: [],
+        missingChoices: [],
+        missingRequired: [],
+        duplicates: { existing: 1, inFile: 1, rows: [1, 3] },
+      } satisfies ImportCheck;
+    });
+    renderWithProviders(<ImportDialog destination={{ kind: "table", table }} open onOpenChange={() => undefined} />);
+
+    await user.upload(
+      screen.getByLabelText("Archivo de Excel (.xlsx) o CSV"),
+      csvFile("Producto;Stock\nTaladro;5\nSierra;2\nSierra;2\n"),
+    );
+    await user.click(screen.getByRole("button", { name: "Comprobar" }));
+
+    expect(await screen.findByText(/1 fila es igual a un registro que ya está en la tabla/)).toBeVisible();
+    const preview = screen.getByRole("table");
+    expect(within(preview).getAllByRole("row")).toHaveLength(4);
+    expect(within(preview).getAllByText("Se omite")).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "Importar 1 registro" })).toBeEnabled();
+
+    await user.click(screen.getByRole("switch", { name: "Omitir las filas repetidas" }));
+    expect(await screen.findByRole("button", { name: "Importar 3 registros" })).toBeEnabled();
+    expect(sent).toEqual([true, false]);
+  });
+
+  it("reads an Excel workbook like a CSV", async () => {
+    const user = userEvent.setup();
+    mockApi(() => ({}));
+    const book = new ExcelJS.Workbook();
+    const sheet = book.addWorksheet("Inventario");
+    sheet.addRow(["Producto", "Stock"]);
+    sheet.addRow(["Taladro", 5]);
+    sheet.addRow(["Sierra", 1.5]);
+    const file = new File([await book.xlsx.writeBuffer()], "inventario.xlsx", {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    renderWithProviders(<ImportDialog destination={{ kind: "table", table }} open onOpenChange={() => undefined} />);
+
+    await user.upload(screen.getByLabelText("Archivo de Excel (.xlsx) o CSV"), file);
+    expect(await screen.findByText("inventario.xlsx: 2 filas de datos.")).toBeVisible();
+    // Columns with the table's names are matched, as with a CSV.
+    expect(screen.getByRole("button", { name: "Comprobar" })).toBeEnabled();
+  });
+});

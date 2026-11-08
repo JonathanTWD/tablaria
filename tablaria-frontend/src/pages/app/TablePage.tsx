@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { hasRole } from "@tablaria/shared";
-import { ArrowLeft, Building2, Ellipsis, LogOut, Pencil, Trash2, UserPlus } from "lucide-react";
+import { ArrowLeft, Building2, Ellipsis, LogOut, Pencil, Sparkles, Trash2, UserPlus } from "lucide-react";
 import { Suspense, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, NavLink, Outlet, useNavigate, useParams } from "react-router";
@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAssistant } from "@/features/assistant/assistant-context";
 import { PresenceAvatars } from "@/features/realtime/PresenceAvatars";
 import {
   type RealtimeStatus,
@@ -35,7 +36,7 @@ import { cn } from "@/lib/utils";
 
 /** Header and tabs of a table; the records or columns view renders below. */
 export default function TablePage() {
-  const { t, i18n } = useTranslation(["tables", "records"]);
+  const { t, i18n } = useTranslation(["tables", "records", "assistant"]);
   const { tableId = "" } = useParams();
   const table = useQuery(tableQuery(tableId));
   const realtime = useRealtimeTable(tableId);
@@ -44,6 +45,7 @@ export default function TablePage() {
   const others = viewers.filter(({ userId }) => userId !== user?.id);
   const [dialog, setDialog] = useState<"share" | "edit" | "delete" | "leave" | null>(null);
   const navigate = useNavigate();
+  const assistant = useAssistant();
   const { space, setSpaceId } = useSpace();
   // Tables shared with the user stay outside their spaces.
   const tableSpace = table.data?.member ? table.data.organizationId : undefined;
@@ -156,6 +158,15 @@ export default function TablePage() {
               <Ellipsis aria-hidden="true" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-60">
+              {assistant.enabled && (
+                <>
+                  <DropdownMenuItem onClick={assistant.open}>
+                    <Sparkles aria-hidden="true" />
+                    {t("assistant:askTable")}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </>
+              )}
               {manages ? (
                 <>
                   <DropdownMenuItem onClick={() => setDialog("edit")}>

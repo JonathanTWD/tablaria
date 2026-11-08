@@ -89,6 +89,30 @@ export async function requireUniqueValues(
 }
 
 /**
+ * The same changes for several records: a unique column can't take one
+ * value in all of them, and with a single record it is the usual check.
+ */
+export async function requireUniqueBatchValues(
+  db: Db,
+  tableId: string,
+  columns: RecordColumn[],
+  data: RecordData,
+  recordIds: string[],
+): Promise<void> {
+  if (recordIds.length === 1) {
+    return requireUniqueValues(db, tableId, columns, data, recordIds[0]);
+  }
+  const clashes = columns.filter(
+    (column) => column.unique && uniqueKey(data[column.id]) !== null,
+  );
+  if (clashes.length > 0) {
+    throw duplicateValues(
+      clashes.map((column) => ({ column, value: String(data[column.id]) })),
+    );
+  }
+}
+
+/**
  * Throws 409 when a column that becomes unique already holds repeated
  * values, naming a few of them.
  */

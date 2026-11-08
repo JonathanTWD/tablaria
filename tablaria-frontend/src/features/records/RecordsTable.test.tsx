@@ -56,6 +56,11 @@ const page: Paginated<TableRecord> = {
   meta: { page: 1, pageSize: 25, total: 1, pageCount: 1 },
 };
 
+/** The API for the table: no saved views, and `handler` for everything else. */
+function mockTableApi(handler: Parameters<typeof mockApi>[0]) {
+  return mockApi((url, init) => (url.pathname.endsWith("/views") ? [] : handler(url, init)));
+}
+
 /** Query strings of the record listings the table requested. */
 function listRequests(fetchMock: ReturnType<typeof mockApi>) {
   return fetchMock.mock.calls
@@ -87,7 +92,7 @@ describe("RecordsTable", () => {
       ],
       rollupTargets: { [COUNT_ID]: null, [SUM_ID]: salary },
     };
-    mockApi(() => ({
+    mockTableApi(() => ({
       ...page,
       data: [{ ...page.data[0], data: { ...page.data[0].data, [COUNT_ID]: 12, [SUM_ID]: 25400 } }],
       linked: {},
@@ -123,7 +128,7 @@ describe("RecordsTable", () => {
       ],
       lookupTargets: { [LEAD_ID]: days },
     };
-    mockApi(() => ({
+    mockTableApi(() => ({
       ...page,
       data: [{ ...page.data[0], data: { ...page.data[0].data, [LEAD_ID]: 4.5 } }],
       linked: {},
@@ -162,7 +167,7 @@ describe("RecordsTable", () => {
       createdAt: "2026-01-01T00:00:00.000Z",
       updatedAt: "2026-01-01T00:00:00.000Z",
     });
-    const fetchMock = mockApi(() => ({
+    const fetchMock = mockTableApi(() => ({
       data: [
         record("3e1a9f5b-0000-4f60-9b1c-000000000001", "Sierra", "Disponible"),
         record("3e1a9f5b-0000-4f60-9b1c-000000000002", "Cinta", "Disponible"),
@@ -204,14 +209,14 @@ describe("RecordsTable", () => {
         }),
       ],
     };
-    mockApi(() => ({ ...page, linked: {}, labelledRelations: [SUPPLIER_ID] }));
+    mockTableApi(() => ({ ...page, linked: {}, labelledRelations: [SUPPLIER_ID] }));
     const { unmount } = renderWithProviders(<RecordsTable table={withSupplier} />, {
       route: "/app/tables/x",
     });
     expect(await screen.findByRole("button", { name: "Proveedor" })).toBeVisible();
     unmount();
 
-    mockApi(() => ({ ...page, linked: {}, labelledRelations: [] }));
+    mockTableApi(() => ({ ...page, linked: {}, labelledRelations: [] }));
     renderWithProviders(<RecordsTable table={withSupplier} />, { route: "/app/tables/x" });
     expect(await screen.findByRole("button", { name: "Precio" })).toBeVisible();
     expect(screen.queryByRole("button", { name: "Proveedor" })).not.toBeInTheDocument();
@@ -219,7 +224,7 @@ describe("RecordsTable", () => {
 
   it("keeps the sort in the URL and asks the API for it", async () => {
     const user = userEvent.setup();
-    const fetchMock = mockApi(() => page);
+    const fetchMock = mockTableApi(() => page);
     renderWithProviders(<RecordsTable table={table} />, { route: "/app/tables/x" });
 
     // Exact name: the cells' buttons ("Precio de Taladro: …") contain it too.
@@ -241,7 +246,7 @@ describe("RecordsTable", () => {
 
   it("restores search and filters from the URL and shows them", async () => {
     const filters = [{ columnId: PRICE_ID, op: "between", min: 10 }];
-    const fetchMock = mockApi(() => page);
+    const fetchMock = mockTableApi(() => page);
     renderWithProviders(<RecordsTable table={table} />, {
       route: `/app/tables/x?q=tala&filters=${encodeURIComponent(JSON.stringify(filters))}`,
     });
@@ -257,7 +262,7 @@ describe("RecordsTable", () => {
 
   it("writes the search to the URL once the user stops typing", async () => {
     const user = userEvent.setup();
-    mockApi(() => page);
+    mockTableApi(() => page);
     renderWithProviders(<RecordsTable table={table} />, { route: "/app/tables/x" });
 
     await user.type(await screen.findByRole("searchbox", { name: "Buscar registros" }), "tal");
@@ -269,7 +274,7 @@ describe("RecordsTable", () => {
 
   it("exports the current view without pagination", async () => {
     const user = userEvent.setup();
-    const fetchMock = mockApi(() => page);
+    const fetchMock = mockTableApi(() => page);
     // jsdom has no object URLs; a subclass keeps the real URL untouched for other tests.
     vi.stubGlobal(
       "URL",
@@ -283,7 +288,8 @@ describe("RecordsTable", () => {
       route: `/app/tables/x?q=tala&page=2&sort=${PRICE_ID}&order=desc`,
     });
 
-    await user.click(await screen.findByRole("button", { name: "Exportar CSV" }));
+    await user.click(await screen.findByRole("button", { name: "Exportar" }));
+    await user.click(await screen.findByRole("menuitem", { name: "CSV (.csv)" }));
 
     await waitFor(() => expect(click).toHaveBeenCalledOnce());
     const exportUrl = fetchMock.mock.calls
@@ -300,7 +306,7 @@ describe("RecordsTable", () => {
 
   it("shows viewers the records without any way to change them", async () => {
     const user = userEvent.setup();
-    mockApi(() => page);
+    mockTableApi(() => page);
     renderWithProviders(<RecordsTable table={{ ...table, role: "VIEWER" }} />, {
       route: "/app/tables/x",
     });
@@ -310,7 +316,7 @@ describe("RecordsTable", () => {
     expect(screen.queryByRole("button", { name: /Nuevo registro/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Precio de Taladro/ })).not.toBeInTheDocument();
     // Exporting and printing labels are reading, so viewers keep them.
-    expect(screen.getByRole("button", { name: /Exportar CSV/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Exportar/ })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Etiquetas QR/ })).toBeInTheDocument();
     // A record's menu only opens its sheet (ADR-038).
     await user.click(screen.getByRole("button", { name: /Acciones/ }));
@@ -319,7 +325,7 @@ describe("RecordsTable", () => {
   });
 
   it("lets editors change records", async () => {
-    mockApi(() => page);
+    mockTableApi(() => page);
     renderWithProviders(<RecordsTable table={{ ...table, role: "EDITOR" }} />, {
       route: "/app/tables/x",
     });
@@ -327,5 +333,65 @@ describe("RecordsTable", () => {
     expect(await screen.findByRole("button", { name: /Precio de Taladro/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Nuevo registro/ })).toBeInTheDocument();
     expect(screen.queryByText(/Solo lectura/)).not.toBeInTheDocument();
+  });
+
+  it("changes a value in the ticked records at once", async () => {
+    const user = userEvent.setup();
+    const saw = {
+      ...page.data[0],
+      id: "3e1a9f5b-4d5e-4f60-9b1c-3d4e5f607183",
+      data: { [NAME_ID]: "Sierra", [PRICE_ID]: 74 },
+    };
+    const fetchMock = mockTableApi((_url, init) =>
+      init.method === "PATCH" ? { count: 2 } : { ...page, data: [...page.data, saw] },
+    );
+    renderWithProviders(<RecordsTable table={{ ...table, role: "EDITOR" }} />, {
+      route: "/app/tables/x",
+    });
+
+    await user.click(await screen.findByRole("checkbox", { name: "Seleccionar Taladro" }));
+    expect(screen.getByRole("checkbox", { name: /todos los registros/ })).toHaveProperty("indeterminate", true);
+    await user.click(screen.getByRole("checkbox", { name: "Seleccionar Sierra" }));
+    const toolbar = screen.getByRole("toolbar", { name: /registros seleccionados/ });
+    expect(toolbar).toHaveTextContent("2 registros seleccionados");
+
+    await user.click(screen.getByRole("button", { name: "Cambiar un valor" }));
+    await user.type(await screen.findByLabelText("Nuevo valor"), "Sin nombre");
+    await user.click(screen.getByRole("button", { name: "Cambiar 2 registros" }));
+
+    await waitFor(() => {
+      const patch = fetchMock.mock.calls.find(([, init]) => init?.method === "PATCH");
+      expect(String(patch?.[0])).toBe(`/api/tables/${table.id}/records/batch`);
+      expect(JSON.parse(String(patch?.[1]?.body))).toEqual({
+        ids: [page.data[0].id, saw.id],
+        data: { [NAME_ID]: "Sin nombre" },
+      });
+    });
+    // Done: the selection is cleared.
+    await waitFor(() => expect(screen.queryByRole("toolbar")).not.toBeInTheDocument());
+  });
+
+  it("offers no selection to viewers", async () => {
+    mockTableApi(() => page);
+    renderWithProviders(<RecordsTable table={{ ...table, role: "VIEWER" }} />, {
+      route: "/app/tables/x",
+    });
+
+    expect(await screen.findByText("Taladro")).toBeInTheDocument();
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+  });
+
+  it("keeps export, labels and import one click away in the «Más» menu", async () => {
+    const user = userEvent.setup();
+    mockTableApi(() => page);
+    renderWithProviders(<RecordsTable table={{ ...table, role: "EDITOR" }} />, {
+      route: "/app/tables/x",
+    });
+
+    await user.click(await screen.findByRole("button", { name: "Más acciones" }));
+    expect(await screen.findByRole("menuitem", { name: "Exportar a Excel" })).toBeVisible();
+    expect(screen.getByRole("menuitem", { name: "Exportar a CSV" })).toBeVisible();
+    expect(screen.getByRole("menuitem", { name: "Etiquetas QR" })).toBeVisible();
+    expect(screen.getByRole("menuitem", { name: "Importar" })).toBeVisible();
   });
 });

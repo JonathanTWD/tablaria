@@ -1,4 +1,6 @@
 import type {
+  RecordBatchResult,
+  RecordExportFormat,
   RecordData,
   RecordDetail,
   RecordPage,
@@ -29,11 +31,11 @@ function toQueryString(view: RecordsView): string {
 }
 
 /** The view without pagination: an export includes every matching record. */
-function toExportQueryString(view: RecordsView): string {
+function toExportQueryString(view: RecordsView, format: RecordExportFormat): string {
   const params = new URLSearchParams(toQueryString(view));
   params.delete("page");
   params.delete("pageSize");
-  params.set("format", "csv");
+  params.set("format", format);
   return params.toString();
 }
 
@@ -47,10 +49,23 @@ export const recordsApi = {
       method: "PATCH",
       body: { data },
     }),
-  exportCsv: (tableId: string, view: RecordsView) =>
-    apiDownload(`/tables/${tableId}/records/export?${toExportQueryString(view)}`, "registros.csv"),
+  exportFile: (tableId: string, view: RecordsView, format: RecordExportFormat) =>
+    apiDownload(
+      `/tables/${tableId}/records/export?${toExportQueryString(view, format)}`,
+      `registros.${format}`,
+    ),
   get: (tableId: string, recordId: string) =>
     apiRequest<RecordDetail>(`/tables/${tableId}/records/${recordId}`),
   remove: (tableId: string, recordId: string) =>
     apiRequest<void>(`/tables/${tableId}/records/${recordId}`, { method: "DELETE" }),
+  updateMany: (tableId: string, ids: string[], data: RecordData) =>
+    apiRequest<RecordBatchResult>(`/tables/${tableId}/records/batch`, {
+      method: "PATCH",
+      body: { ids, data },
+    }),
+  removeMany: (tableId: string, ids: string[]) =>
+    apiRequest<RecordBatchResult>(`/tables/${tableId}/records/batch-delete`, {
+      method: "POST",
+      body: { ids },
+    }),
 };

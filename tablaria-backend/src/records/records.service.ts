@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
   UnprocessableEntityException,
@@ -6,6 +7,8 @@ import {
 import {
   MAX_RECORDS_PER_TABLE,
   type Paginated,
+  type RecordBatchResult,
+  type RecordBatchUpdate,
   type RecordGroup,
   type RecordDetail,
   type RecordPage,
@@ -49,8 +52,9 @@ import {
 } from '../lookups/lookups';
 import { logStockChanges } from '../stock-movements/stock-log';
 import { toTableRecord, withoutEmptyCells } from './record-data';
-import { requireUniqueValues } from './unique-values';
+import { requireUniqueBatchValues, requireUniqueValues } from './unique-values';
 import { exportFileName, toCsv } from './record-export';
+import { toXlsx } from './record-export-xlsx';
 
 export interface ExportedFile {
   fileName: string;
@@ -177,30 +181,28 @@ export class RecordsService {
     await fillRollups(this.prisma, rollups, rows);
     fillFormulas(columns, rows);
 
+    const data = rows.map((row) => row.data);
+    // Linked records by their label, as the table shows them.
+    const linked = await linkedLabels(this.prisma, userId, columns, data);
+    // Lookups and rollups are formatted like the column they show.
+    const shownAs = new Map([
+      ...[...lookups].map(([id, { target }]) => [id, target] as const),
+      ...[...rollups].flatMap(([id, { target }]) =>
+        target ? [[id, target] as const] : [],
+      ),
+    ]);
+    if (query.format === 'xlsx') {
+      return {
+        fileName: exportFileName(table.name, 'xlsx'),
+        contentType:
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        content: await toXlsx(table.name, columns, data, linked, shownAs),
+      };
+    }
     return {
       fileName: exportFileName(table.name, 'csv'),
       contentType: 'text/csv; charset=utf-8',
-      content: Buffer.from(
-        toCsv(
-          columns,
-          rows.map(({ data }) => data),
-          // Linked records by their label, as the table shows them.
-          await linkedLabels(
-            this.prisma,
-            userId,
-            columns,
-            rows.map(({ data }) => data),
-          ),
-          // Lookups and rollups are formatted like the column they show.
-          new Map([
-            ...[...lookups].map(([id, { target }]) => [id, target] as const),
-            ...[...rollups].flatMap(([id, { target }]) =>
-              target ? [[id, target] as const] : [],
-            ),
-          ]),
-        ),
-        'utf8',
-      ),
+      content: Buffer.from(toCsv(columns, data, linked, shownAs), 'utf8'),
     };
   }
 
@@ -301,6 +303,94 @@ export class RecordsService {
     return result;
   }
 
+  /** The same changes for several records of the table, all or nothing. */
+  async updateMany(
+    userId: string,
+    tableId: string,
+    { ids, data }: RecordBatchUpdate,
+  ): Promise<RecordBatchResult> {
+    const count = await this.prisma.$transaction(async (tx) => {
+      await touchTable(tx, userId, tableId, 'EDITOR');
+      const stored = await requireRecords(tx, tableId, ids);
+
+      const columns = await loadColumns(tx, tableId);
+      const changes = parseOrThrow(
+        recordDataSchema(columns, { partial: true }),
+        data,
+      );
+      if (Object.keys(changes).length === 0) {
+        throw new BadRequestException('Nothing to change');
+      }
+      await requireLinkedRecords(tx, userId, columns, [changes]);
+      await requireUniqueBatchValues(tx, tableId, columns, changes, ids);
+
+      const writes = stored.map((record) => {
+        const before = toTableRecord(record).data;
+        return { id: record.id, before, after: { ...before, ...changes } };
+      });
+      for (const { id, before, after } of writes) {
+        await tx.record.update({
+          where: { id },
+          data: { data: withoutEmptyCells(after) },
+        });
+        const changed = changedColumns(columns, before, after);
+        if (changed.length > 0) {
+          await logActivity(tx, {
+            tableId,
+            userId,
+            action: 'record.updated',
+            recordId: id,
+            label: recordLabel(columns[0], after),
+            details: { columns: changed },
+          });
+        }
+      }
+      await logStockChanges(tx, {
+        tableId,
+        userId,
+        kind: 'EDIT',
+        columns,
+        writes,
+      });
+      return writes.length;
+    });
+    this.realtime.publish(tableId, 'records');
+    return { count };
+  }
+
+  /** Several records of the table at once, all or nothing. */
+  async removeMany(
+    userId: string,
+    tableId: string,
+    ids: string[],
+  ): Promise<RecordBatchResult> {
+    const unlinked = await this.prisma.$transaction(async (tx) => {
+      await touchTable(tx, userId, tableId, 'EDITOR');
+      const stored = await requireRecords(tx, tableId, ids);
+      await tx.record.deleteMany({ where: { id: { in: ids }, tableId } });
+      const [first] = await loadColumns(tx, tableId);
+      const linkingTables = new Set<string>();
+      for (const record of stored) {
+        await logActivity(tx, {
+          tableId,
+          userId,
+          action: 'record.deleted',
+          recordId: record.id,
+          label: recordLabel(first, record.data as RecordData),
+        });
+        for (const table of await unlinkRecord(tx, tableId, record.id)) {
+          linkingTables.add(table);
+        }
+      }
+      return linkingTables;
+    });
+    this.realtime.publish(tableId, 'records');
+    for (const linkingTable of unlinked) {
+      this.realtime.publish(linkingTable, 'records');
+    }
+    return { count: ids.length };
+  }
+
   async remove(
     userId: string,
     tableId: string,
@@ -380,6 +470,23 @@ export async function queryRecordPage(
       pageCount: Math.ceil(count / query.pageSize),
     },
   };
+}
+
+/** Every one of `ids`, in the table; 404 if any is missing or from another table. */
+async function requireRecords(
+  tx: Prisma.TransactionClient,
+  tableId: string,
+  ids: string[],
+): Promise<RecordRow[]> {
+  const stored = await tx.record.findMany({
+    where: { id: { in: ids }, tableId },
+    // In creation order, so the history lists them as the table does.
+    orderBy: { createdAt: 'asc' },
+  });
+  if (stored.length !== ids.length) {
+    throw new NotFoundException('Record not found');
+  }
+  return stored;
 }
 
 async function loadColumns(

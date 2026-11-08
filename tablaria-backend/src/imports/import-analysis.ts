@@ -38,6 +38,8 @@ export interface ImportPlan {
 
 export interface ImportAnalysis {
   check: ImportCheck;
+  /** Repeated rows left out with `skipDuplicates`. */
+  skipped: number;
   /** Valid rows that add a record, ready to store (defaults applied). */
   records: RecordData[];
   /** Valid rows that update a record: only the cells the file brings. */
@@ -113,6 +115,31 @@ export function planImport(
   return { targets: resolved, columns: [...existing, ...created], created };
 }
 
+/**
+ * A row as compared for duplicates: its value in each column the file fills,
+ * in the file's order, ignoring case and spaces around text and the order of
+ * linked records. A record of the table gives the same text for the same values.
+ */
+export function rowSignature(
+  columns: RecordColumn[],
+  data: Partial<RecordData>,
+): string {
+  return JSON.stringify(
+    columns.map(({ id }) => {
+      const value = data[id];
+      if (value === null || value === undefined) {
+        return '';
+      }
+      if (Array.isArray(value)) {
+        return [...value].sort().join('|');
+      }
+      return typeof value === 'string'
+        ? value.trim().toLocaleLowerCase()
+        : String(value);
+    }),
+  );
+}
+
 /** What unique columns already hold, for duplicates and updates (ADR-023). */
 export interface ImportUniqueness {
   /** For each unique column of the table: each taken key and its record. */
@@ -135,6 +162,11 @@ export function analyzeImport(
   addMissingChoices: boolean,
   uniqueness: ImportUniqueness = { taken: new Map() },
   linkedNames: ReadonlyMap<string, RecordsByName> = new Map(),
+  duplicates: {
+    /** Signatures of the table's records, from `rowSignature`. */
+    existing: ReadonlySet<string>;
+    skip: boolean;
+  } = { existing: new Set(), skip: false },
 ): ImportAnalysis {
   const keyColumn =
     uniqueness.updateBy === undefined
@@ -177,6 +209,12 @@ export function analyzeImport(
   const updates: ImportAnalysis['updates'] = [];
   // Rows that would add a record, valid or not: they need the required columns.
   let creating = 0;
+  // The columns the file fills, which decide whether two rows are the same.
+  const filled = targets.filter(
+    (column): column is RecordColumn => column !== null,
+  );
+  const signatures = new Set<string>();
+  const repeated = { existing: 0, inFile: 0, rows: [] as number[] };
   rows.forEach((cells, index) => {
     const row = index + 1;
     const data: Record<string, CellValue> = {};
@@ -254,6 +292,19 @@ export function analyzeImport(
       );
       updates.push({ id: updateId, data: changes });
     } else if (parsed.success) {
+      const signature = rowSignature(filled, data);
+      const inTable = duplicates.existing.has(signature);
+      const inFile = !inTable && signatures.has(signature);
+      signatures.add(signature);
+      if (inTable || inFile) {
+        repeated[inTable ? 'existing' : 'inFile']++;
+        if (repeated.rows.length < MAX_IMPORT_ERRORS) {
+          repeated.rows.push(row);
+        }
+        if (duplicates.skip) {
+          return;
+        }
+      }
       records.push(parsed.data);
     }
   });
@@ -273,7 +324,9 @@ export function analyzeImport(
         values: values.slice(0, MAX_SELECT_CHOICES),
       })),
       missingRequired: blocking,
+      duplicates: repeated,
     },
+    skipped: duplicates.skip ? repeated.existing + repeated.inFile : 0,
     records,
     updates,
     extendedColumns: [...extended.values()].filter(

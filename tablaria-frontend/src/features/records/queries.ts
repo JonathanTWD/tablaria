@@ -7,10 +7,14 @@ import {
 } from "@tanstack/react-query";
 import type {
   Paginated,
+  RecordExportFormat,
   RecordData,
   TableRecord,
 } from "@tablaria/shared";
+import { toast } from "sonner";
 import { tableKeys } from "@/features/tables/queries";
+import i18n from "@/i18n";
+import { apiErrorMessage } from "@/lib/error-message";
 import { recordsApi } from "./api";
 import type { RecordsView } from "./records-view";
 
@@ -54,6 +58,24 @@ export function useDeleteRecord(tableId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (recordId: string) => recordsApi.remove(tableId, recordId),
+    onSuccess: () => refreshAfterWrite(queryClient, tableId),
+  });
+}
+
+/** The same changes for several records (a page at most), all or nothing. */
+export function useUpdateRecords(tableId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ ids, changes }: { ids: string[]; changes: RecordData }) =>
+      recordsApi.updateMany(tableId, ids, changes),
+    onSuccess: () => refreshAfterWrite(queryClient, tableId),
+  });
+}
+
+export function useDeleteRecords(tableId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: string[]) => recordsApi.removeMany(tableId, ids),
     onSuccess: () => refreshAfterWrite(queryClient, tableId),
   });
 }
@@ -103,5 +125,14 @@ export function useUpdateRecord(tableId: string) {
         queryClient.invalidateQueries({ queryKey: tableKeys.recordDetails(tableId) }),
         queryClient.invalidateQueries({ queryKey: tableKeys.list() }),
       ]),
+  });
+}
+
+/** Downloads every record that matches the current search, filters and sort. */
+export function useExportRecords(tableId: string, view: RecordsView) {
+  return useMutation({
+    mutationFn: (format: RecordExportFormat) => recordsApi.exportFile(tableId, view, format),
+    onError: (error) =>
+      toast.error(i18n.t("records:toolbar.exportError", { message: apiErrorMessage(error) })),
   });
 }

@@ -76,6 +76,8 @@ model User {
   activityEvents       ActivityEvent[]
   publicLinks          PublicLink[]
   attachments          Attachment[]
+  savedViews           SavedView[]
+  assistantUsage       AssistantUsage[]
 
   @@index([demoExpiresAt])
   @@map("users")
@@ -178,6 +180,7 @@ model InventoryTable {
   activityEvents ActivityEvent[]
   publicLink     PublicLink?
   invitations    Invitation[]
+  savedViews     SavedView[]
 
   @@index([organizationId, updatedAt])
   @@map("inventory_tables")
@@ -336,4 +339,36 @@ model Attachment {
   @@index([recordId, createdAt])
   @@index([uploadedById])
   @@map("attachments")
+}
+
+/// A named search, filters, sort and grouping of a table, for everyone who can open it (ADR-041).
+model SavedView {
+  id          String   @id @default(uuid()) @db.Uuid
+  tableId     String   @db.Uuid
+  createdById String?  @db.Uuid
+  name        String
+  /// SavedViewQuery: search, sort, order, filters, group and pageSize.
+  view        Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  table     InventoryTable @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  createdBy User?          @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([tableId, name])
+  @@index([createdById])
+  @@map("saved_views")
+}
+
+/// Questions a user asked the assistant on a day, for its daily limit (ADR-042).
+/// Conversations themselves are never stored.
+model AssistantUsage {
+  userId String   @db.Uuid
+  day    DateTime @db.Date
+  count  Int      @default(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, day])
+  @@map("assistant_usage")
 }

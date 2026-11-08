@@ -30,6 +30,8 @@ export const tableKeys = {
   /** Who changed what in the table (ADR-025). */
   activity: (tableId: string) => [...tableKeys.all, "activity", tableId] as const,
   shared: () => [...tableKeys.all, "shared"] as const,
+  /** The table's saved views (ADR-041). */
+  views: (tableId: string) => [...tableKeys.all, "views", tableId] as const,
   sharing: (tableId: string) => [...tableKeys.all, "sharing", tableId] as const,
 };
 

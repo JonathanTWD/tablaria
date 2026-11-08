@@ -41,6 +41,7 @@ import { useSpace } from "@/features/organizations/space-context";
 import { sharedTablesQuery } from "@/features/sharing/queries";
 import { CreateTableDialog } from "@/features/tables/CreateTableDialog";
 import { tablesQuery } from "@/features/tables/queries";
+import { AssistantButton, AssistantProvider } from "@/features/assistant/Assistant";
 import { ThemeToggle } from "@/features/theme/ThemeToggle";
 
 const NAV_ITEMS = [
@@ -332,7 +333,10 @@ function AppHeader({ triggerRef }: { triggerRef: RefObject<HTMLButtonElement | n
       <Link to="/app" aria-label={t("common:homeLink")} className="rounded-md md:hidden">
         <Logo />
       </Link>
-      <ThemeToggle className="ml-auto" />
+      <div className="ml-auto flex items-center gap-2">
+        <AssistantButton />
+        <ThemeToggle />
+      </div>
     </header>
   );
 }
@@ -358,6 +362,7 @@ export default function AppLayout() {
       className="min-h-dvh bg-background"
     >
       <SpaceProvider>
+      <AssistantProvider>
       <a
         href="#main"
         className="sr-only z-50 rounded-md bg-primary px-3 py-2 text-primary-foreground focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
@@ -386,6 +391,7 @@ export default function AppLayout() {
           </RealtimeProvider>
         </main>
       </div>
+      </AssistantProvider>
       </SpaceProvider>
     </SidebarProvider>
   );

@@ -162,6 +162,33 @@ export const recordInputSchema = z.object({
 
 export type RecordInput = z.infer<typeof recordInputSchema>;
 
+/** Records one batch edit or deletion can touch: a page of the table at most. */
+export const MAX_BATCH_RECORDS = 100;
+
+const batchIdsSchema = z
+  .array(z.uuid())
+  .min(1)
+  .max(MAX_BATCH_RECORDS)
+  .refine((ids) => new Set(ids).size === ids.length, "Duplicate record ids");
+
+/** The same changes for several records of a table, all or nothing. */
+export const recordBatchUpdateSchema = z.object({
+  ids: batchIdsSchema,
+  // Checked against the table's columns by `recordDataSchema`.
+  data: z.record(z.string(), z.unknown()),
+});
+
+export type RecordBatchUpdate = z.infer<typeof recordBatchUpdateSchema>;
+
+export const recordBatchDeleteSchema = z.object({ ids: batchIdsSchema });
+
+export type RecordBatchDelete = z.infer<typeof recordBatchDeleteSchema>;
+
+export interface RecordBatchResult {
+  /** How many records changed or went. */
+  count: number;
+}
+
 // Filters ----------------------------------------------------------------
 
 export const FILTER_OPERATORS = ["contains", "between", "is", "in"] as const;
@@ -242,7 +269,7 @@ export const recordListQuerySchema = z.object({
 
 export type RecordListQuery = z.output<typeof recordListQuerySchema>;
 
-export const RECORD_EXPORT_FORMATS = ["csv"] as const;
+export const RECORD_EXPORT_FORMATS = ["csv", "xlsx"] as const;
 export type RecordExportFormat = (typeof RECORD_EXPORT_FORMATS)[number];
 
 /** Same view as the listing (search, filters, sort) without pagination: every match is exported. */

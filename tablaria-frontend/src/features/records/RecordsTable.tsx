@@ -24,6 +24,7 @@ import {
   FileText,
   FileUp,
   ArrowDownUp,
+  PenLine,
   Pencil,
   Plus,
   QrCode,
@@ -57,10 +58,13 @@ import { presenceColor } from "@/features/realtime/presence-colors";
 import { useTablePresence } from "@/features/realtime/realtime-context";
 import { EditableCell, ReadOnlyCell } from "./EditableCell";
 import { ExportButton } from "./ExportButton";
+import { MoreActionsMenu } from "./MoreActionsMenu";
 import { ImportDialog } from "@/features/imports/ImportDialog";
 import { FiltersSheet } from "./FiltersSheet";
 import { GroupBySelect } from "./GroupBySelect";
 import { groupValueOf } from "./record-groups";
+import { SavedViewsMenu } from "@/features/saved-views/SavedViewsMenu";
+import { BatchDeleteDialog, BatchEditDialog } from "./BatchDialogs";
 import { RecordDialog } from "./RecordDialog";
 import { RecordSheet } from "./RecordSheet";
 import { shownColumn } from "./shown-column";
@@ -76,7 +80,7 @@ const columnHelper = createColumnHelper<typeof recordTableFeatures, TableRecord>
 const SEARCH_DEBOUNCE_MS = 300;
 
 interface DialogState {
-  kind: "create" | "edit" | "delete" | "stock" | null;
+  kind: "create" | "edit" | "delete" | "stock" | "batchEdit" | "batchDelete" | null;
   record?: TableRecord;
 }
 
@@ -128,6 +132,29 @@ export function RecordsTable({ table }: { table: TableDetail }) {
   const canManage = hasRole(table.role, "ADMIN");
   const format = useCellFormatter();
   const [dialog, setDialog] = useState<DialogState>({ kind: null });
+  // Records ticked for a batch edit, for one view: changing page, search,
+  // filter or sort starts afresh, so no tick acts on, or comes back to, rows
+  // out of sight. Records that leave the page (deleted by someone) drop out.
+  const viewKey = JSON.stringify(view);
+  const [ticks, setTicks] = useState<{ view: string; ids: ReadonlySet<string> }>({
+    view: viewKey,
+    ids: new Set(),
+  });
+  const ticked = ticks.view === viewKey ? ticks.ids : new Set<string>();
+  const setTicked = (ids: ReadonlySet<string>) => setTicks({ view: viewKey, ids });
+  const pageIds = records.data?.data.map(({ id }) => id) ?? [];
+  const selection = pageIds.filter((id) => ticked.has(id));
+  const allTicked = pageIds.length > 0 && selection.length === pageIds.length;
+  const toggle = (id: string) => {
+    const next = new Set(ticked);
+    if (next.has(id)) {
+      next.delete(id);
+    } else {
+      next.add(id);
+    }
+    setTicked(next);
+  };
+  const clearSelection = () => setTicked(new Set());
   const [importing, setImporting] = useState(false);
 
   // A page past the end (e.g. after deleting its last record) moves to the last one.
@@ -216,6 +243,7 @@ export function RecordsTable({ table }: { table: TableDetail }) {
     });
   const labelsParams = new URLSearchParams(params);
   labelsParams.delete("record");
+  const labelsUrl = `/app/tables/${table.id}/labels${labelsParams.size > 0 ? `?${labelsParams}` : ""}`;
 
   const importDialog = canEdit && (
     <ImportDialog destination={{ kind: "table", table }} open={importing} onOpenChange={setImporting} />
@@ -250,11 +278,15 @@ export function RecordsTable({ table }: { table: TableDetail }) {
   }
 
   return (
-    <section aria-label={t("tabs.records")} className="mt-4">
+    // Room at the bottom for the selection bar, so it never hides the pagination.
+    <section aria-label={t("tabs.records")} className={cn("mt-4", canEdit && selection.length > 0 && "pb-24")}>
       {!canEdit && (
         <p className="mb-3 text-sm text-muted-foreground">{t("readOnly")}</p>
       )}
+      {/* Sized by its own width, so it adapts to the sidebar as well as the screen. */}
+      <div className="@container/toolbar">
       <div className="flex flex-wrap items-center gap-2">
+        <SavedViewsMenu tableId={table.id} view={view} canEdit={canEdit} onOpen={(next) => setView(next)} />
         <SearchField
           initial={view.search}
           onSearch={(search) => setView({ search }, { replace: true })}
@@ -286,26 +318,37 @@ export function RecordsTable({ table }: { table: TableDetail }) {
           value={view.group}
           onChange={(group) => setView({ group })}
         />
-        <ExportButton tableId={table.id} view={view} />
-        <Link
-          to={`/app/tables/${table.id}/labels${labelsParams.size > 0 ? `?${labelsParams}` : ""}`}
-          className={cn(buttonVariants({ variant: "outline" }), "h-9")}
-        >
-          <QrCode aria-hidden="true" />
-          {t("qr.labels")}
-        </Link>
-        {canEdit && (
-          <Button variant="outline" className="h-9" onClick={() => setImporting(true)}>
-            <FileUp aria-hidden="true" />
-            {t("toolbar.import")}
-          </Button>
-        )}
-        {canEdit && (
-          <Button className="h-9 sm:ml-auto" onClick={() => setDialog({ kind: "create" })}>
-            <Plus aria-hidden="true" />
-            {t("toolbar.add")}
-          </Button>
-        )}
+        {/* Actions on the right; the occasional ones fold into "Más" when the
+            row has no room for them (about 1,430px with every button). */}
+        <div className="ml-auto flex items-center gap-2">
+          <div className="hidden items-center gap-2 @min-[96rem]/toolbar:flex">
+            <ExportButton tableId={table.id} view={view} />
+            <Link to={labelsUrl} className={cn(buttonVariants({ variant: "outline" }), "h-9")}>
+              <QrCode aria-hidden="true" />
+              {t("qr.labels")}
+            </Link>
+            {canEdit && (
+              <Button variant="outline" className="h-9" onClick={() => setImporting(true)}>
+                <FileUp aria-hidden="true" />
+                {t("toolbar.import")}
+              </Button>
+            )}
+          </div>
+          <MoreActionsMenu
+            tableId={table.id}
+            view={view}
+            labelsUrl={labelsUrl}
+            onImport={canEdit ? () => setImporting(true) : undefined}
+            className="h-9 @min-[96rem]/toolbar:hidden"
+          />
+          {canEdit && (
+            <Button className="h-9" onClick={() => setDialog({ kind: "create" })}>
+              <Plus aria-hidden="true" />
+              {t("toolbar.add")}
+            </Button>
+          )}
+        </div>
+      </div>
       </div>
 
       {view.filters.length > 0 && (
@@ -362,6 +405,22 @@ export function RecordsTable({ table }: { table: TableDetail }) {
                         index === 0 && cn(STICKY_CELL, "bg-[color-mix(in_oklab,var(--muted)_60%,var(--card))]"),
                       )}
                     >
+                      <div className="flex items-center gap-1">
+                      {index === 0 && canEdit && (
+                        <input
+                          type="checkbox"
+                          aria-label={t("batch.selectPage")}
+                          className="mx-1.5 size-4 shrink-0 cursor-pointer accent-primary"
+                          checked={allTicked}
+                          ref={(box) => {
+                            if (box) {
+                              box.indeterminate = selection.length > 0 && !allTicked;
+                            }
+                          }}
+                          disabled={pageIds.length === 0}
+                          onChange={() => setTicked(allTicked ? new Set() : new Set(pageIds))}
+                        />
+                      )}
                       {header.column.getCanSort() ? (
                         <button
                           type="button"
@@ -381,6 +440,7 @@ export function RecordsTable({ table }: { table: TableDetail }) {
                           {column.name}
                         </span>
                       )}
+                      </div>
                     </th>
                   );
                 })}
@@ -441,6 +501,7 @@ export function RecordsTable({ table }: { table: TableDetail }) {
                           key={row.id}
                           className={cn(
                             "group border-b border-border last:border-b-0 hover:bg-muted/30",
+                            ticked.has(record.id) && "bg-primary/5",
                             // Someone is editing this record: tinted, but nothing is locked.
                             recordEditors.has(record.id) &&
                               presenceColor(recordEditors.get(record.id)![0].userId).row,
@@ -463,8 +524,18 @@ export function RecordsTable({ table }: { table: TableDetail }) {
                                   ),
                               )}
                             >
+                              <div className="flex items-center gap-1">
+                              {index === 0 && canEdit && (
+                                <input
+                                  type="checkbox"
+                                  aria-label={t("batch.select", { label })}
+                                  className="mx-1.5 size-4 shrink-0 cursor-pointer accent-primary"
+                                  checked={ticked.has(record.id)}
+                                  onChange={() => toggle(record.id)}
+                                />
+                              )}
                               {/* On phones the fixed column must leave room for the cell being edited. */}
-                              <div className={cn(index === 0 && "max-w-36 sm:max-w-56 lg:max-w-none")}>
+                              <div className={cn("min-w-0 flex-1", index === 0 && "max-w-36 sm:max-w-56 lg:max-w-none")}>
                                 {column.type === "formula" ? (
                                   // Computed from the record's cells, never edited here (ADR-033).
                                   <ReadOnlyCell column={column} value={record.data[column.id]} format={format} />
@@ -498,6 +569,7 @@ export function RecordsTable({ table }: { table: TableDetail }) {
                                     linked={records.data?.linked}
                                   />
                                 )}
+                              </div>
                               </div>
                               {editor && (
                                 <span
@@ -649,6 +721,63 @@ export function RecordsTable({ table }: { table: TableDetail }) {
                 }
               : undefined
           }
+        />
+      )}
+      {canEdit && selection.length > 0 && (
+        // Floating, so ticking a row never moves the table under the pointer.
+        <div
+          role="toolbar"
+          aria-label={t("batch.toolbar")}
+          className="fixed inset-x-4 bottom-4 z-30 mx-auto flex max-w-xl flex-wrap items-center gap-2 rounded-xl border border-border bg-popover p-3 shadow-lg sm:p-2 sm:pl-4"
+        >
+          <p role="status" className="basis-full text-sm font-medium sm:mr-auto sm:basis-auto">
+            {t("batch.selected", { count: selection.length })}
+          </p>
+          <Button variant="outline" className="h-9" onClick={() => setDialog({ kind: "batchEdit" })}>
+            <PenLine aria-hidden="true" />
+            {t("batch.edit")}
+          </Button>
+          <Button
+            variant="destructive"
+            className="h-9"
+            onClick={() => setDialog({ kind: "batchDelete" })}
+          >
+            <Trash2 aria-hidden="true" />
+            {t("batch.delete")}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-9"
+            aria-label={t("batch.clear")}
+            onClick={clearSelection}
+          >
+            <X aria-hidden="true" />
+          </Button>
+        </div>
+      )}
+      {dialog.kind === "batchEdit" && (
+        <BatchEditDialog
+          tableId={table.id}
+          columns={columns.filter(({ type }) => !isComputedType(type))}
+          ids={selection}
+          linked={records.data?.linked}
+          onDone={() => {
+            clearSelection();
+            setDialog({ kind: null });
+          }}
+          onOpenChange={closeDialog}
+        />
+      )}
+      {dialog.kind === "batchDelete" && (
+        <BatchDeleteDialog
+          tableId={table.id}
+          ids={selection}
+          onDone={() => {
+            clearSelection();
+            setDialog({ kind: null });
+          }}
+          onOpenChange={closeDialog}
         />
       )}
       {importDialog}

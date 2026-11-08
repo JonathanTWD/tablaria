@@ -4,7 +4,7 @@ import { z } from "zod";
 export const REALTIME_MAX_SUBSCRIPTIONS = 20;
 
 /** What changed in a table, which decides what the browser refetches. */
-export const REALTIME_SCOPES = ["records", "columns", "table", "sharing", "deleted"] as const;
+export const REALTIME_SCOPES = ["records", "columns", "table", "sharing", "views", "deleted"] as const;
 export type RealtimeScope = (typeof REALTIME_SCOPES)[number];
 
 /** A cell someone has open for editing. */

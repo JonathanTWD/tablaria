@@ -34,9 +34,9 @@ La especificación completa del MVP está en [MVP_PROMPT.md](MVP_PROMPT.md).
 
 ### Prioridades tras el MVP
 
-1. **Exportar**, respetando la vista actual (búsqueda, filtros y orden). El CSV ya está hecho; falta Excel (`.xlsx` con ExcelJS), que se añadirá cuando las versiones recientes del lockfile cumplan la antigüedad mínima de pnpm.
+1. **Exportar**, respetando la vista actual (búsqueda, filtros y orden). Hechos el CSV y el Excel (`.xlsx`, ADR-043).
 2. **Alertas de stock bajo** y **gráficos** (hecho: umbral por columna numérica; desde ADR-035, pestaña «Métricas» en cada tabla con resumen, bajo mínimo, grupos y evolución).
-3. **Importar** con un asistente paso a paso (hecho para CSV, fase 10, ADR-021): elegir el archivo, emparejar columnas o crearlas con su tipo detectado, revisar errores y opciones nuevas, e importar todo o nada, también en una tabla vacía o como tabla nueva. Falta Excel (`.xlsx`), que se leerá en el navegador con ExcelJS cuando cumpla la antigüedad mínima de pnpm.
+3. **Importar** con un asistente paso a paso (hecho para CSV, fase 10, ADR-021): elegir el archivo, emparejar columnas o crearlas con su tipo detectado, revisar errores y opciones nuevas, e importar todo o nada, también en una tabla vacía o como tabla nueva. También para Excel (`.xlsx`, ADR-043), leído en el navegador.
 4. **Preguntas sobre los datos con IA**: el modelo consulta la API mediante herramientas (filtros validados y un endpoint de agregaciones), nunca con SQL libre. Las herramientas solo leen.
 
 ### Plan por dificultad
@@ -53,15 +53,15 @@ Cada tarea indica qué modelo conviene: **Opus** para lo que toca seguridad, per
 - Adjuntos en cada registro (hecho, ADR-039). Pendiente: una columna con la foto principal en la tabla y subidas directas al bucket.
 - API pública con tokens y webhooks.
 - Relaciones entre tablas (hechas las básicas, ADR-022; buscar, filtrar y ordenar por nombre, ADR-028; columnas de consulta, ADR-030; columnas de resumen, ADR-031; relaciones con varios registros, ADR-032; columnas de fórmula, ADR-033; ordenar y filtrar por resumen, ADR-034): ordenar y filtrar por fórmula, resúmenes con condición y consultas a través de relaciones múltiples.
-- Preguntas sobre los datos con IA (necesita una API key de pago).
+- Preguntas sobre los datos con IA (hecho, ADR-042, con el plan gratuito de Groq). Pendiente: acciones con confirmación, buscar en los PDF adjuntos y voz con ElevenLabs.
 - Tiempo real con varias instancias (Redis), solo si hace falta escalar.
 
 **Medias (básico, con cuidado; Opus si hay tiempo)**
-- Excel `.xlsx` para exportar e importar con ExcelJS (desde ~8-nov): convertir el libro a filas y reutilizar el asistente.
+- Excel `.xlsx` para exportar e importar (hecho, ADR-043).
 - Parche de dependencias (~6-nov): body-parser ≥ 2.4.0, multer ≥ 2.5.0, qs ≥ 6.16.1, nodemailer ≥ 10.1.4, respetando los 14 días de pnpm.
 - Selección múltiple como tipo de columna.
-- Vistas guardadas (búsqueda, filtros y orden con nombre).
-- Edición en lote y papelera recuperable.
+- Vistas guardadas (búsqueda, filtros y orden con nombre) (hecho, ADR-041).
+- Edición en lote (hecho, ADR-040) y papelera recuperable.
 - Tablas bloqueadas o archivadas de solo lectura.
 - Escáner de códigos de barras y QR con la cámara.
 - Notificaciones (por ejemplo, resumen semanal de stock bajo por email).
@@ -69,7 +69,7 @@ Cada tarea indica qué modelo conviene: **Opus** para lo que toca seguridad, per
 - PWA instalable.
 
 **Fáciles (básico)**
-- Pegar celdas copiadas de Excel en el asistente de importación.
+- Pegar celdas copiadas de Excel en el asistente de importación. (Hecho: vista previa y filas repetidas, ADR-044.)
 - Descargar una plantilla CSV con las columnas de la tabla.
 - Páginas legales: privacidad, aviso legal y cookies (el texto lo revisas tú).
 - `pnpm audit --prod --audit-level=high` en el CI.

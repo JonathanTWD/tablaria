@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ActivityModule } from './activity/activity.module';
+import { AssistantModule } from './assistant/assistant.module';
 import { AttachmentsModule } from './attachments/attachments.module';
 import { AuthModule } from './auth/auth.module';
 import { ColumnsModule } from './columns/columns.module';
@@ -17,6 +18,7 @@ import { MetricsModule } from './metrics/metrics.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { PublicLinksModule } from './public-links/public-links.module';
 import { RecordsModule } from './records/records.module';
+import { SavedViewsModule } from './saved-views/saved-views.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { SharingModule } from './sharing/sharing.module';
 import { StockAlertsModule } from './stock-alerts/stock-alerts.module';
@@ -34,7 +36,9 @@ import { TablesModule } from './tables/tables.module';
     TablesModule,
     ColumnsModule,
     RecordsModule,
+    SavedViewsModule,
     AttachmentsModule,
+    AssistantModule,
     ImportsModule,
     StockAlertsModule,
     MetricsModule,

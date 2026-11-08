@@ -1,5 +1,50 @@
 # Changelog
 
+## v1.9.0 — Asistente de IA y productividad
+
+- **Seguridad** (auditoría OWASP Top 10:2025 de la release):
+  - **Código:** un hallazgo de gravedad baja, arreglado antes de publicar: todas las demos juntas podían agotar el presupuesto diario de Groq del asistente (ver abajo). Se revisaron el asistente, la edición en lote, las vistas guardadas, el Excel y la importación con repetidos.
+    - El asistente solo lee, con los permisos del usuario, y los datos de las tablas le llegan marcados como datos: sus instrucciones no llevan nada escrito por usuarios.
+    - La exportación a Excel escribe el texto como texto: nada se convierte en fórmula. Los libros se leen en el navegador, nunca en el servidor.
+  - **Pendiente de la v1.8.0, de gravedad baja:** los adjuntos en el historial de actividad y el límite de peticiones antes de leer un archivo subido.
+  - **Dependencias:** ExcelJS trae `uuid@8` con un aviso que no le afecta (solo usa `v4()`). Siguen minimatch y deepmerge, solo en la CLI de shadcn.
+- **Asistente: tope común para la demo** (auditoría de la v1.9.0): todas las sesiones de demo juntas pueden hacer como mucho 30 preguntas al día, para que abrir demos seguidas no agote el presupuesto de Groq que comparten las cuentas registradas. Al llegar al tope, la demo invita a crear una cuenta.
+- **Importar con vista previa y sin repetidos** (ADR-044):
+  - **Vista previa:** antes de importar, una tabla con las 5 primeras filas bajo la columna de Tablaria que llenará cada una, con las celdas con error en rojo.
+  - **Filas repetidas:** al comprobar, avisa de las filas iguales a un registro de la tabla y de las que repiten otra del mismo archivo, comparando las columnas que trae el archivo sin distinguir mayúsculas. Se omiten por defecto (tachadas en la vista previa) y se pueden importar igualmente.
+
+- **Excel (.xlsx)** (ADR-043):
+  - **Exportar:** el botón «Exportar» ofrece Excel o CSV, siempre con la vista actual (búsqueda, filtros y orden).
+    - El libro guarda los números y los precios como números (con su moneda), las fechas como fechas, y las relaciones con el nombre del registro enlazado.
+    - La cabecera queda fija y con filtros, y las columnas con un ancho que encaja con su contenido.
+  - **Importar:** el asistente acepta también libros de Excel. Lee la primera hoja con datos y sigue igual que con un CSV: emparejar columnas, revisar errores e importar todo o nada.
+    - El libro se lee en el navegador y nunca se sube entero.
+    - De una fórmula se toma su valor, no la fórmula.
+
+- **Asistente: grabación con ondas y acceso más a mano** (ADR-042):
+  - **Al preguntar por voz,** la caja de texto se convierte en una barra con la onda de tu voz en directo, un punto de grabación y el tiempo, como una nota de voz. Con «reducir movimiento» activado, la onda se sustituye por un texto.
+  - **«Pensando…»** brilla mientras el asistente responde.
+  - **El botón «Asistente»** va en el color de la marca, con un tooltip que enseña el atajo.
+  - **`Ctrl + K`** (o `⌘ + K`) abre el asistente desde cualquier página, y el menú «⋯» de cada tabla tiene «Preguntar al asistente por esta tabla».
+- **Asistente de IA** (ADR-042): un botón «Asistente» en la barra superior abre un chat para preguntar por los datos, como «¿qué está bajo mínimo y a qué proveedor lo pido?».
+  - **Lee las tablas que puede ver el usuario,** con sus permisos y sin cambiar nada, y enlaza los registros en los que se basa la respuesta.
+  - **Con voz:** micrófono para preguntar y lectura de la respuesta en voz alta, con la voz del navegador.
+  - **Gratis:** usa el plan gratuito de Groq, con 15 preguntas al día por cuenta y 5 en la demo. No se guardan las conversaciones, y un aviso explica qué datos se envían antes de la primera pregunta.
+- **Barra de la tabla que siempre cabe:** «Nuevo registro» ya no se cae a otra línea cuando falta sitio, por ejemplo con el menú lateral abierto en un portátil.
+  - **Sin sitio:** exportar, etiquetas QR e importar se agrupan en un botón «Más».
+  - **Con sitio** (pantallas grandes o el menú plegado): se ven como siempre.
+  - Se decide por el ancho real de la barra, no por el de la pantalla.
+- **Vistas guardadas** (ADR-041): la búsqueda, los filtros, el orden, la agrupación y el tamaño de página se guardan con un nombre («Bajo stock», «Pasillo A») desde el botón «Vistas».
+  - **Para todos:** las vistas son de la tabla; las abre cualquiera que pueda verla, con un clic, y el botón muestra el nombre de la que estás viendo.
+  - **Quién las gestiona:** quien edita la tabla las guarda, les cambia el nombre, las actualiza con lo que ve en ese momento o las elimina.
+  - **En directo:** si alguien guarda o cambia una vista, los demás la ven al momento.
+  - Hasta 20 por tabla, con nombres que no se repiten.
+- **Edición en lote** (ADR-040): una casilla en cada fila (y otra para toda la página) selecciona registros, y una barra flotante permite:
+  - **cambiar un valor:** una columna toma el mismo valor en todos, o se vacía;
+  - **eliminarlos** a la vez, con confirmación.
+  - Todo o nada: si un valor no vale, o algún registro ya no existe, no cambia ninguno. Cada cambio queda en el historial de actividad y en los movimientos de stock, como una edición normal.
+  - Hasta 100 registros por vez (una página). Las columnas de valor único no se ofrecen con varios registros, porque se repetiría el valor.
+
 ## v1.8.0 — Etiquetas QR y adjuntos
 
 - **Seguridad** (auditoría OWASP Top 10:2025 de la release):

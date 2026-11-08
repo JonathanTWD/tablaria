@@ -42,6 +42,7 @@ import {
   type ImportUniqueness,
   InvalidImportError,
   planImport,
+  rowSignature,
 } from './import-analysis';
 
 type NewTableRequest = z.output<typeof importNewTableSchema>;
@@ -71,6 +72,7 @@ export class ImportsService {
       request,
       await uniqueness(this.prisma, tableId, plan, request.updateBy),
       await recordsByName(this.prisma, userId, plan),
+      await recordSignatures(this.prisma, tableId, plan),
     ).check;
   }
 
@@ -92,6 +94,7 @@ export class ImportsService {
           request,
           await uniqueness(tx, tableId, plan, request.updateBy),
           await recordsByName(tx, userId, plan),
+          await recordSignatures(tx, tableId, plan),
         );
         requireImportable(analysis);
         // New choices change the columns, which only admins do.
@@ -223,6 +226,27 @@ async function uniqueness(
 }
 
 /**
+ * What each record of the table holds in the columns the file fills, as
+ * `rowSignature` compares rows. New columns are empty in every record.
+ */
+async function recordSignatures(
+  db: Prisma.TransactionClient,
+  tableId: string,
+  plan: ImportPlan,
+): Promise<Set<string>> {
+  const filled = plan.targets.filter(
+    (column): column is RecordColumn => column !== null,
+  );
+  const records = await db.record.findMany({
+    where: { tableId },
+    select: { data: true },
+  });
+  return new Set(
+    records.map(({ data }) => rowSignature(filled, data as RecordData)),
+  );
+}
+
+/**
  * For each relation the file fills, the records of its linked table by name:
  * their first cell, as the table shows them (ADR-036). Linking needs access
  * to that table, as when linking by hand.
@@ -266,9 +290,10 @@ async function recordsByName(
 
 function analyze(
   plan: ImportPlan,
-  request: Pick<ImportRequest, 'rows' | 'addMissingChoices'>,
+  request: Pick<ImportRequest, 'rows' | 'addMissingChoices' | 'skipDuplicates'>,
   unique?: ImportUniqueness,
   linkedNames?: ReadonlyMap<string, RecordsByName>,
+  existing: ReadonlySet<string> = new Set(),
 ): ImportAnalysis {
   try {
     return analyzeImport(
@@ -277,6 +302,7 @@ function analyze(
       request.addMissingChoices,
       unique,
       linkedNames,
+      { existing, skip: request.skipDuplicates },
     );
   } catch (error) {
     if (error instanceof InvalidImportError) {
@@ -391,6 +417,7 @@ function summary(
     tableId,
     imported: analysis.records.length,
     updated: analysis.updates.length,
+    skipped: analysis.skipped,
     addedChoices,
     addedColumns: analysis.createdColumns.length,
   };

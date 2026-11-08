@@ -788,6 +788,156 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 - Las miniaturas son las propias imágenes reducidas en el navegador. Con 5 MB por archivo y 10 por registro, no compensa generar versiones pequeñas.
 - Si cambia el proveedor de almacenamiento, basta con cambiar las variables `STORAGE_*` y la CSP, pero los archivos ya subidos hay que copiarlos a mano.
 
+## ADR-040: Edición en lote
+
+**Contexto**: en un inventario es habitual cambiar lo mismo en muchos registros a la vez: marcar como agotados los productos de un proveedor, mover equipos a otra oficina o borrar una tanda de pruebas. Hasta ahora había que hacerlo registro a registro.
+
+**Decisión**:
+- **Dos rutas nuevas:** `PATCH /tables/:tableId/records/batch` (`{ ids, data }`) y `POST /tables/:tableId/records/batch-delete` (`{ ids }`).
+  - El borrado es un POST y no un DELETE con cuerpo: los proxies, como la rewrite `/api` del Static Site, no están obligados a reenviar el cuerpo de un DELETE.
+  - Como mucho 100 ids distintos, el tamaño máximo de una página.
+  - Tienen un límite de peticiones propio, más estricto que el general.
+- **Todo o nada:** una transacción con la tabla bloqueada.
+  - Si un id no existe o es de otra tabla, responde 404 sin cambiar nada.
+  - Los valores pasan por la misma validación que una edición normal: tipos, obligatorios, relaciones con acceso y valores únicos.
+- **Valores únicos:** con varios registros, un valor no vacío en una columna única daría un duplicado seguro, así que responde 409. La interfaz no ofrece esas columnas al seleccionar más de uno.
+- **Historial:** cada registro cambiado o borrado deja su evento en la actividad (ADR-025), y los cambios de stock su movimiento (ADR-024), igual que si se hubiera editado a mano.
+  - Al borrar, los registros se quitan de las relaciones de otras tablas.
+  - Se emite un aviso en tiempo real por cada tabla afectada, no uno por registro.
+- **Interfaz:**
+  - Casillas en la primera columna fija, solo para quien puede editar, y otra en la cabecera para toda la página.
+  - La selección solo cuenta los registros de la página visible: cambiar de página, filtro u orden nunca actúa sobre filas que no se ven.
+  - Una barra flotante abajo, para que marcar una fila no mueva la tabla, con «Cambiar un valor», «Eliminar» y «Quitar la selección».
+  - El diálogo de cambio reutiliza el campo de cada tipo del formulario de registro (`ColumnValueInput`).
+
+**Consecuencias**:
+- Seleccionar más de una página a la vez queda fuera. Si hiciera falta, el siguiente paso sería «aplicar a todos los que cumplen el filtro», con su propio límite.
+- Un lote de 100 registros escribe hasta 100 eventos de actividad: la historia es completa, aunque más larga.
+
+## ADR-041: Vistas guardadas
+
+**Contexto**: la vista de una tabla (búsqueda, filtros, orden y agrupación) ya vivía en la URL, así que se podía compartir un enlace. Pero quien vuelve cada día a «lo que está bajo mínimo» o «los equipos de la oficina de Madrid» tenía que montarla otra vez o guardar enlaces aparte.
+
+**Decisión**:
+- **Las vistas son de la tabla, no de cada persona.** En un inventario compartido, «Bajo stock» le sirve a todo el equipo.
+  - Las ve y las abre cualquiera que pueda abrir la tabla.
+  - Las guarda, renombra, actualiza o borra quien la edita (EDITOR), igual que los registros.
+  - Las vistas personales quedan para más adelante, si hacen falta.
+- **Qué se guarda:** búsqueda, filtros, orden, agrupación y tamaño de página. No la página: una vista se abre siempre por la primera.
+  - El esquema es `savedViewQuerySchema`, con los mismos filtros que la URL, y se guarda como JSON en `saved_views.view`.
+  - La API rechaza (400) columnas que no son de la tabla. Si una columna desaparece después, la vista sigue abriéndose y la parte que ya no encaja se descarta, como pasa con un enlace antiguo (`applicableView`).
+- **API:** `GET/POST /tables/:tableId/views` y `PATCH/DELETE /tables/:tableId/views/:viewId`.
+  - Nombres de 1 a 60 caracteres, sin repetirse en la tabla (409, por un índice único).
+  - Como mucho 20 por tabla (422).
+  - Guardar una vista no cuenta como editar la tabla: no cambia su «Editada hace…».
+- **Tiempo real:** un nuevo ámbito `views` hace que los demás vuelvan a pedir la lista al momento.
+- **Interfaz:** un botón «Vistas» al principio de la barra de la tabla.
+  - Muestra el nombre de la vista guardada que coincide con lo que se ve; si no coincide ninguna, pone «Vistas».
+  - Abrir una vista es un clic.
+  - «Guardar la vista actual…» pide un nombre, y «Gestionar vistas…» permite renombrar, actualizar con lo que se ve o eliminar (con confirmación).
+
+**Consecuencias**:
+- Una vista guardada sigue siendo una URL normal al abrirla, así que se puede compartir el enlace como antes.
+- Quien solo puede ver la tabla no ve el botón si no hay vistas, para no ofrecer algo que no puede usar.
+
+## ADR-042: Asistente de IA para preguntar por los datos
+
+**Estado**: aceptada e implementada.
+
+**Contexto**: en un almacén o una oficina, la pregunta suele ser concreta y urgente: «¿qué está bajo mínimo en el pasillo A?», «¿cuántos taladros quedan?», «¿qué proveedor nos sirve más productos?». Hoy se responde combinando búsqueda, filtros y métricas. Un asistente que entienda la pregunta y consulte los datos ahorra esos pasos y, con voz, deja las manos libres. El proyecto es gratuito: el proveedor de IA no puede cobrar sin avisar.
+
+**Decisión**:
+- **Proveedor: Groq, plan gratuito.** Sin tarjeta, así que al pasar el límite responde 429 en vez de cobrar. No usa los datos para entrenar. Todos sus modelos admiten herramientas.
+  - **Modelo por defecto:** `openai/gpt-oss-120b`, el más capaz de los gratuitos. `qwen/qwen3.8-27b` como alternativa.
+  - **Configurable** con `AI_BASE_URL`, `AI_API_KEY` y `AI_MODEL`: cualquier API compatible con la de OpenAI (Gemini, por ejemplo) sirve cambiando las variables. Sin `AI_API_KEY`, el asistente no aparece.
+- **El límite real son los tokens:** unos 8.000 por minuto y 200.000 al día. Una pregunta con herramientas gasta entre 3.000 y 6.000. Por eso:
+  - **Respuestas de herramientas compactas:** como mucho 20 registros, solo las columnas que pide el modelo y los valores ya formateados como texto corto.
+  - **Instrucciones de sistema breves** y como mucho 4 pasos de herramientas por pregunta.
+  - **Conversaciones cortas:** se envían como mucho los 6 últimos mensajes.
+  - **Cupo por cuenta:** 15 preguntas al día; en la demo, 5 por sesión. Se guarda en la base de datos (`assistant_usage`, por usuario y día).
+    - Se cuenta con una sola sentencia (`INSERT … ON CONFLICT … WHERE count < límite`), así que dos preguntas a la vez no se saltan el límite.
+    - Una pregunta que el proveedor no llegó a responder (429, caída o tiempo agotado) se devuelve al cupo.
+    - **Tope común de la demo:** como mucho 30 preguntas al día entre todas las sesiones de demo (`ASSISTANT_DEMO_DAILY_TOTAL`). Las demos son gratis y anónimas: sin este tope, abrir muchas seguidas agotaría el presupuesto diario del proveedor, compartido con las cuentas registradas (auditoría de la v1.9.0).
+  - **Sin cupo, o con Groq en 429:** el asistente lo dice con claridad («vuelve mañana» o «inténtalo en un minuto»), sin errores genéricos.
+- **Herramientas, solo de lectura**, ejecutadas por la API **como el usuario**, con los mismos servicios y permisos de siempre:
+  - `listar_tablas`: las tablas que puede abrir, con sus columnas (nombre y tipo).
+  - `buscar_registros`: búsqueda, filtros y orden validados con los esquemas de siempre (`recordFilterSchema`); nunca SQL libre.
+  - `resumir`: totales, medias y recuentos por grupos, con el servicio de métricas (ADR-035).
+  - `bajo_minimo`: los avisos de stock (ADR-024), con todas las celdas de cada registro: así una sola llamada responde también «¿y a qué proveedor lo pido?».
+  - `historial_stock`: los movimientos de un registro.
+  - Cada herramienta valida sus argumentos con zod: un argumento inventado por el modelo se devuelve como error al propio modelo, no llega a la base de datos.
+  - Las columnas se nombran por su nombre, no por su id, y los enlaces llegan con el nombre del registro enlazado: menos tokens y menos errores del modelo.
+  - **Última vuelta sin herramientas:** si se acaban los 4 pasos, se le pide responder con lo que tiene y no se le ofrece ninguna herramienta. Con `tool_choice: "none"`, algunos modelos intentaban usar una igualmente y el proveedor rechazaba la petición.
+- **Inyección de instrucciones:** los datos de las tablas los escriben usuarios, y un registro puede contener «ignora las instrucciones anteriores». Por eso:
+  - Los resultados de las herramientas van marcados como datos, y las instrucciones de sistema dicen que nunca son órdenes.
+  - Las instrucciones de sistema no llevan nada escrito por usuarios: de la tabla abierta solo va su id, y el nombre llega por las herramientas, como dato.
+  - Aunque el modelo se dejara engañar, solo puede llamar a herramientas de lectura con los permisos del usuario: lo peor que puede pasar es una respuesta equivocada, nunca leer datos ajenos ni cambiar nada.
+  - La respuesta se muestra como texto plano con enlaces a registros generados por la app, sin HTML del modelo.
+- **Privacidad:**
+  - Lo que se envía a Groq es la pregunta y lo que devuelven las herramientas: nombres de columnas y valores de los registros que el usuario puede ver. Nunca emails, contraseñas ni datos de otras cuentas.
+  - El panel lo avisa antes de la primera pregunta, y la política de privacidad lo explicará cuando exista.
+  - No se guardan las conversaciones: solo el contador de uso del día.
+- **API:** `POST /assistant/chat` con `{ messages, tableId? }`.
+  - Responde de una vez (sin streaming) con el texto y los registros o tablas citados, para enlazarlos.
+  - Con `tableId`, el asistente empieza por esa tabla, la que el usuario tiene abierta.
+  - Límite de peticiones propio, además del cupo diario.
+- **Interfaz:** un panel lateral de chat desde la barra superior, con sugerencias («¿Qué está bajo mínimo?», «¿Qué proveedor tiene más productos?») y enlaces a lo que cita.
+  - **Voz:** un botón de micrófono con la API de voz del navegador (gratis), y la opción de escuchar la respuesta. Solo aparece donde el navegador la ofrece. ElevenLabs queda como mejora posterior.
+    - Mientras escucha, una barra muestra la onda de la voz en directo (`LiveWaveform` de ElevenLabs UI, un registro de shadcn con licencia MIT que solo usa el micrófono y un canvas) y el tiempo. Con `prefers-reduced-motion`, un texto en su lugar.
+  - **Acceso:** el botón de la barra superior en el color de la marca, `Ctrl/⌘ + K` desde cualquier página y «Preguntar al asistente por esta tabla» en el menú de cada tabla. Se descartó un botón flotante: chocaría con la barra de la edición en lote y con los avisos, y en el móvil taparía la tabla.
+- **Pruebas:** un modelo falso que pide herramientas según el guion de cada test, sin llamar a Groq. Así se prueban los permisos, la validación de argumentos, el cupo y la inyección de instrucciones.
+
+**Fuera de alcance (por ahora)**:
+- Herramientas que escriben, como «registra una salida de 3 taladros»: necesitarán confirmación explícita del usuario y llegarán después.
+- Buscar dentro de los PDF adjuntos (RAG con `pgvector`).
+- Voz con ElevenLabs.
+
+**Consecuencias**:
+- **Con el plan gratuito caben pocas preguntas al día** (unas 40-60 en total). Para un portfolio basta; si hiciera falta más, se cambia de modelo o de proveedor con las variables.
+- **Las respuestas pueden equivocarse,** como cualquier modelo de lenguaje. El panel enlaza los registros en los que se basa, para comprobarlas.
+- **Groq recibe datos de inventario** de quien usa el asistente. Es opcional y se avisa antes; sin la clave configurada, no existe.
+
+## ADR-043: Exportar e importar Excel (.xlsx)
+
+**Contexto**: el CSV que exporta Tablaria abre en Excel, pero pierde los tipos: los precios y las fechas son texto, y cada versión de Excel decide cómo leer el separador y los decimales. Al revés pasa lo mismo: la mayoría de la gente tiene su inventario en un libro de Excel, no en un CSV, y tenía que guardarlo como CSV antes de importarlo.
+
+**Decisión**:
+- **Librería: ExcelJS** (MIT), en el backend para escribir y en el frontend para leer. Es la más usada que hace las dos cosas.
+  - Su última versión es de 2023, pero es estable.
+  - Arrastra `uuid@8`, con un aviso (GHSA-w5hq-g745-h8pq) que solo afecta a `v3/v5/v6` cuando se les pasa un buffer. ExcelJS solo llama a `v4()` sin argumentos, así que no es alcanzable.
+- **Exportar en el servidor:** `GET /records/export?format=xlsx`, con la misma vista, los mismos permisos y el mismo límite que el CSV.
+  - Los números y precios se guardan como números, con la moneda en el formato de celda (`#,##0.00 "€"`).
+  - Las fechas se guardan como fechas, a medianoche UTC para que se vea el mismo día en cualquier zona horaria; Sí/No y las relaciones, como texto.
+  - Las consultas y los resúmenes van con el formato de la columna que muestran.
+  - El texto siempre se escribe como texto: un valor que empieza por `=` nunca se convierte en una fórmula (en el CSV hacía falta neutralizarlo, ADR-021).
+  - Una hoja con el nombre de la tabla (sin los caracteres que Excel no admite), cabecera fija y con filtros, y anchos ajustados al contenido.
+- **Importar en el navegador:** el libro se convierte en filas de texto con el mismo formato que un CSV (números con coma decimal, fechas ISO, Sí/No), y sigue el asistente de siempre (ADR-021, ADR-036).
+  - **Por qué en el navegador:** un `.xlsx` es un zip, y uno pequeño puede descomprimirse en cientos de megas («bomba zip»). Leerlo en el servidor expondría la API, que tiene poca memoria en el plan gratuito. En el navegador, como mucho se cuelga la pestaña de quien sube su propio archivo.
+  - **Qué se lee:** la primera hoja con datos. De las fórmulas, su valor calculado; del texto con formato, solo el texto; los errores (`#N/A`) quedan vacíos.
+  - ExcelJS se carga solo al elegir un libro: son ~250 KB comprimidos que el resto de la app no descarga.
+
+**Consecuencias**:
+- Lo exportado se vuelve a importar tal cual, en los dos formatos.
+- Los libros con varias hojas solo aportan la primera con datos. Elegir la hoja queda para más adelante, si hace falta.
+
+## ADR-044: Vista previa y filas repetidas al importar
+
+**Contexto**: el asistente de importación (ADR-021) ya validaba cada celda y detectaba duplicados en las columnas de valor único (ADR-023). Faltaban dos cosas: ver cómo iban a quedar las filas antes de confirmar, y frenar el error más típico, importar dos veces el mismo archivo en una tabla sin columnas únicas, que duplicaba todo sin avisar.
+
+**Decisión**:
+- **Una fila es repetida** si, en todas las columnas que trae el archivo, tiene los mismos valores que un registro de la tabla o que una fila anterior del archivo.
+  - Se compara la «firma» de la fila (`rowSignature`): sus valores ya convertidos (la opción con su nombre canónico, las relaciones por id, sin el orden de los enlaces), sin distinguir mayúsculas ni espacios alrededor.
+  - Las columnas que el archivo no trae no cuentan, y las columnas nuevas están vacías en los registros existentes.
+  - Solo cuentan las filas que añadirían un registro; las que actualizan uno por su clave (`updateBy`) no son repetidas.
+- **La comprobación lo cuenta siempre** (`duplicates: { existing, inFile, rows }`, con las primeras filas). Con `skipDuplicates`, las repetidas no se importan, y el resultado dice cuántas se omitieron (`skipped`).
+  - En la API, `skipDuplicates` es `false` por defecto, para no cambiar lo que ya hacía. En la interfaz viene activado, porque repetir es casi siempre un error, y se puede desactivar.
+- **Vista previa en el último paso:** las 5 primeras filas bajo el nombre de la columna que llenarán, con las celdas con error marcadas (en rojo y en texto para lectores de pantalla) y las filas repetidas con «Se omite» o «Repetida».
+  - Muestra el texto del archivo tal cual, sin pedir más al servidor: lo que importa es ver si cada columna va a su sitio.
+
+**Consecuencias**:
+- Comprobar e importar leen los datos de la tabla una vez más (como mucho 10.000 registros), un coste pequeño para el tamaño de las tablas.
+- Dos registros legítimamente iguales (por ejemplo, dos sillas idénticas sin número de serie) necesitan desactivar la opción. Se explica junto al interruptor.
+
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
 Todas están especificadas en [MVP_PROMPT.md](MVP_PROMPT.md):

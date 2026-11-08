@@ -11,15 +11,16 @@ Gestión de inventario flexible: cada usuario crea sus propias tablas, define co
 - **Cuentas**: registro con verificación por email, inicio de sesión, recuperación de contraseña y sesiones con cookies httpOnly y refresh tokens rotatorios.
 - **Tablas**: crear en blanco o desde plantilla (inventario básico, catálogo de productos, equipos y activos), renombrar y borrar.
 - **Columnas** de seis tipos: texto, número, fecha, sí/no, lista de opciones con colores y precio en cualquier moneda. Se pueden marcar como obligatorias, tener valor por defecto, reordenarse y cambiar de tipo convirtiendo los valores guardados.
-- **Registros**: edición directa en la celda (Enter guarda, Escape cancela), formulario completo, búsqueda, filtros por tipo, orden y paginación. La vista vive en la URL, así que se puede compartir.
+- **Registros**: edición directa en la celda (Enter guarda, Escape cancela), formulario completo, búsqueda, filtros por tipo, orden y paginación. La vista vive en la URL, así que se puede compartir. Varios registros se pueden seleccionar para cambiarles un valor o borrarlos a la vez, y cada combinación de búsqueda, filtros y orden se puede guardar como una vista con nombre.
 - **Exportar, importar y avisos**:
-  - exportación a CSV de la vista actual, lista para Excel en español;
-  - importación de CSV con un asistente que empareja columnas y valida cada celda antes de guardar nada;
+  - exportación de la vista actual a Excel (.xlsx, con números, precios y fechas de verdad) o a CSV;
+  - importación de Excel o CSV con un asistente que empareja columnas y valida cada celda antes de guardar nada;
   - alertas de stock bajo por columna y resumen con gráfico de barras.
 - **Compartir y organizaciones**: invitar por email a una tabla como lector o editor, u organizaciones con miembros y roles (lector, editor, administrador y propietario) que ven todas sus tablas. Las invitaciones caducan, son de un solo uso y tienen límites contra el spam.
 - **Tiempo real y presencia**: los cambios de otras personas aparecen sin recargar, y se ve quién tiene la tabla abierta y qué celda está editando.
 - **Etiquetas QR** para imprimir y pegar: al escanearlas se abre la ficha del registro.
 - **Adjuntos**: fotos y PDF en la ficha de cada registro, guardados en un bucket privado compatible con S3.
+- **Asistente de IA**: preguntas sobre los datos, por escrito o con voz («¿qué está bajo mínimo?»), respondidas por un modelo de Groq que consulta las tablas con herramientas de solo lectura y los permisos del usuario.
 - **Métricas de cada tabla**: totales y medias, registros bajo mínimo, gráficos por grupos (barras o dona) y evolución en el tiempo.
 - **Dashboard** con cifras generales, tablas recientes y selector de espacio, tema claro u oscuro, interfaz en español preparada para más idiomas y diseño adaptado a móvil y a pantallas grandes.
 - **Demo pública** con cuentas temporales: una ferretería con productos, proveedores y pedidos enlazados, con consultas, resúmenes, fórmulas, historial de stock y actividad, y una organización con compañeros ficticios.
@@ -129,7 +130,8 @@ Así está publicada la demo; los motivos están en [ADR-013](docs/DECISIONS.md)
   - **Variables obligatorias:** `NODE_ENV=production`, `DATABASE_URL`, `JWT_ACCESS_SECRET`, `APP_URL` y `CORS_ORIGINS` (la URL pública de la web).
   - **Proxy:** `TRUST_PROXY_HOPS=1`.
   - **Correo:** `MAIL_TRANSPORT=resend`, `RESEND_API_KEY` y `MAIL_FROM`.
-  - **Adjuntos (Filebase):** un bucket privado y sus claves en `STORAGE_ENDPOINT=https://s3.filebase.com`, `STORAGE_REGION=auto` (lo que pide Filebase; `us-east-1` también sirve), `STORAGE_BUCKET`, `STORAGE_ACCESS_KEY_ID` y `STORAGE_SECRET_ACCESS_KEY`. Sin ellas, la app funciona pero no deja subir archivos ([ADR-039](docs/DECISIONS.md)).
+  - **Adjuntos (Filebase):** un bucket privado y sus claves en `STORAGE_ENDPOINT=https://s3.filebase.io`, `STORAGE_REGION=auto` (lo que pide Filebase; `us-east-1` también sirve), `STORAGE_BUCKET`, `STORAGE_ACCESS_KEY_ID` y `STORAGE_SECRET_ACCESS_KEY`. Sin ellas, la app funciona pero no deja subir archivos ([ADR-039](docs/DECISIONS.md)).
+  - **Asistente de IA (Groq):** `AI_API_KEY` con una clave del plan gratuito de [console.groq.com](https://console.groq.com). Opcionales: `AI_BASE_URL` y `AI_MODEL` para otro proveedor compatible con OpenAI. Sin clave, el asistente no aparece ([ADR-042](docs/DECISIONS.md)).
   - **Migraciones:** el contenedor aplica las pendientes antes de arrancar.
   - **Tiempo real:** `REALTIME_URL=wss://<api>.onrender.com/api/realtime`. La rewrite del Static Site no transporta WebSockets de forma fiable, así que el navegador se conecta directamente a la API ([ADR-020](docs/DECISIONS.md)).
 - **Web (Render Static Site)**:
@@ -139,7 +141,7 @@ Así está publicada la demo; los motivos están en [ADR-013](docs/DECISIONS.md)
   - **Rewrites:**
     - `/api/*` → `https://<api>.onrender.com/api/*`, de tipo Rewrite y la primera de la lista;
     - `/*` → `/index.html`.
-  - **Cabeceras:** las mismas que [nginx.conf.template](tablaria-frontend/nginx.conf.template), con la CSP incluida. Añade `wss://<api>.onrender.com` a `connect-src` para el tiempo real, y `https://s3.filebase.com` a `img-src` para las miniaturas de los adjuntos.
+  - **Cabeceras:** las mismas que [nginx.conf.template](tablaria-frontend/nginx.conf.template), con la CSP incluida. Añade `wss://<api>.onrender.com` a `connect-src` para el tiempo real, y el origen de `STORAGE_ENDPOINT` (`https://s3.filebase.io`) a `img-src` para las miniaturas de los adjuntos: tiene que coincidir exactamente, o el navegador las bloquea.
 - **Dominio** (`tablaria.es`, en Hostalia):
   - **Raíz:** un registro `A` a la IP que indica Render.
   - **`www`:** un `CNAME` al Static Site.

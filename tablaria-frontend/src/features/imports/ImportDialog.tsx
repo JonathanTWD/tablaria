@@ -38,8 +38,10 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { ApiError } from "@/lib/api-client";
 import { apiErrorMessage } from "@/lib/error-message";
+import { cn } from "@/lib/utils";
 import { matchColumns } from "./column-matching";
 import { decodeText, parseCsv } from "./csv";
+import { isXlsx, parseXlsx } from "./xlsx";
 import { columnForFile, IMPORTABLE_TYPES, type ImportableType, inferType } from "./infer-column";
 import { type ImportBody, type ImportDestination, useCheckImport, useRunImport } from "./queries";
 
@@ -129,6 +131,8 @@ function ImportWizard({ destination, onDone }: { destination: ImportDestination;
   const [addMissingChoices, setAddMissingChoices] = useState(false);
   // Null until picked: a file whose keys the table holds is most often an update.
   const [updateChoice, setUpdateChoice] = useState<number | typeof NO_UPDATE | null>(null);
+  // On by default: importing the same file twice is the usual mistake.
+  const [skipDuplicates, setSkipDuplicates] = useState(true);
   const check = useCheckImport(destination);
   const run = useRunImport(destination);
 
@@ -171,7 +175,7 @@ function ImportWizard({ destination, onDone }: { destination: ImportDestination;
       ? undefined
       : (keyColumns.find(({ index }) => index === updateChoice) ?? keyColumns[0]);
 
-  const body = (addChoices = addMissingChoices): ImportBody => ({
+  const body = (addChoices = addMissingChoices, skip = skipDuplicates): ImportBody => ({
     columns: targets.map(
       (target, index): ImportTarget =>
         target.kind === "skip"
@@ -183,6 +187,7 @@ function ImportWizard({ destination, onDone }: { destination: ImportDestination;
     rows: dataRows,
     addMissingChoices: addChoices,
     updateBy: updateKey?.index,
+    skipDuplicates: skip,
     name: tableName.trim(),
   });
   // The rows go to the API as JSON; a file over its limit is refused here first.
@@ -209,6 +214,7 @@ function ImportWizard({ destination, onDone }: { destination: ImportDestination;
     setTargets([]);
     setAddMissingChoices(false);
     setUpdateChoice(null);
+    setSkipDuplicates(true);
     check.reset();
     run.reset();
   };
@@ -224,7 +230,8 @@ function ImportWizard({ destination, onDone }: { destination: ImportDestination;
     }
     let rows: string[][];
     try {
-      rows = parseCsv(decodeText(await selected.arrayBuffer()));
+      const buffer = await selected.arrayBuffer();
+      rows = isXlsx(selected) ? await parseXlsx(buffer) : parseCsv(decodeText(buffer));
     } catch {
       setFileError(t("import.errors.unreadable"));
       return;
@@ -316,6 +323,12 @@ function ImportWizard({ destination, onDone }: { destination: ImportDestination;
         setAddMissingChoices(value);
         check.mutate(body(value));
       }}
+      skipDuplicates={skipDuplicates}
+      onSkipDuplicatesChange={(value) => {
+        setSkipDuplicates(value);
+        check.mutate(body(addMissingChoices, value));
+      }}
+      dataRows={dataRows}
       checking={check.isPending}
       error={run.error && importErrorMessage(t, run.error, maxRows)}
       pending={run.isPending}
@@ -331,6 +344,9 @@ function ImportWizard({ destination, onDone }: { destination: ImportDestination;
                 result.updated > 0
                   ? t("import.doneWithUpdates", { imported: result.imported, updated: result.updated })
                   : t("import.done", { count: result.imported }),
+                result.skipped > 0
+                  ? { description: t("import.doneSkipped", { count: result.skipped }) }
+                  : undefined,
               );
             }
             onDone();
@@ -383,7 +399,7 @@ function FileStep({
         <input
           id={`${ids}-file`}
           type="file"
-          accept=".csv,text/csv"
+          accept=".csv,text/csv,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
           aria-describedby={`${ids}-file-hint`}
           onChange={(event) => onFile(event.target.files?.[0])}
           className="block w-full rounded-lg border border-dashed border-border p-4 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-primary-foreground focus-visible:outline-2 focus-visible:outline-ring"
@@ -627,6 +643,9 @@ function ReviewStep({
   firstRowNumber,
   addMissingChoices,
   onAddMissingChoicesChange,
+  skipDuplicates,
+  onSkipDuplicatesChange,
+  dataRows,
   checking,
   error,
   pending,
@@ -634,6 +653,10 @@ function ReviewStep({
   onImport,
 }: {
   result: ImportCheck;
+  skipDuplicates: boolean;
+  onSkipDuplicatesChange: (value: boolean) => void;
+  /** The file's data rows, as read: the first ones are previewed. */
+  dataRows: string[][];
   /** The table column each column of the file fills. */
   targets: TargetInfo[];
   /** The unique column that finds the records to update, if any. */
@@ -653,6 +676,7 @@ function ReviewStep({
   const { t } = useTranslation("records");
   const ids = useId();
   const ready = result.errorCount === 0 && requiredNames.length === 0 && result.validRows > 0;
+  const repeated = result.duplicates.existing + result.duplicates.inFile;
 
   return (
     <div className="flex flex-col gap-5">
@@ -672,6 +696,43 @@ function ReviewStep({
       {requiredNames.length > 0 && (
         <FormAlert>{t("import.missingRequired", { names: requiredNames.join(", ") })}</FormAlert>
       )}
+
+      {repeated > 0 && (
+        <section aria-labelledby={`${ids}-duplicates`} className="flex flex-col gap-2 rounded-lg border border-border p-3">
+          <h3 id={`${ids}-duplicates`} className="text-sm font-medium">
+            {t("import.duplicatesTitle")}
+          </h3>
+          <p className="text-sm">
+            {[
+              result.duplicates.existing > 0 && t("import.duplicatesExisting", { count: result.duplicates.existing }),
+              result.duplicates.inFile > 0 && t("import.duplicatesInFile", { count: result.duplicates.inFile }),
+            ]
+              .filter(Boolean)
+              .join(" ")}
+          </p>
+          <Field orientation="horizontal">
+            <FieldContent>
+              <FieldLabel htmlFor={`${ids}-skip`}>{t("import.skipDuplicates")}</FieldLabel>
+              <FieldDescription>{t("import.skipDuplicatesHint")}</FieldDescription>
+            </FieldContent>
+            <Switch
+              id={`${ids}-skip`}
+              checked={skipDuplicates}
+              disabled={checking}
+              onCheckedChange={onSkipDuplicatesChange}
+            />
+          </Field>
+        </section>
+      )}
+
+      <ImportPreview
+        targets={targets}
+        dataRows={dataRows}
+        firstRowNumber={firstRowNumber}
+        errors={result.errors}
+        repeatedRows={result.duplicates.rows}
+        skipRepeated={skipDuplicates}
+      />
 
       {result.missingChoices.length > 0 && (
         <section aria-labelledby={`${ids}-choices`} className="flex flex-col gap-2 rounded-lg border border-border p-3">
@@ -751,6 +812,99 @@ function ReviewStep({
         </Button>
       </DialogFooter>
     </div>
+  );
+}
+
+/** Rows previewed before importing: enough to spot a column mapped wrong. */
+const PREVIEW_ROWS = 5;
+
+/**
+ * The first rows as they will go into the table, under the column each one
+ * fills, with the cells that have errors and the repeated rows marked.
+ */
+function ImportPreview({
+  targets,
+  dataRows,
+  firstRowNumber,
+  errors,
+  repeatedRows,
+  skipRepeated,
+}: {
+  targets: TargetInfo[];
+  dataRows: string[][];
+  firstRowNumber: number;
+  errors: ImportCheck["errors"];
+  repeatedRows: number[];
+  skipRepeated: boolean;
+}) {
+  const { t } = useTranslation("records");
+  const ids = useId();
+  const shown = targets.flatMap((target, index) => (target ? [{ ...target, index }] : []));
+  const rows = dataRows.slice(0, PREVIEW_ROWS);
+  const hasError = (row: number, column: number) =>
+    errors.some((error) => error.row === row && error.column === column);
+
+  return (
+    <section aria-labelledby={`${ids}-preview`} className="flex flex-col gap-2">
+      <h3 id={`${ids}-preview`} className="text-sm font-medium">
+        {t("import.previewTitle", { count: rows.length, total: dataRows.length })}
+      </h3>
+      <div className="max-w-full overflow-x-auto rounded-lg border border-border">
+        <table className="w-full border-collapse text-sm">
+          <thead>
+            <tr className="border-b border-border bg-muted/60 text-left">
+              <th scope="col" className="px-2 py-1.5 font-medium text-muted-foreground">
+                {t("import.previewRow")}
+              </th>
+              {shown.map(({ name, index }) => (
+                <th key={index} scope="col" className="px-2 py-1.5 font-medium whitespace-nowrap">
+                  {name}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((cells, position) => {
+              const row = position + 1;
+              const repeated = repeatedRows.includes(row);
+              return (
+                <tr
+                  key={row}
+                  className={cn("border-b border-border last:border-b-0", repeated && skipRepeated && "text-muted-foreground")}
+                >
+                  <th scope="row" className="px-2 py-1.5 text-left font-normal whitespace-nowrap text-muted-foreground">
+                    {row + firstRowNumber - 1}
+                    {repeated && (
+                      <span className="ml-1.5 rounded bg-amber-100 px-1 text-xs text-amber-900 dark:bg-amber-500/15 dark:text-amber-200">
+                        {skipRepeated ? t("import.previewSkipped") : t("import.previewRepeated")}
+                      </span>
+                    )}
+                  </th>
+                  {shown.map(({ index }) => {
+                    const invalid = hasError(row, index);
+                    return (
+                      <td
+                        key={index}
+                        className={cn(
+                          "max-w-48 truncate px-2 py-1.5",
+                          // Struck through: this row stays out of the import.
+                          repeated && skipRepeated && "line-through",
+                          invalid && "bg-destructive/10 font-medium text-destructive",
+                        )}
+                        title={cells[index]}
+                      >
+                        {cells[index]}
+                        {invalid && <span className="sr-only"> ({t("import.previewInvalid")})</span>}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }
 
