@@ -30,6 +30,8 @@ export interface ColumnFormValues {
   currency: string;
   /** Number columns: warn when a value drops below this. Empty for no warning. */
   alertBelow: string;
+  /** Date columns: warn this many days before the date. Empty for no warning. */
+  alertDaysBefore: string;
   choices: { id: string; label: string; color: SelectColor }[];
   /** Relation columns: the table they link to, and whether to several of its records. */
   tableId: string;
@@ -73,6 +75,7 @@ export function columnFormDefaults(
     stock: column?.stock ?? false,
     currency: "EUR",
     alertBelow: "",
+    alertDaysBefore: "",
     choices: [newChoice(0)],
     tableId: "",
     multiple: false,
@@ -114,6 +117,9 @@ export function columnFormDefaults(
   }
   if (column.type === "number" && column.options) {
     values.alertBelow = String(column.options.alertBelow);
+  }
+  if (column.type === "date" && column.options) {
+    values.alertDaysBefore = String(column.options.alertDaysBefore);
   }
   values.defaultValue =
     column.type === "select"
@@ -212,6 +218,14 @@ function toDraft(values: ColumnFormValues) {
         options: alertBelow === "" ? null : { alertBelow: parseNumber(alertBelow) },
       };
     }
+    case "date": {
+      const alertDaysBefore = values.alertDaysBefore.trim();
+      return {
+        ...base,
+        type: "date",
+        options: alertDaysBefore === "" ? null : { alertDaysBefore: Number(alertDaysBefore) },
+      };
+    }
     default:
       return { ...base, type: values.type, options: null };
   }
@@ -239,6 +253,7 @@ export const columnFormSchema = z
     stock: z.boolean(),
     currency: z.string(),
     alertBelow: z.string(),
+    alertDaysBefore: z.string(),
     choices: z.array(
       z.object({ id: z.string(), label: z.string(), color: z.enum(SELECT_COLORS) }),
     ),

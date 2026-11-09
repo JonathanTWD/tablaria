@@ -66,8 +66,13 @@ export const columnas: DocArticle = {
               <DocLink to="stock">Stock y avisos</DocLink>.
             </li>
             <li>
-              <Ui>Avisar cuando baje de</Ui> (en números): marca los valores por debajo y los muestra en el panel de{" "}
-              <Ui>Bajo mínimo</Ui>.
+              <Ui>Avisar cuando baje de</Ui> (en números): marca los valores por debajo y los muestra en las métricas de
+              la tabla.
+            </li>
+            <li>
+              <Ui>Avisar días antes</Ui> (en fechas): marca las fechas que llegan en ese plazo y las muestra en{" "}
+              <Ui>Próximamente</Ui>, en el Inicio. Ver <DocLink to="calendario" section="avisos">Calendario y avisos de
+              fechas</DocLink>.
             </li>
           </ul>
         </>

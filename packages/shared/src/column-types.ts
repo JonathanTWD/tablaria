@@ -52,11 +52,17 @@ export type SelectColor = (typeof SELECT_COLORS)[number];
  */
 export type CellValue = string | number | boolean | null | string[];
 
+/**
+ * An ISO day ("2026-11-09"). Year 0 passes the ISO format but not PostgreSQL's
+ * date type, so it's refused here: a stored one would break every date query.
+ */
+export const isoDaySchema = z.iso.date().refine((value) => !value.startsWith("0000"), "Year 0 doesn't exist");
+
 /** Valid value for each column type, ignoring per-column settings such as select choices. */
 export const columnValueSchemas = {
   text: z.string().trim().min(1).max(TEXT_VALUE_MAX_LENGTH),
   number: z.number(),
-  date: z.iso.date(),
+  date: isoDaySchema,
   boolean: z.boolean(),
   // Select cells store the choice label; it must also be one of the column's choices.
   select: z.string().trim().min(1).max(SELECT_CHOICE_MAX_LENGTH),
@@ -113,6 +119,12 @@ export const currencyOptionsSchema = z.object({ currency: currencyCodeSchema });
 /** Number columns can warn when a value falls below a threshold (e.g. stock). */
 export const numberOptionsSchema = z.object({
   alertBelow: z.number().min(0).max(1_000_000_000),
+});
+
+/** Date columns can warn some days before a date comes (e.g. a delivery or a warranty's end). */
+export const MAX_ALERT_DAYS_BEFORE = 365;
+export const dateOptionsSchema = z.object({
+  alertDaysBefore: z.number().int().min(0).max(MAX_ALERT_DAYS_BEFORE),
 });
 
 /**
@@ -244,7 +256,12 @@ export const columnDefinitionSchema = z
       options: numberOptionsSchema.nullable().default(null),
       defaultValue: columnValueSchemas.number.nullable().default(null),
     }),
-    plainColumn("date", columnValueSchemas.date),
+    z.object({
+      ...columnBase,
+      type: z.literal("date"),
+      options: dateOptionsSchema.nullable().default(null),
+      defaultValue: columnValueSchemas.date.nullable().default(null),
+    }),
     plainColumn("boolean", columnValueSchemas.boolean),
     z.object({
       ...columnBase,
@@ -383,4 +400,27 @@ export function stockLevel(
     return null;
   }
   return stockLevelFor(value, column.options.alertBelow);
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Whole days from `today` to `date`, both ISO days ("2026-11-09"): negative once it passed. */
+export function daysUntil(date: string, today: string): number {
+  return Math.round((Date.parse(`${date}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / DAY_MS);
+}
+
+/**
+ * Days left to a cell's date when it falls within its column's warning
+ * (from today to `alertDaysBefore` days ahead); null otherwise.
+ */
+export function dueSoon(
+  column: ColumnDefinition,
+  value: CellValue | undefined,
+  today: string,
+): number | null {
+  if (column.type !== "date" || !column.options || typeof value !== "string") {
+    return null;
+  }
+  const days = daysUntil(value, today);
+  return days >= 0 && days <= column.options.alertDaysBefore ? days : null;
 }

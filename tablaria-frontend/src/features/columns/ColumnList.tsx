@@ -166,6 +166,9 @@ function ColumnRow({
     column.type === "number" &&
       column.options &&
       t("columns.alertBelow", { value: format(column, column.options.alertBelow) }),
+    column.type === "date" &&
+      column.options &&
+      t("columns.alertDaysBefore", { count: column.options.alertDaysBefore }),
     lookup &&
       (lookup.target
         ? t("columns.lookup", { target: lookup.target, relation: lookup.relation })

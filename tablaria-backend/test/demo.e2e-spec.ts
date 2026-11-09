@@ -1,14 +1,16 @@
 import { INestApplication } from '@nestjs/common';
-import type {
-  AuthUser,
-  OrganizationDetail,
-  OrganizationSummary,
-  Paginated,
-  RecordPage,
-  StockAlerts,
-  StockHistory,
-  TableDetail,
-  TableSummary,
+import {
+  type AuthUser,
+  type OrganizationDetail,
+  type OrganizationSummary,
+  type Paginated,
+  type RecordPage,
+  type StockAlerts,
+  type StockHistory,
+  type TableDetail,
+  type TableSummary,
+  UPCOMING_DATES_LIMIT,
+  type UpcomingDates,
 } from '@tablaria/shared';
 import { App } from 'supertest/types';
 import { PrismaService } from '../src/database/prisma.service';
@@ -147,6 +149,14 @@ describe('Demo accounts (e2e)', () => {
       ({ data }) => String(data[orders.column('Entrega')] ?? '') > today,
     );
     expect(upcoming.length).toBeGreaterThanOrEqual(5);
+    // Deliveries within a week and warranties ending soon fill "Próximamente".
+    const due = (
+      await client.get('/api/upcoming-dates').query({ today }).expect(200)
+    ).body as UpcomingDates;
+    expect(due.total).toBeGreaterThanOrEqual(UPCOMING_DATES_LIMIT);
+    expect(new Set(due.items.map(({ columnName }) => columnName))).toEqual(
+      new Set(['Entrega', 'Fin de garantía']),
+    );
 
     // Some products run low, and the drill has a stock history that adds up.
     const alerts = (

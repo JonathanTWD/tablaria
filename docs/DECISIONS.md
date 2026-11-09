@@ -989,6 +989,28 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 - Una tabla con más de 500 registros por columna en un mes no los ve todos en el calendario; para eso sigue el filtro por fechas de la lista.
 - Los avisos de fechas próximas (como los de stock bajo) se apoyarán en esta misma lectura por rangos.
 
+## ADR-048: Avisos de fechas próximas
+
+**Contexto**: el calendario (ADR-047) enseña las fechas a quien lo abre, pero lo que urge (una entrega mañana, una garantía que termina) tenía que verse sin ir a buscarlo, igual que el stock bajo (ADR-035).
+
+**Decisión**:
+- **Aviso por columna de fecha:** `options: { alertDaysBefore }` (entero de 0 a 365, o `null` para no avisar), igual que `alertBelow` en los números. Las columnas de fecha que ya existían siguen con `options: null`, así que no hace falta migración.
+- **`GET /upcoming-dates?today=…&tableId=…`** en un módulo propio, con la misma consulta que los avisos de stock: celdas de columnas con aviso en las tablas que el usuario puede abrir, la fecha casteada solo si es un día ISO, de hoy a `hoy + alertDaysBefore`, de la más cercana a la más lejana, con un máximo de 8 y el total.
+  - **`today` lo manda el navegador:** las fechas no tienen zona horaria, y el día del usuario puede no ser el del servidor. Solo decide qué registros propios se listan, así que no abre nada.
+  - Las fechas que ya pasaron no avisan: la tabla no sabe si una entrega llegó o no, y avisar de todo lo pasado llenaría la lista de ruido.
+- **Dónde se ve:**
+  - «Próximamente» en el Inicio, con todas las tablas. A diferencia del aviso de stock que se quitó del Inicio (ADR-035), es una lista sobria, del estilo del resto de la página, y solo aparece si hay algo.
+  - El resumen y la lista de las métricas de cada tabla.
+  - La celda, con un icono y los días que faltan, también para lectores de pantalla.
+  - Cada fila abre la ficha del registro.
+- **Asistente:** herramienta `fechas_proximas`, con el día del servidor, que es el que ya recibe en sus instrucciones.
+- **Tiempo real:** la lista se refresca con los cambios de registros y columnas, como los avisos de stock.
+- **Demo:** «Entrega» avisa 7 días antes y «Fin de garantía», 15, para que «Próximamente» salga lleno al entrar.
+
+**Consecuencias**:
+- Quien quiera ver también lo atrasado tiene el calendario o un filtro por fechas.
+- Si un día se avisan fechas pasadas, el campo `alertDaysBefore` se puede acompañar de otro sin romper lo guardado.
+
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
 Todas están especificadas en [MVP_PROMPT.md](MVP_PROMPT.md):

@@ -15,6 +15,7 @@ import { MetricsService } from '../metrics/metrics.service';
 import { RecordsService } from '../records/records.service';
 import { StockAlertsService } from '../stock-alerts/stock-alerts.service';
 import { StockMovementsService } from '../stock-movements/stock-movements.service';
+import { UpcomingDatesService } from '../upcoming-dates/upcoming-dates.service';
 import { accessibleTables } from '../tables/table-access';
 import type { ChatTool } from './chat-model';
 
@@ -28,6 +29,7 @@ export interface ToolContext {
   metrics: MetricsService;
   stockAlerts: StockAlertsService;
   stockMovements: StockMovementsService;
+  upcomingDates: UpcomingDatesService;
   /** What the answer was based on, to link to it. */
   sources: AssistantSource[];
 }
@@ -311,6 +313,38 @@ export const ASSISTANT_TOOLS: Record<string, Tool> = {
         });
       }
       return { total: alerts.total, registros };
+    },
+  ),
+
+  fechas_proximas: tool(
+    'fechas_proximas',
+    'Registros con una fecha que llega pronto según el aviso de su columna (entregas, fin de garantía, caducidades…), en todas las tablas o en una, de la más cercana a la más lejana. Para fechas sin aviso, filtra los registros por rango.',
+    { type: 'object', properties: { tabla: uuid } },
+    async (context, rawArgs) => {
+      const args = parseArgs(z.object({ tabla: z.uuid().optional() }), rawArgs);
+      const upcoming = await asTool(() =>
+        context.upcomingDates.list(context.userId, {
+          today: new Date().toISOString().slice(0, 10),
+          tableId: args.tabla,
+        }),
+      );
+      const registros: Record<string, unknown>[] = [];
+      for (const item of upcoming.items) {
+        addSource(context, {
+          tableId: item.tableId,
+          tableName: item.tableName,
+          recordId: item.recordId,
+          label: item.label ?? 'Registro',
+        });
+        registros.push({
+          tabla: item.tableName,
+          columna: item.columnName,
+          fecha: item.date,
+          dias_que_faltan: item.daysLeft,
+          celdas: await rowOf(context, item.tableId, item.recordId),
+        });
+      }
+      return { total: upcoming.total, registros };
     },
   ),
 

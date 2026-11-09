@@ -22,6 +22,7 @@ import { SavedViewsModule } from './saved-views/saved-views.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { SharingModule } from './sharing/sharing.module';
 import { StockAlertsModule } from './stock-alerts/stock-alerts.module';
+import { UpcomingDatesModule } from './upcoming-dates/upcoming-dates.module';
 import { StockMovementsModule } from './stock-movements/stock-movements.module';
 import { TablesModule } from './tables/tables.module';
 
@@ -41,6 +42,7 @@ import { TablesModule } from './tables/tables.module';
     AssistantModule,
     ImportsModule,
     StockAlertsModule,
+    UpcomingDatesModule,
     MetricsModule,
     StockMovementsModule,
     ActivityModule,

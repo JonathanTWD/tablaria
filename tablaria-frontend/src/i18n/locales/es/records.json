@@ -41,6 +41,9 @@
       "low": "{{value}}, bajo mínimo",
       "out": "{{value}}, agotado"
     },
+    "dueSoon_zero": "{{value}}, es hoy",
+    "dueSoon_one": "{{value}}, falta {{count}} día",
+    "dueSoon_other": "{{value}}, faltan {{count}} días",
     "label": "{{column}} de {{row}}",
     "invalidHint": "Ese valor no encaja con la columna. Corrígelo o pulsa Escape para cancelar.",
     "invalid": "El valor no encaja con la columna «{{column}}»; se ha descartado.",
@@ -294,6 +297,7 @@
     "summary": {
       "records": "Registros",
       "lowStock": "Bajo mínimo",
+      "upcoming": "Fechas próximas",
       "total": "Total de {{name}}",
       "detail": "Media {{avg}} · Mín. {{min}} · Máx. {{max}}",
       "noValues": "Sin valores todavía"

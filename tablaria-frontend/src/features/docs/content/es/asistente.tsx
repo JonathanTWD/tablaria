@@ -41,6 +41,7 @@ export const asistente: DocArticle = {
             rows={[
               ["Encontrar registros", "¿Dónde están los guantes de nitrilo?"],
               ["Avisos de stock", "¿Qué está bajo mínimo y a qué proveedor lo pido?"],
+              ["Fechas próximas", "¿Qué entregas tengo esta semana?"],
               ["Totales y medias", "¿Cuánto vale todo el stock por categoría?"],
               ["Historial", "¿Quién ha sacado taladros esta semana?"],
               ["Tus tablas", "¿Qué tablas tengo y cuántos registros hay en cada una?"],

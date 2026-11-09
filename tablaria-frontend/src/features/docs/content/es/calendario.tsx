@@ -3,8 +3,8 @@ import type { DocArticle } from "../../types";
 
 export const calendario: DocArticle = {
   slug: "calendario",
-  title: "Calendario",
-  description: "Los registros de cada tabla en un calendario, según sus columnas de fecha.",
+  title: "Calendario y avisos de fechas",
+  description: "Los registros en un calendario según sus fechas, y avisos de las que llegan pronto.",
   keywords: [
     "fecha",
     "mes",
@@ -16,6 +16,9 @@ export const calendario: DocArticle = {
     "revisión",
     "arrastrar",
     "planificar",
+    "aviso",
+    "próximamente",
+    "vence",
   ],
   intro: (
     <p>
@@ -84,6 +87,33 @@ export const calendario: DocArticle = {
             Arrastrar necesita permiso para editar la tabla. En el móvil, o si prefieres no arrastrar, abre el registro y
             cambia la fecha en el formulario.
           </Note>
+        </>
+      ),
+    },
+    {
+      id: "avisos",
+      title: "Avisos de fechas próximas",
+      body: (
+        <>
+          <p>
+            Al crear o editar una columna de fecha, rellena <Ui>Avisar días antes</Ui>, por ejemplo 7 para las entregas
+            o 30 para el fin de una garantía. Con 0, avisa solo el mismo día. Desde ese momento, cada fecha que llega en
+            ese plazo:
+          </p>
+          <ul>
+            <li>se marca en la tabla, con cuántos días faltan;</li>
+            <li>
+              aparece en <Ui>Próximamente</Ui>, en el Inicio, junto a las de todas tus tablas y de la más cercana a la
+              más lejana. Pulsa una para abrir su registro;
+            </li>
+            <li>
+              se cuenta en las <DocLink to="metricas">métricas</DocLink> de la tabla.
+            </li>
+          </ul>
+          <p>
+            Las fechas que ya pasaron dejan de avisar. También puedes preguntar al{" "}
+            <DocLink to="asistente">asistente</DocLink> qué vence esta semana.
+          </p>
         </>
       ),
     },
