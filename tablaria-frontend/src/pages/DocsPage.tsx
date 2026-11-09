@@ -1,5 +1,5 @@
 import { ArrowLeft, ArrowRight, ChevronDown } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation, useParams } from "react-router";
 import { buttonVariants } from "@/components/ui/button-variants";
@@ -7,21 +7,10 @@ import { docsFor } from "@/features/docs/content";
 import { DocsNav } from "@/features/docs/DocsNav";
 import { Prose } from "@/features/docs/prose";
 import type { DocArticle, DocGroup } from "@/features/docs/types";
+import { useScrollToSection } from "@/features/docs/use-scroll-to-section";
 import { SiteFooter } from "@/features/landing/sections/SiteFooter";
 import { SiteHeader } from "@/features/landing/sections/SiteHeader";
 import { cn } from "@/lib/utils";
-
-/** The router doesn't restore scroll: each article opens at its top, or at the section in the URL. */
-function useScrollToSection(key: string, hash: string) {
-  useEffect(() => {
-    const target = hash ? document.getElementById(decodeURIComponent(hash.slice(1))) : null;
-    if (target) {
-      target.scrollIntoView();
-    } else {
-      window.scrollTo({ top: 0 });
-    }
-  }, [key, hash]);
-}
 
 function DocsIndex({ groups }: { groups: DocGroup[] }) {
   const { t } = useTranslation("docs");

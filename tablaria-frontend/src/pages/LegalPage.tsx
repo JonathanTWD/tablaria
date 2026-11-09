@@ -1,7 +1,7 @@
-import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 import { Prose } from "@/features/docs/prose";
+import { useScrollToSection } from "@/features/docs/use-scroll-to-section";
 import { SiteFooter } from "@/features/landing/sections/SiteFooter";
 import { SiteHeader } from "@/features/landing/sections/SiteHeader";
 import { LEGAL_PAGES, type LegalPageId } from "@/features/legal/content";
@@ -15,10 +15,8 @@ const LegalPage = ({ page }: { page: LegalPageId }) => {
   );
   const others = (Object.keys(LEGAL_PAGES) as LegalPageId[]).filter((id) => id !== page);
 
-  // Moving between legal pages keeps the scroll otherwise: each one opens at its top.
-  useEffect(() => {
-    window.scrollTo({ top: 0 });
-  }, [page]);
+  const { hash } = useLocation();
+  useScrollToSection(page, hash);
 
   return (
     <div className="min-h-dvh bg-background text-foreground">
