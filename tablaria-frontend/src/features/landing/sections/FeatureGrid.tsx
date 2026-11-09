@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
-type FeatureKey = "relations" | "realtime" | "metrics" | "qr" | "import" | "batch" | "stock";
+type FeatureKey = "relations" | "realtime" | "metrics" | "qr" | "import" | "calendar" | "batch" | "stock";
 
 /** Heights of the decorative bar chart, in percent. */
 const BARS = [72, 46, 88, 30, 58];
@@ -248,6 +248,62 @@ function BatchExample() {
   );
 }
 
+/** Two weeks of a month, starting on Monday the 9th: days with records get a colored mark. */
+const CALENDAR_DAYS = [9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22];
+const CALENDAR_MARKS: Record<number, string[]> = {
+  10: ["bg-blue-500"],
+  12: ["bg-amber-500"],
+  13: ["bg-green-500", "bg-amber-500"],
+  16: ["bg-amber-500"],
+  18: ["bg-blue-500"],
+  21: ["bg-amber-500"],
+};
+
+/** The pending order and the warranty in use, as their select colors show them. */
+const EVENT_COLORS = ["bg-amber-500", "bg-green-500"];
+
+function CalendarExample() {
+  const { t } = useTranslation("landing");
+  const weekdays = t("features.items.calendar.example.weekdays", { returnObjects: true });
+  const events = t("features.items.calendar.example.events", { returnObjects: true });
+  return (
+    <div className="space-y-2">
+      <div className="grid grid-cols-7 gap-1 rounded-xl border border-border p-2 text-center text-xs">
+        {weekdays.map((day) => (
+          <span key={day} className="py-1 text-muted-foreground">
+            {day}
+          </span>
+        ))}
+        {CALENDAR_DAYS.map((day) => (
+          <span
+            key={day}
+            className={cn(
+              "flex h-9 flex-col items-center justify-center gap-1 rounded-md tabular-nums",
+              day === 13 && "bg-primary/10 ring-1 ring-primary",
+            )}
+          >
+            <span className={cn(day === 9 && "flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground")}>
+              {day}
+            </span>
+            <span className="flex h-1 gap-0.5">
+              {(CALENDAR_MARKS[day] ?? []).map((color, index) => (
+                <span key={index} className={cn("size-1 rounded-full", color)} />
+              ))}
+            </span>
+          </span>
+        ))}
+      </div>
+      {events.map(([name, column], index) => (
+        <p key={name} className="flex items-center gap-2 rounded-md border border-border px-2.5 py-1.5 text-xs">
+          <span className={cn("size-2 shrink-0 rounded-full", EVENT_COLORS[index])} />
+          <span className="truncate font-medium">{name}</span>
+          <span className="truncate text-muted-foreground">· {column}</span>
+        </p>
+      ))}
+    </div>
+  );
+}
+
 function StockExample() {
   const { t } = useTranslation("landing");
   const movements = t("features.items.stock.example.movements", { returnObjects: true });
@@ -308,10 +364,13 @@ export function FeatureGrid() {
           <FeatureCard feature="import" className="lg:col-span-2">
             <ImportExample />
           </FeatureCard>
-          <FeatureCard feature="batch" className="lg:col-span-3">
+          <FeatureCard feature="calendar" className="lg:col-span-2">
+            <CalendarExample />
+          </FeatureCard>
+          <FeatureCard feature="batch" className="lg:col-span-2">
             <BatchExample />
           </FeatureCard>
-          <FeatureCard feature="stock" className="md:col-span-2 lg:col-span-3">
+          <FeatureCard feature="stock" className="md:col-span-2 lg:col-span-2">
             <StockExample />
           </FeatureCard>
         </ul>

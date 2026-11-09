@@ -36,7 +36,7 @@ import { cn } from "@/lib/utils";
 
 /** Header and tabs of a table; the records or columns view renders below. */
 export default function TablePage() {
-  const { t, i18n } = useTranslation(["tables", "records", "assistant"]);
+  const { t, i18n } = useTranslation(["tables", "records", "assistant", "calendar"]);
   const { tableId = "" } = useParams();
   const table = useQuery(tableQuery(tableId));
   const realtime = useRealtimeTable(tableId);
@@ -198,20 +198,32 @@ export default function TablePage() {
         </div>
       </div>
 
-      <nav aria-label={t("records:tabs.label")} className="mt-5 flex gap-1 border-b border-border">
+      {/* Scrolls sideways on phones; the inset line stays under the tabs as they scroll. */}
+      <nav
+        aria-label={t("records:tabs.label")}
+        className="mt-5 flex gap-1 overflow-x-auto shadow-[inset_0_-1px_0_var(--color-border)] [scrollbar-width:none]"
+      >
         {[
           { to: "", end: true, label: t("records:tabs.records") },
           { to: "columns", end: false, label: t("records:tabs.columns") },
+          // Only tables with dates have something to put on a calendar.
+          data.columns.some(({ type }) => type === "date") && {
+            to: "calendar",
+            end: false,
+            label: t("calendar:tab"),
+          },
           { to: "metrics", end: false, label: t("records:tabs.metrics") },
           { to: "activity", end: false, label: t("records:tabs.activity") },
-        ].map(({ to, end, label }) => (
+        ]
+          .filter((tab) => tab !== false)
+          .map(({ to, end, label }) => (
           <NavLink
             key={label}
             to={to}
             end={end}
             className={({ isActive }) =>
               cn(
-                "-mb-px border-b-2 px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-ring",
+                "shrink-0 border-b-2 px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
                 isActive
                   ? "border-primary text-foreground"
                   : "border-transparent text-muted-foreground hover:text-foreground",

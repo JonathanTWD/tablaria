@@ -141,6 +141,12 @@ describe('Demo accounts (e2e)', () => {
     const orders = await open('Pedidos');
     const big = orders.row('PED-1038')[orders.column('Productos')];
     expect(Array.isArray(big) && big.length).toBe(3);
+    // Deliveries still to come fill the calendar of the coming weeks.
+    const today = new Date().toISOString().slice(0, 10);
+    const upcoming = orders.page.data.filter(
+      ({ data }) => String(data[orders.column('Entrega')] ?? '') > today,
+    );
+    expect(upcoming.length).toBeGreaterThanOrEqual(5);
 
     // Some products run low, and the drill has a stock history that adds up.
     const alerts = (

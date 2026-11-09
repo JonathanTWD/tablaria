@@ -69,6 +69,11 @@ function daysAgo(today: Date, days: number): string {
   return date.toISOString().slice(0, 10);
 }
 
+/** An ISO date `days` after `today`: deliveries and warranties still to come. */
+function daysAhead(today: Date, days: number): string {
+  return daysAgo(today, -days);
+}
+
 const EUR = { currency: 'EUR' };
 
 /**
@@ -395,6 +400,8 @@ export function demoTables(today: Date): DemoTable[] {
         { name: 'Pedido', type: 'text', required: true, unique: true },
         { name: 'Cliente', type: 'text' },
         { name: 'Fecha', type: 'date' },
+        // Upcoming deliveries fill the calendar of the current weeks.
+        { name: 'Entrega', type: 'date' },
         {
           name: 'Productos',
           type: 'relation',
@@ -421,6 +428,7 @@ export function demoTables(today: Date): DemoTable[] {
           'PED-1031',
           'Reformas Sol',
           daysAgo(today, 148),
+          daysAgo(today, 144),
           'Taladro percutor 750 W, Caja de tornillos 4×40 (200 u.)',
           102.3,
           'Entregado',
@@ -430,6 +438,7 @@ export function demoTables(today: Date): DemoTable[] {
           'PED-1032',
           'María Gómez',
           daysAgo(today, 131),
+          daysAgo(today, 128),
           'Martillo de carpintero',
           12.5,
           'Entregado',
@@ -439,6 +448,7 @@ export function demoTables(today: Date): DemoTable[] {
           'PED-1033',
           'Construcciones Ebro',
           daysAgo(today, 117),
+          daysAgo(today, 112),
           'Atornillador a batería 12 V, Juego de destornilladores (8 pzas), Llave inglesa 250 mm',
           98.85,
           'Entregado',
@@ -448,6 +458,7 @@ export function demoTables(today: Date): DemoTable[] {
           'PED-1034',
           'Taller Ruiz',
           daysAgo(today, 96),
+          daysAgo(today, 92),
           'Llave inglesa 250 mm, Cinta métrica 5 m',
           24.15,
           'Entregado',
@@ -457,6 +468,7 @@ export function demoTables(today: Date): DemoTable[] {
           'PED-1035',
           'Reformas Sol',
           daysAgo(today, 74),
+          daysAgo(today, 70),
           'Nivel de burbuja 60 cm, Cinta métrica 5 m',
           22.95,
           'Entregado',
@@ -466,6 +478,7 @@ export function demoTables(today: Date): DemoTable[] {
           'PED-1036',
           'Construcciones Ebro',
           daysAgo(today, 52),
+          daysAgo(today, 47),
           'Sierra de calar, Tacos de nailon 8 mm (100 u.)',
           78.9,
           'Entregado',
@@ -475,6 +488,7 @@ export function demoTables(today: Date): DemoTable[] {
           'PED-1037',
           'Jorge Martín',
           daysAgo(today, 33),
+          daysAgo(today, 30),
           'Silicona neutra transparente',
           5.6,
           'Entregado',
@@ -484,6 +498,7 @@ export function demoTables(today: Date): DemoTable[] {
           'PED-1038',
           'Reformas Sol',
           daysAgo(today, 12),
+          daysAhead(today, 1),
           'Taladro percutor 750 W, Atornillador a batería 12 V, Caja de tornillos 4×40 (200 u.)',
           160.6,
           'Enviado',
@@ -493,6 +508,7 @@ export function demoTables(today: Date): DemoTable[] {
           'PED-1039',
           'Taller Ruiz',
           daysAgo(today, 6),
+          daysAhead(today, 2),
           'Tacos de nailon 8 mm (100 u.), Martillo de carpintero',
           17.4,
           'Enviado',
@@ -502,8 +518,59 @@ export function demoTables(today: Date): DemoTable[] {
           'PED-1040',
           'Construcciones Ebro',
           daysAgo(today, 1),
+          daysAhead(today, 5),
           'Taladro percutor 750 W',
           89.9,
+          'Pendiente',
+          false,
+        ),
+        order(
+          'PED-1041',
+          'Hostal La Plaza',
+          daysAgo(today, 0),
+          daysAhead(today, 3),
+          'Cinta métrica 5 m, Nivel de burbuja 60 cm',
+          22.95,
+          'Pendiente',
+          false,
+        ),
+        order(
+          'PED-1042',
+          'María Gómez',
+          daysAgo(today, 0),
+          daysAhead(today, 7),
+          'Silicona neutra transparente',
+          5.6,
+          'Pendiente',
+          true,
+        ),
+        order(
+          'PED-1043',
+          'Reformas Sol',
+          daysAgo(today, 2),
+          daysAhead(today, 9),
+          'Sierra de calar',
+          74,
+          'Enviado',
+          true,
+        ),
+        order(
+          'PED-1044',
+          'Taller Ruiz',
+          daysAgo(today, 3),
+          daysAhead(today, 12),
+          'Juego de destornilladores (8 pzas)',
+          18.95,
+          'Pendiente',
+          false,
+        ),
+        order(
+          'PED-1045',
+          'Construcciones Ebro',
+          daysAgo(today, 4),
+          daysAhead(today, 16),
+          'Tacos de nailon 8 mm (100 u.), Caja de tornillos 4×40 (200 u.)',
+          11.1,
           'Pendiente',
           false,
         ),
@@ -515,7 +582,11 @@ export function demoTables(today: Date): DemoTable[] {
       description:
         'Portátiles, pantallas y otros equipos: quién los tiene y en qué estado están.',
       spreadDays: 60,
-      columns: TABLE_TEMPLATES.assets,
+      // Warranties ending in the coming weeks show on the calendar.
+      columns: [
+        ...TABLE_TEMPLATES.assets,
+        { name: 'Fin de garantía', type: 'date' },
+      ],
       rows: [
         {
           Equipo: 'Portátil 14" Dell Latitude',
@@ -524,6 +595,7 @@ export function demoTables(today: Date): DemoTable[] {
           'Asignado a': 'Laura Martín',
           'Fecha de compra': '2025-03-14',
           Valor: 1149,
+          'Fin de garantía': daysAhead(today, 4),
         },
         {
           Equipo: 'Portátil 14" Dell Latitude',
@@ -532,6 +604,7 @@ export function demoTables(today: Date): DemoTable[] {
           'Asignado a': 'Carlos Ruiz',
           'Fecha de compra': '2025-03-14',
           Valor: 1149,
+          'Fin de garantía': daysAhead(today, 4),
         },
         {
           Equipo: 'MacBook Air 13"',
@@ -540,6 +613,7 @@ export function demoTables(today: Date): DemoTable[] {
           'Asignado a': 'Ana Gómez',
           'Fecha de compra': '2024-11-05',
           Valor: 1299,
+          'Fin de garantía': daysAhead(today, 11),
         },
         {
           Equipo: 'Monitor 27" LG',
@@ -548,6 +622,7 @@ export function demoTables(today: Date): DemoTable[] {
           'Asignado a': 'Laura Martín',
           'Fecha de compra': '2025-01-20',
           Valor: 289,
+          'Fin de garantía': daysAhead(today, 19),
         },
         {
           Equipo: 'Monitor 27" LG',
@@ -555,6 +630,7 @@ export function demoTables(today: Date): DemoTable[] {
           Estado: 'Almacenado',
           'Fecha de compra': '2025-01-20',
           Valor: 289,
+          'Fin de garantía': daysAhead(today, 19),
         },
         {
           Equipo: 'Impresora láser HP',
@@ -563,6 +639,7 @@ export function demoTables(today: Date): DemoTable[] {
           'Asignado a': 'Recepción',
           'Fecha de compra': '2023-06-02',
           Valor: 349,
+          'Fin de garantía': daysAgo(today, 150),
         },
         {
           Equipo: 'Teléfono IP Yealink',
@@ -578,6 +655,7 @@ export function demoTables(today: Date): DemoTable[] {
           'Asignado a': 'Sala de reuniones',
           'Fecha de compra': '2022-02-28',
           Valor: 539,
+          'Fin de garantía': daysAhead(today, 26),
         },
       ],
     },
@@ -711,6 +789,7 @@ function order(
   code: string,
   customer: string,
   date: string,
+  delivery: string,
   products: string,
   amount: number,
   status: string,
@@ -720,6 +799,7 @@ function order(
     Pedido: code,
     Cliente: customer,
     Fecha: date,
+    Entrega: delivery,
     Productos: products,
     Importe: amount,
     Estado: status,

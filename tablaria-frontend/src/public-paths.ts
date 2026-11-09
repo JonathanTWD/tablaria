@@ -13,6 +13,7 @@ export const HELP_SLUGS = [
   "importar-exportar",
   "stock",
   "metricas",
+  "calendario",
   "etiquetas-qr",
   "compartir",
   "organizaciones",

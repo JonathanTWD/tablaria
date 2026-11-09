@@ -971,6 +971,24 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 - Cambiar un proveedor o lo que se guarda obliga a revisar la política de privacidad y su fecha.
 - Una guía nueva necesita su slug en `public-paths.ts`; el test avisa si falta.
 
+## ADR-047: Vista de calendario
+
+**Contexto**: muchas tablas giran en torno a fechas (entregas de pedidos, caducidades, garantías, revisiones), y en la lista solo se ven ordenando o filtrando. Hacía falta ver lo que viene en las próximas semanas, para cualquier tabla y no solo para pedidos.
+
+**Decisión**:
+- **Pestaña «Calendario»** en las tablas con alguna columna de fecha (solo `date`; las fórmulas y resúmenes con fecha no se pueden filtrar por rango, ADR-033). Lo que muestra (mes, columna de fecha, columna de color) va en la URL, como la vista de registros.
+- **Sin endpoint nuevo ni librería.** Reutiliza `GET /tables/:id/records` con el filtro `between` sobre cada columna de fecha y el orden por ella, en páginas de 100, para las semanas visibles (de lunes a domingo). Se leen hasta 5 páginas por columna; si hay más, la vista avisa en lugar de cargarlo todo.
+  - La rejilla mensual y la agenda móvil son Tailwind sobre unas funciones de fechas en UTC (las fechas no tienen zona horaria).
+- **La consulta vive bajo la clave de registros** de la tabla y guarda la forma de una página (`data`, `meta`, `linked`): las ediciones la actualizan al momento (`useUpdateRecord`) y el tiempo real y las escrituras la refrescan como a la lista, sin código propio.
+- **Todas las fechas a la vez por defecto.** Elegir una columna por defecto falla en tablas como «Equipos», cuya primera fecha es la de compra; mostrarlas todas, con el nombre de la columna en cada registro, siempre enseña algo útil. El color sale de la primera lista de opciones, con su leyenda, y el valor se anuncia también a los lectores de pantalla.
+- **Arrastrar para cambiar la fecha** (HTML5 drag and drop, solo escritorio y solo editores). Cambia la columna del registro arrastrado; la alternativa sin arrastrar es abrir el registro y editarlo (WCAG 2.5.7).
+- **Abrir un registro** usa la misma ficha que el QR (ADR-038) y su formulario de edición.
+- **Demo y landing:** los pedidos de la demo tienen una columna «Entrega» con fechas en las próximas semanas y los equipos, «Fin de garantía», para que el calendario se vea lleno al entrar. La landing lo presenta en una tarjeta propia.
+
+**Consecuencias**:
+- Una tabla con más de 500 registros por columna en un mes no los ve todos en el calendario; para eso sigue el filtro por fechas de la lista.
+- Los avisos de fechas próximas (como los de stock bajo) se apoyarán en esta misma lectura por rangos.
+
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
 Todas están especificadas en [MVP_PROMPT.md](MVP_PROMPT.md):
