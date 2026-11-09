@@ -27,7 +27,9 @@
     "metrics": {
       "tables": "Tablas",
       "records": "Registros",
-      "lastEdit": "Última edición"
+      "lastEdit": "Última edición",
+      "upcoming": "Fechas próximas",
+      "nearest": "{{label}}, {{when}}"
     },
     "alerts": {
       "title": "Bajo mínimo",

@@ -999,7 +999,7 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
   - **`today` lo manda el navegador:** las fechas no tienen zona horaria, y el día del usuario puede no ser el del servidor. Solo decide qué registros propios se listan, así que no abre nada.
   - Las fechas que ya pasaron no avisan: la tabla no sabe si una entrega llegó o no, y avisar de todo lo pasado llenaría la lista de ruido.
 - **Dónde se ve:**
-  - «Próximamente» en el Inicio, con todas las tablas. A diferencia del aviso de stock que se quitó del Inicio (ADR-035), es una lista sobria, del estilo del resto de la página, y solo aparece si hay algo.
+  - «Próximamente» en el Inicio, con todas las tablas. A diferencia del aviso de stock que se quitó del Inicio (ADR-035), no va delante de las tablas: arriba solo hay una cifra más («Fechas próximas», con la más cercana), y la lista, con 5 como máximo, va al lado de las tablas en pantallas anchas y debajo en el móvil. Solo aparece si hay algo.
   - El resumen y la lista de las métricas de cada tabla.
   - La celda, con un icono y los días que faltan, también para lectores de pantalla.
   - Cada fila abre la ficha del registro.
