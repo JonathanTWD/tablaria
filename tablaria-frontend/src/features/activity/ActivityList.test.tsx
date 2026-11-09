@@ -36,6 +36,7 @@ describe("ActivityList", () => {
               event({ action: "stock.moved", details: { kind: "out", delta: -2, column: "Stock" } }),
               event({ action: "records.imported", label: null, by: null, details: { created: 3, updated: 1 } }),
               event({ action: "column.updated", label: "Unidades", details: { renamedFrom: "Stock" } }),
+              event({ action: "attachment.added", details: { file: "factura.pdf" } }),
             ],
             1,
             2,
@@ -52,6 +53,7 @@ describe("ActivityList", () => {
     ).toBeVisible();
     expect(screen.getByText(/^Una cuenta de demostración o borrada ·/)).toBeVisible();
     expect(screen.getByText("Columna «Stock» renombrada a «Unidades»")).toBeVisible();
+    expect(screen.getByText("Archivo «factura.pdf» adjuntado a «Taladro»")).toBeVisible();
 
     await user.click(screen.getByRole("button", { name: "Ver más" }));
     expect(await screen.findByText("Columna «Notas» borrada")).toBeVisible();

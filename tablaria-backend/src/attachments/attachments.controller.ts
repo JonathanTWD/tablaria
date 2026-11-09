@@ -12,15 +12,11 @@ import {
   Res,
   StreamableFile,
 } from '@nestjs/common';
-import { Throttle } from '@nestjs/throttler';
 import { type Attachment, isImageAttachment } from '@tablaria/shared';
 import type { Response } from 'express';
 import { CurrentUserId } from '../auth/decorators';
 import { AttachmentsService } from './attachments.service';
 import { contentDisposition } from './storage/s3.storage';
-
-/** Each upload carries up to a whole file. */
-const UPLOAD_THROTTLE = { default: { limit: 20, ttl: 60_000 } };
 
 @Controller('tables/:tableId/records/:recordId/attachments')
 export class AttachmentsController {
@@ -35,9 +31,11 @@ export class AttachmentsController {
     return this.attachments.list(userId, tableId, recordId);
   }
 
-  /** The file itself is the body (see app.setup); its name goes in `?name=`. */
+  /**
+   * The file itself is the body (see app.setup); its name goes in `?name=`.
+   * app.setup also limits uploads per user, before reading the file.
+   */
   @Post()
-  @Throttle(UPLOAD_THROTTLE)
   upload(
     @CurrentUserId() userId: string,
     @Param('tableId', ParseUUIDPipe) tableId: string,

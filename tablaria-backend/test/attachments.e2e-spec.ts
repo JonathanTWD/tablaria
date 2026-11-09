@@ -1,5 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import type {
+  ActivityPage,
   Attachment,
   AuthUser,
   TableDetail,
@@ -7,6 +8,7 @@ import type {
 } from '@tablaria/shared';
 import { MAX_ATTACHMENTS_PER_RECORD } from '@tablaria/shared';
 import { App } from 'supertest/types';
+import { UPLOAD_LIMIT } from '../src/attachments/upload-limit';
 import { AttachmentsService } from '../src/attachments/attachments.service';
 import { FileStorage } from '../src/attachments/storage/file-storage';
 import { PrismaService } from '../src/database/prisma.service';
@@ -213,5 +215,43 @@ describe('Attachments (e2e)', () => {
       PNG,
       'foto.png',
     ).expect(403);
+  });
+  it('shows added and removed files in the table history', async () => {
+    const { owner, table, base } = await setup();
+    const photo = (await upload(owner, base, PNG, 'taladro.png').expect(201))
+      .body as Attachment;
+    await owner.delete(`${base}/${photo.id}`).expect(204);
+
+    const history = (
+      await owner.get(`/api/tables/${table.id}/activity`).expect(200)
+    ).body as ActivityPage;
+    expect(
+      history.data.map(({ action, details }) => [action, details.file]),
+    ).toEqual(
+      expect.arrayContaining([
+        ['attachment.removed', 'taladro.png'],
+        ['attachment.added', 'taladro.png'],
+      ]),
+    );
+    // A refused upload leaves no trace.
+    await upload(owner, base, Buffer.from('MZ fake'), 'virus.pdf').expect(415);
+    const after = (
+      await owner.get(`/api/tables/${table.id}/activity`).expect(200)
+    ).body as ActivityPage;
+    expect(after.meta.total).toBe(history.meta.total);
+  });
+
+  it('limits uploads per user before taking the file', async () => {
+    const { owner, base } = await setup();
+    for (let index = 0; index < UPLOAD_LIMIT; index++) {
+      // Past the per-record limit they fail, but still count.
+      await upload(owner, base, PNG, `foto-${index}.png`);
+    }
+    const blocked = await upload(owner, base, PNG, 'una-mas.png').expect(429);
+    expect(Number(blocked.headers['retry-after'])).toBeGreaterThan(0);
+
+    // Another person keeps their own allowance.
+    const other = await setup();
+    await upload(other.owner, other.base, PNG, 'foto.png').expect(201);
   });
 });

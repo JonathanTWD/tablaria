@@ -54,7 +54,8 @@ export const tiempoReal: DocArticle = {
             <li>registros creados, cambiados (con las columnas que cambiaron) y borrados;</li>
             <li>importaciones de archivos;</li>
             <li>columnas creadas, renombradas, modificadas y borradas;</li>
-            <li>entradas, salidas y recuentos de stock.</li>
+            <li>entradas, salidas y recuentos de stock;</li>
+            <li>fotos y documentos adjuntados a un registro o quitados de él.</li>
           </ul>
           <p>
             Pulsa <Ui>Ver más</Ui> para ir más atrás. Cualquiera con acceso a la tabla puede consultarla.

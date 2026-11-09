@@ -6,6 +6,7 @@ import {
   FilePlus2,
   FileUp,
   type LucideIcon,
+  Paperclip,
   Pencil,
   Trash2,
 } from "lucide-react";
@@ -24,6 +25,8 @@ const ICONS: Record<ActivityAction, LucideIcon> = {
   "column.updated": Columns3,
   "column.deleted": Trash2,
   "stock.moved": ArrowDownUp,
+  "attachment.added": Paperclip,
+  "attachment.removed": Paperclip,
 };
 
 /** Who changed what in the table, newest first, grouped by day. */
@@ -159,6 +162,10 @@ function ActivityItem({ event }: { event: ActivityEvent }) {
         return t("activity.actions.columnCreated", { label });
       case "column.deleted":
         return t("activity.actions.columnDeleted", { label });
+      case "attachment.added":
+        return t("activity.actions.attachmentAdded", { label, file: details.file ?? "" });
+      case "attachment.removed":
+        return t("activity.actions.attachmentRemoved", { label, file: details.file ?? "" });
     }
   })();
 
