@@ -1,14 +1,16 @@
 import { INestApplication } from '@nestjs/common';
-import type {
-  AuthUser,
-  OrganizationDetail,
-  OrganizationSummary,
-  Paginated,
-  RecordPage,
-  StockAlerts,
-  StockHistory,
-  TableDetail,
-  TableSummary,
+import {
+  type AuthUser,
+  type OrganizationDetail,
+  type OrganizationSummary,
+  type Paginated,
+  type RecordPage,
+  type StockAlerts,
+  type StockHistory,
+  type TableDetail,
+  type TableSummary,
+  UPCOMING_DATES_LIMIT,
+  type UpcomingDates,
 } from '@tablaria/shared';
 import { App } from 'supertest/types';
 import { PrismaService } from '../src/database/prisma.service';
@@ -141,6 +143,20 @@ describe('Demo accounts (e2e)', () => {
     const orders = await open('Pedidos');
     const big = orders.row('PED-1038')[orders.column('Productos')];
     expect(Array.isArray(big) && big.length).toBe(3);
+    // Deliveries still to come fill the calendar of the coming weeks.
+    const today = new Date().toISOString().slice(0, 10);
+    const upcoming = orders.page.data.filter(
+      ({ data }) => String(data[orders.column('Entrega')] ?? '') > today,
+    );
+    expect(upcoming.length).toBeGreaterThanOrEqual(5);
+    // Deliveries within a week and warranties ending soon fill "Próximamente".
+    const due = (
+      await client.get('/api/upcoming-dates').query({ today }).expect(200)
+    ).body as UpcomingDates;
+    expect(due.total).toBeGreaterThanOrEqual(UPCOMING_DATES_LIMIT);
+    expect(new Set(due.items.map(({ columnName }) => columnName))).toEqual(
+      new Set(['Entrega', 'Fin de garantía']),
+    );
 
     // Some products run low, and the drill has a stock history that adds up.
     const alerts = (

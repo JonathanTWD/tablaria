@@ -20,9 +20,12 @@ const RecordsPage = lazy(() => import("@/pages/app/table/RecordsPage"));
 const ColumnsPage = lazy(() => import("@/pages/app/table/ColumnsPage"));
 const ActivityPage = lazy(() => import("@/pages/app/table/ActivityPage"));
 // Recharts loads only with this page (ADR-035).
+const CalendarPage = lazy(() => import("@/pages/app/table/CalendarPage"));
 const MetricsPage = lazy(() => import("@/pages/app/table/MetricsPage"));
 const LabelsPage = lazy(() => import("@/pages/app/table/LabelsPage"));
 const PublicTablePage = lazy(() => import("@/pages/PublicTablePage"));
+const DocsPage = lazy(() => import("@/pages/DocsPage"));
+const LegalPage = lazy(() => import("@/pages/LegalPage"));
 const InvitationPage = lazy(() => import("@/pages/InvitationPage"));
 const OrganizationPage = lazy(() => import("@/pages/app/OrganizationPage"));
 
@@ -55,6 +58,7 @@ const App = () => {
             <Route path="tables/:tableId" element={<TablePage />}>
               <Route index element={<RecordsPage />} />
               <Route path="columns" element={<ColumnsPage />} />
+              <Route path="calendar" element={<CalendarPage />} />
               <Route path="metrics" element={<MetricsPage />} />
               <Route path="activity" element={<ActivityPage />} />
             </Route>
@@ -65,6 +69,13 @@ const App = () => {
 
         {/* A read-only link: no account, the token after the # (ADR-026). */}
         <Route path="p" element={<PublicTablePage />} />
+
+        {/* Public help: readable without an account, and by search engines. */}
+        <Route path="ayuda" element={<DocsPage />} />
+        <Route path="ayuda/:slug" element={<DocsPage />} />
+        <Route path="privacidad" element={<LegalPage page="privacy" />} />
+        <Route path="aviso-legal" element={<LegalPage page="legal" />} />
+        <Route path="cookies" element={<LegalPage page="cookies" />} />
 
         <Route path="*" element={<NotFound />} />
       </Routes>

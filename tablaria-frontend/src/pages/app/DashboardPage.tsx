@@ -12,8 +12,11 @@ import { useSpace, useSpaceName } from "@/features/organizations/space-context";
 import { SharedTablesSection } from "@/features/sharing/SharedTablesSection";
 import { CreateTableDialog } from "@/features/tables/CreateTableDialog";
 import { tablesQuery } from "@/features/tables/queries";
+import { upcomingDatesQuery } from "@/features/upcoming-dates/queries";
+import { UpcomingDatesCard } from "@/features/upcoming-dates/UpcomingDatesCard";
 import { apiErrorMessage } from "@/lib/error-message";
 import { formatRelativeTime } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 export default function DashboardPage() {
   const { t } = useTranslation(["app", "tables", "organizations"]);
@@ -135,6 +138,10 @@ export default function DashboardPage() {
   );
 }
 
+const UPCOMING_ID = "proximamente";
+/** Enough to see what's next without pushing anything else down. */
+const UPCOMING_ON_HOME = 5;
+
 function TablesOverview({
   tables,
   personal,
@@ -143,9 +150,12 @@ function TablesOverview({
   /** The personal space also lists the tables shared with the user. */
   personal: boolean;
 }) {
-  const { t, i18n } = useTranslation(["app", "tables"]);
+  const { t, i18n } = useTranslation(["app", "tables", "records"]);
+  // Across every table the user can open: what comes soon matters wherever it lives.
+  const upcoming = useQuery(upcomingDatesQuery());
   const recordCount = tables.reduce((total, table) => total + table.recordCount, 0);
-  const metrics = [
+  const nearest = upcoming.data?.items[0];
+  const metrics: { label: string; value: string; detail?: string; href?: string }[] = [
     { label: t("dashboard.metrics.tables"), value: tables.length.toLocaleString(i18n.language) },
     { label: t("dashboard.metrics.records"), value: recordCount.toLocaleString(i18n.language) },
     // The list comes most recently edited first.
@@ -154,24 +164,56 @@ function TablesOverview({
       value: formatRelativeTime(tables[0].updatedAt, i18n.language),
     },
   ];
+  if (upcoming.data && nearest) {
+    // A count up top, the list beside the tables: the tables stay first (ADR-048).
+    metrics.push({
+      label: t("dashboard.metrics.upcoming"),
+      value: upcoming.data.total.toLocaleString(i18n.language),
+      detail: t("dashboard.metrics.nearest", {
+        label: nearest.label || t("records:table.untitled"),
+        when: new Intl.RelativeTimeFormat(i18n.language, { numeric: "auto" }).format(nearest.daysLeft, "day"),
+      }),
+      href: `#${UPCOMING_ID}`,
+    });
+  }
 
   return (
     <>
-      <dl className="mt-8 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-3">
-        {metrics.map(({ label, value }, index) => (
+      <dl
+        className={cn(
+          "mt-8 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border",
+          metrics.length === 4 ? "@3xl:grid-cols-4" : "sm:grid-cols-3",
+        )}
+      >
+        {metrics.map(({ label, value, detail, href }, index) => (
           <div
             key={label}
-            className={index === 2 ? "col-span-2 bg-card px-5 py-4 sm:col-span-1" : "bg-card px-5 py-4"}
+            className={cn(
+              "relative bg-card px-5 py-4",
+              metrics.length === 3 && index === 2 && "col-span-2 sm:col-span-1",
+              href && "transition-colors focus-within:outline-2 focus-within:-outline-offset-2 focus-within:outline-ring hover:bg-muted/40",
+            )}
           >
-            <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
+            <dt className="text-xs font-medium text-muted-foreground">
+              {href ? (
+                // The whole card is the link's target area; the label names it.
+                <a href={href} className="outline-none after:absolute after:inset-0">
+                  {label}
+                </a>
+              ) : (
+                label
+              )}
+            </dt>
             <dd className="mt-1 text-2xl font-semibold tracking-tight tabular-nums first-letter:uppercase">
               {value}
             </dd>
+            {detail && <dd className="mt-0.5 truncate text-xs text-muted-foreground">{detail}</dd>}
           </div>
         ))}
       </dl>
 
-      <div className="mt-8 flex flex-col gap-10">
+      <div className="mt-8 grid gap-10 @5xl:grid-cols-[minmax(0,1fr)_22rem] @5xl:items-start">
+        <div className="flex min-w-0 flex-col gap-10">
           <section aria-labelledby="tables-title" className="@container/tables">
             <h2 id="tables-title" className="text-lg font-semibold tracking-tight">
               {personal ? t("dashboard.tablesTitle") : t("dashboard.organizationTablesTitle")}
@@ -207,6 +249,11 @@ function TablesOverview({
             </ul>
           </section>
           {personal && <SharedTablesSection />}
+        </div>
+        {/* After the tables on phones; beside them on wide screens. */}
+        {!upcoming.isPending && (
+          <UpcomingDatesCard id={UPCOMING_ID} upcoming={upcoming.data} limit={UPCOMING_ON_HOME} />
+        )}
       </div>
     </>
   );

@@ -27,7 +27,9 @@
     "metrics": {
       "tables": "Tablas",
       "records": "Registros",
-      "lastEdit": "Última edición"
+      "lastEdit": "Última edición",
+      "upcoming": "Fechas próximas",
+      "nearest": "{{label}}, {{when}}"
     },
     "alerts": {
       "title": "Bajo mínimo",
@@ -38,6 +40,14 @@
       "out": "Agotado",
       "more": "Y {{count}} más. Ábrelos desde sus tablas.",
       "loadError": "No se pudieron cargar los avisos de stock."
+    },
+    "upcoming": {
+      "title": "Próximamente",
+      "count_one": "{{count}} fecha",
+      "count_other": "{{count}} fechas",
+      "more_one": "Y {{count}} más. Ábrela desde su tabla.",
+      "more_other": "Y {{count}} más. Ábrelas desde sus tablas.",
+      "loadError": "No se pudieron cargar las fechas próximas."
     },
     "tablesTitle": "Tus tablas",
     "organizationTablesTitle": "Tablas de la organización",

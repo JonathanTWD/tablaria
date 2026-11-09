@@ -1,0 +1,21 @@
+{
+  "title": "Centro de ayuda",
+  "description": "Guías para sacar partido a cada parte de Tablaria, desde la primera tabla hasta las fórmulas y el asistente.",
+  "nav": "Temas de la ayuda",
+  "topics": "Temas de la ayuda",
+  "search": "Buscar en la ayuda",
+  "searchPlaceholder": "Buscar en la ayuda…",
+  "results_one": "{{count}} resultado",
+  "results_other": "{{count}} resultados",
+  "noResults": "Ningún tema habla de «{{query}}».",
+  "onThisPage": "En esta página",
+  "pagination": "Otras guías",
+  "previous": "Anterior",
+  "next": "Siguiente",
+  "notFoundTitle": "No encontramos esta guía",
+  "notFoundDescription": "Puede que el enlace esté mal escrito o que la guía haya cambiado de nombre.",
+  "backToIndex": "Ver todos los temas",
+  "link": "Ayuda",
+  "newTab": "se abre en una pestaña nueva",
+  "howItWorks": "¿Cómo funciona?"
+}

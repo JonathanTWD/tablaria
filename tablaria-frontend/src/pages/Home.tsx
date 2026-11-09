@@ -1,5 +1,7 @@
+import { AssistantShowcase } from "@/features/landing/sections/AssistantShowcase";
 import { Comparison } from "@/features/landing/sections/Comparison";
 import { Faq } from "@/features/landing/sections/Faq";
+import { FeatureGrid } from "@/features/landing/sections/FeatureGrid";
 import { FinalCta } from "@/features/landing/sections/FinalCta";
 import { HeroSection } from "@/features/landing/sections/HeroSection";
 import { HowItWorks } from "@/features/landing/sections/HowItWorks";
@@ -15,6 +17,8 @@ const Home = () => {
       <main>
         <HeroSection />
         <HowItWorks />
+        <FeatureGrid />
+        <AssistantShowcase />
         <Comparison />
         <UseCases />
         <Faq />

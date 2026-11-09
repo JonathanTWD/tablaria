@@ -1,7 +1,7 @@
 import { Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-const QUESTIONS = ["price", "privacy", "import", "install", "columns", "team"] as const;
+const QUESTIONS = ["price", "privacy", "assistant", "import", "columns", "labels", "install", "team"] as const;
 
 export function Faq() {
   const { t } = useTranslation("landing");

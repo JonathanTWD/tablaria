@@ -938,6 +938,95 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 - Comprobar e importar leen los datos de la tabla una vez más (como mucho 10.000 registros), un coste pequeño para el tamaño de las tablas.
 - Dos registros legítimamente iguales (por ejemplo, dos sillas idénticas sin número de serie) necesitan desactivar la opción. Se explica junto al interruptor.
 
+## ADR-045: Centro de ayuda
+
+**Contexto**: la aplicación ha crecido (relaciones, fórmulas, stock, QR, asistente…) y muchas funciones solo se descubren dentro de cada diálogo. Hacía falta una ayuda que se pueda leer sin cuenta, que encuentren los buscadores y que se enlace desde el sitio exacto donde surge la duda.
+
+**Decisión**:
+- **Rutas públicas** `/ayuda` (índice) y `/ayuda/:slug` (una guía por función), con la cabecera y el pie de la landing. Se cargan aparte (`lazy`), así que no pesan en la aplicación.
+- **Contenido en TSX, sin MDX.** Cada guía es un objeto `DocArticle` (título, descripción, palabras clave y secciones con `id`) cuyo texto es JSX semántico (`p`, `ul`, `ol`, `code`) con unos pocos componentes (`Ui`, `Kbd`, `Note`, `DocLink`, `DocTable`). El estilo lo pone un único `Prose`.
+  - MDX habría añadido un compilador y su cadena de dependencias para unas 16 páginas; con JSX, TypeScript comprueba el contenido y los enlaces internos se validan en un test.
+  - El índice, el menú, «En esta página» y anterior / siguiente salen de los datos, no del DOM.
+- **Idiomas:** el contenido va por idioma (`content/es`), con los mismos `slug` en cada uno; `docsFor(language)` elige el conjunto y vuelve al español si falta.
+- **Búsqueda en el navegador** sobre títulos, secciones, descripciones y palabras clave, sin acentos ni mayúsculas, con todas las palabras y el título por delante. No indexa el cuerpo: con las palabras clave basta y evita renderizar todo el contenido.
+- **Ayuda en contexto:** «¿Cómo funciona?» (`HelpLink`) en las fórmulas, las consultas, los resúmenes, la importación y el diálogo de compartir, y «Ayuda» en la barra lateral. Abren una pestaña nueva para no perder lo que se está rellenando.
+
+**Consecuencias**:
+- Cambiar una función obliga a revisar su guía: los textos citan los nombres de los botones tal cual (`Ui`).
+- Escribir una guía es escribir JSX; es más verboso que Markdown, pero no hay que mantener otra herramienta.
+
+## ADR-046: Páginas legales y sitemap
+
+**Contexto**: Tablaria es pública y trata datos personales: cuentas, invitaciones, adjuntos en Filebase y preguntas que llegan a Groq. Necesitaba política de privacidad, aviso legal y política de cookies, y que Google encontrara la ayuda (ADR-045).
+
+**Decisión**:
+- **Tres rutas públicas**, `/privacidad`, `/aviso-legal` y `/cookies`, con el mismo formato que la ayuda (`DocArticle` y `Prose`), un índice numerado y la fecha de actualización.
+  - Quién es el responsable, el email de contacto y la fecha viven en un solo sitio (`features/legal/owner.ts`).
+- **Sin banner de cookies:** solo hay dos cookies técnicas de sesión (`tb_access`, `tb_refresh`) y preferencias en `localStorage`, exentas de consentimiento. La política de cookies las enumera.
+- **Dónde se enlazan:** el pie de página, el registro («Al crear tu cuenta aceptas…») y el aviso del asistente, que es donde se decide enviar datos a Groq.
+- **`sitemap.xml` y `robots.txt` generados al compilar** con `SITE_URL`, como las etiquetas `og:`. Las rutas públicas están en `public-paths.ts`, datos planos que `vite.config.ts` puede importar. Un test comprueba que coinciden con las guías y las páginas legales, y que ninguna regla de `robots.txt` las bloquea.
+  - `Disallow: /p$` lleva `$`: las reglas son prefijos, y `/p` a secas también bloquearía `/privacidad`.
+
+**Consecuencias**:
+- Cambiar un proveedor o lo que se guarda obliga a revisar la política de privacidad y su fecha.
+- Una guía nueva necesita su slug en `public-paths.ts`; el test avisa si falta.
+
+## ADR-047: Vista de calendario
+
+**Contexto**: muchas tablas giran en torno a fechas (entregas de pedidos, caducidades, garantías, revisiones), y en la lista solo se ven ordenando o filtrando. Hacía falta ver lo que viene en las próximas semanas, para cualquier tabla y no solo para pedidos.
+
+**Decisión**:
+- **Pestaña «Calendario»** en las tablas con alguna columna de fecha (solo `date`; las fórmulas y resúmenes con fecha no se pueden filtrar por rango, ADR-033). Lo que muestra (mes, columna de fecha, columna de color) va en la URL, como la vista de registros.
+- **Sin endpoint nuevo ni librería.** Reutiliza `GET /tables/:id/records` con el filtro `between` sobre cada columna de fecha y el orden por ella, en páginas de 100, para las semanas visibles (de lunes a domingo). Se leen hasta 5 páginas por columna; si hay más, la vista avisa en lugar de cargarlo todo.
+  - La rejilla mensual y la agenda móvil son Tailwind sobre unas funciones de fechas en UTC (las fechas no tienen zona horaria).
+- **La consulta vive bajo la clave de registros** de la tabla y guarda la forma de una página (`data`, `meta`, `linked`): las ediciones la actualizan al momento (`useUpdateRecord`) y el tiempo real y las escrituras la refrescan como a la lista, sin código propio.
+- **Todas las fechas a la vez por defecto.** Elegir una columna por defecto falla en tablas como «Equipos», cuya primera fecha es la de compra; mostrarlas todas, con el nombre de la columna en cada registro, siempre enseña algo útil. El color sale de la primera lista de opciones, con su leyenda, y el valor se anuncia también a los lectores de pantalla.
+- **Arrastrar para cambiar la fecha** (HTML5 drag and drop, solo escritorio y solo editores). Cambia la columna del registro arrastrado; la alternativa sin arrastrar es abrir el registro y editarlo (WCAG 2.5.7).
+- **Abrir un registro** usa la misma ficha que el QR (ADR-038) y su formulario de edición.
+- **Demo y landing:** los pedidos de la demo tienen una columna «Entrega» con fechas en las próximas semanas y los equipos, «Fin de garantía», para que el calendario se vea lleno al entrar. La landing lo presenta en una tarjeta propia.
+
+**Consecuencias**:
+- Una tabla con más de 500 registros por columna en un mes no los ve todos en el calendario; para eso sigue el filtro por fechas de la lista.
+- Los avisos de fechas próximas (como los de stock bajo) se apoyarán en esta misma lectura por rangos.
+
+## ADR-048: Avisos de fechas próximas
+
+**Contexto**: el calendario (ADR-047) enseña las fechas a quien lo abre, pero lo que urge (una entrega mañana, una garantía que termina) tenía que verse sin ir a buscarlo, igual que el stock bajo (ADR-035).
+
+**Decisión**:
+- **Aviso por columna de fecha:** `options: { alertDaysBefore }` (entero de 0 a 365, o `null` para no avisar), igual que `alertBelow` en los números. Las columnas de fecha que ya existían siguen con `options: null`, así que no hace falta migración.
+- **`GET /upcoming-dates?today=…&tableId=…`** en un módulo propio, con la misma consulta que los avisos de stock: celdas de columnas con aviso en las tablas que el usuario puede abrir, la fecha casteada solo si es un día ISO, de hoy a `hoy + alertDaysBefore`, de la más cercana a la más lejana, con un máximo de 8 y el total.
+  - **`today` lo manda el navegador:** las fechas no tienen zona horaria, y el día del usuario puede no ser el del servidor. Solo decide qué registros propios se listan, así que no abre nada.
+  - Las fechas que ya pasaron no avisan: la tabla no sabe si una entrega llegó o no, y avisar de todo lo pasado llenaría la lista de ruido.
+- **Dónde se ve:**
+  - «Próximamente» en el Inicio, con todas las tablas. A diferencia del aviso de stock que se quitó del Inicio (ADR-035), no va delante de las tablas: arriba solo hay una cifra más («Fechas próximas», con la más cercana), y la lista, con 5 como máximo, va al lado de las tablas en pantallas anchas y debajo en el móvil. Solo aparece si hay algo.
+  - El resumen y la lista de las métricas de cada tabla.
+  - La celda, con un icono y los días que faltan, también para lectores de pantalla.
+  - Cada fila abre la ficha del registro.
+- **Asistente:** herramienta `fechas_proximas`, con el día del servidor, que es el que ya recibe en sus instrucciones.
+- **Tiempo real:** la lista se refresca con los cambios de registros y columnas, como los avisos de stock.
+- **Demo:** «Entrega» avisa 7 días antes y «Fin de garantía», 15, para que «Próximamente» salga lleno al entrar.
+
+**Consecuencias**:
+- Quien quiera ver también lo atrasado tiene el calendario o un filtro por fechas.
+- Si un día se avisan fechas pasadas, el campo `alertDaysBefore` se puede acompañar de otro sin romper lo guardado.
+
+## ADR-049: Adjuntos en el historial y límite de subidas antes de leer el archivo
+
+**Contexto**: dos avisos de seguridad de prioridad baja de la auditoría de la v1.9.0. Subir o quitar un adjunto no dejaba rastro en la actividad (ADR-025), así que un editor podía borrar la foto o la factura de un registro sin que nadie supiera quién. Y el límite de 20 subidas por minuto lo aplicaba el guard del limitador, que en NestJS corre después del body parser: cada subida de más se leía entera (hasta 5 MB) antes de rechazarse.
+
+**Decisión**:
+- **Dos acciones nuevas en la actividad:** `attachment.added` y `attachment.removed`, con el nombre del archivo en `details.file` y el registro como etiqueta. El enum de la base de datos crece con `ALTER TYPE … ADD VALUE`, sin tocar las filas.
+  - La subida se apunta solo cuando el archivo ya está guardado: una subida fallida no deja rastro.
+  - El borrado se apunta en la misma transacción que desengancha el archivo.
+- **El límite de subidas va en el middleware**, antes del parser del cuerpo (`app.setup.ts`). Cuenta por usuario, no por IP, en el mismo almacén del limitador global (`getStorageToken()`), con 20 por minuto (`upload-limit.ts`).
+  - Pasado el límite responde 429 con `Retry-After` y `Connection: close`, así que el resto del archivo no se lee.
+  - El guard global (100 peticiones por minuto por IP) sigue aplicándose después, como en el resto de rutas.
+
+**Consecuencias**:
+- Las subidas que fallan por otra causa (tipo no admitido, cupo lleno) también cuentan para el límite, igual que antes.
+- Si un día el limitador pasa a Redis, este middleware lo usa sin cambios, porque lee el almacén del módulo.
+
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
 Todas están especificadas en [MVP_PROMPT.md](MVP_PROMPT.md):

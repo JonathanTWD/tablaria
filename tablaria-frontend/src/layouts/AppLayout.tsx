@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { hasRole } from "@tablaria/shared";
-import { House, Plus, Settings, Table2, Users } from "lucide-react";
+import { CircleHelp, House, Plus, Settings, Table2, Users } from "lucide-react";
 import { type CSSProperties, type RefObject, Suspense, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, Outlet, useLocation } from "react-router";
@@ -85,7 +85,7 @@ function useCloseOnPhone() {
 }
 
 function MainNav() {
-  const { t } = useTranslation("app");
+  const { t } = useTranslation(["app", "docs"]);
   const { pathname } = useLocation();
   const close = useCloseOnPhone();
 
@@ -110,6 +110,19 @@ function MainNav() {
               </SidebarMenuItem>
             );
           })}
+          <SidebarMenuItem>
+            {/* A new tab, so the table being worked on stays open. */}
+            <SidebarMenuButton
+              tooltip={t("docs:link")}
+              render={<a href="/ayuda" target="_blank" rel="noopener" onClick={close} />}
+            >
+              <CircleHelp aria-hidden="true" />
+              <span>
+                {t("docs:link")}
+                <span className="sr-only"> ({t("docs:newTab")})</span>
+              </span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
         </SidebarMenu>
       </nav>
     </SidebarGroup>

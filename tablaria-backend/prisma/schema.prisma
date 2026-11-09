@@ -40,6 +40,8 @@ enum ActivityAction {
   COLUMN_UPDATED
   COLUMN_DELETED
   STOCK_MOVED
+  ATTACHMENT_ADDED
+  ATTACHMENT_REMOVED
 }
 
 enum ColumnType {

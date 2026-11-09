@@ -18,6 +18,8 @@ export const STORED_ACTIONS: Record<ActivityAction, StoredAction> = {
   'column.updated': 'COLUMN_UPDATED',
   'column.deleted': 'COLUMN_DELETED',
   'stock.moved': 'STOCK_MOVED',
+  'attachment.added': 'ATTACHMENT_ADDED',
+  'attachment.removed': 'ATTACHMENT_REMOVED',
 };
 
 /** Edits of one record by one person this close together read as one. */

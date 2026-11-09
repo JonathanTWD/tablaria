@@ -5,6 +5,7 @@ import {
   type ColumnType,
   columnValueSchemas,
   isComputedType,
+  isoDaySchema,
   MAX_LINKS_PER_CELL,
 } from "./column-types.js";
 
@@ -212,7 +213,7 @@ export const FILTER_OPERATOR_BY_TYPE: Record<ColumnType, FilterOperator> = {
   formula: "contains",
 };
 
-const rangeBoundSchema = z.union([z.number(), z.iso.date()]);
+const rangeBoundSchema = z.union([z.number(), isoDaySchema]);
 
 export const recordFilterSchema = z.discriminatedUnion("op", [
   z.object({

@@ -1,4 +1,4 @@
-import type { MetricsSummary, StockAlerts, TableDetail } from "@tablaria/shared";
+import type { MetricsSummary, StockAlerts, TableDetail, UpcomingDates } from "@tablaria/shared";
 import { useTranslation } from "react-i18next";
 import { useCellFormatter } from "@/features/columns/format-value";
 import { cn } from "@/lib/utils";
@@ -11,11 +11,14 @@ export function SummaryCards({
   table,
   summary,
   alerts,
+  upcoming,
 }: {
   table: TableDetail;
   summary: MetricsSummary;
   /** Undefined while loading, or when the table has no stock thresholds. */
   alerts: StockAlerts | undefined;
+  /** Undefined while loading, or when the table has no date warnings. */
+  upcoming: UpcomingDates | undefined;
 }) {
   const { t, i18n } = useTranslation("records");
   const format = useCellFormatter();
@@ -29,6 +32,14 @@ export function SummaryCards({
       label: t("metrics.summary.lowStock"),
       value: number.format(alerts.total),
       warn: alerts.total > 0,
+    });
+  }
+  if (upcoming) {
+    cards.push({
+      key: "upcoming",
+      label: t("metrics.summary.upcoming"),
+      value: number.format(upcoming.total),
+      warn: upcoming.total > 0,
     });
   }
   for (const stats of summary.columns) {

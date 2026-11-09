@@ -41,6 +41,9 @@
       "low": "{{value}}, bajo mínimo",
       "out": "{{value}}, agotado"
     },
+    "dueSoon_zero": "{{value}}, es hoy",
+    "dueSoon_one": "{{value}}, falta {{count}} día",
+    "dueSoon_other": "{{value}}, faltan {{count}} días",
     "label": "{{column}} de {{row}}",
     "invalidHint": "Ese valor no encaja con la columna. Corrígelo o pulsa Escape para cancelar.",
     "invalid": "El valor no encaja con la columna «{{column}}»; se ha descartado.",
@@ -58,7 +61,7 @@
   "empty": {
     "noColumnsTitle": "Primero, define las columnas",
     "noColumnsDescription": "Las columnas indican qué datos guarda cada registro.",
-    "noColumnsDescriptionImport": "Las columnas indican qué datos guarda cada registro. Créalas a mano o importa un archivo CSV y se crearán a partir de su cabecera.",
+    "noColumnsDescriptionImport": "Las columnas indican qué datos guarda cada registro. Créalas a mano o importa un archivo de Excel o CSV y se crearán a partir de su cabecera.",
     "noColumnsAction": "Ir a columnas",
     "title": "Aún no hay registros",
     "description": "Añade el primero con el botón «Nuevo registro»; luego podrás editar cada celda directamente en la tabla.",
@@ -294,6 +297,7 @@
     "summary": {
       "records": "Registros",
       "lowStock": "Bajo mínimo",
+      "upcoming": "Fechas próximas",
       "total": "Total de {{name}}",
       "detail": "Media {{avg}} · Mín. {{min}} · Máx. {{max}}",
       "noValues": "Sin valores todavía"

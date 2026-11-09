@@ -4,6 +4,7 @@ import type { Env } from '../config/env.schema';
 import { MetricsModule } from '../metrics/metrics.module';
 import { RecordsModule } from '../records/records.module';
 import { StockAlertsModule } from '../stock-alerts/stock-alerts.module';
+import { UpcomingDatesModule } from '../upcoming-dates/upcoming-dates.module';
 import { StockMovementsModule } from '../stock-movements/stock-movements.module';
 import { AssistantController } from './assistant.controller';
 import { AssistantService } from './assistant.service';
@@ -14,6 +15,7 @@ import { ChatModel } from './chat-model';
     RecordsModule,
     MetricsModule,
     StockAlertsModule,
+    UpcomingDatesModule,
     StockMovementsModule,
   ],
   controllers: [AssistantController],

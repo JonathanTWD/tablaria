@@ -10,6 +10,8 @@ import { SummaryCards } from "@/features/metrics/SummaryCards";
 import { TimelineChart } from "@/features/metrics/TimelineChart";
 import { tableStockAlertsQuery } from "@/features/stock-alerts/queries";
 import { StockAlertsCard } from "@/features/stock-alerts/StockAlertsCard";
+import { upcomingDatesQuery } from "@/features/upcoming-dates/queries";
+import { UpcomingDatesCard } from "@/features/upcoming-dates/UpcomingDatesCard";
 
 /** The table's metrics (ADR-035): what its numbers say, by group and over time. */
 export default function MetricsPage() {
@@ -21,6 +23,11 @@ export default function MetricsPage() {
     (column) => column.type === "number" && column.options !== null,
   );
   const alerts = useQuery({ ...tableStockAlertsQuery(table.id), enabled: hasThresholds });
+  // Only tables with a date warning have upcoming dates to show (ADR-048).
+  const hasDateWarnings = table.columns.some(
+    (column) => column.type === "date" && column.options !== null,
+  );
+  const upcoming = useQuery({ ...upcomingDatesQuery(table.id), enabled: hasDateWarnings });
 
   return (
     <div className="@container mt-6 flex flex-col gap-6">
@@ -34,11 +41,16 @@ export default function MetricsPage() {
           table={table}
           summary={summary.data}
           alerts={hasThresholds ? alerts.data : undefined}
+          upcoming={hasDateWarnings ? upcoming.data : undefined}
         />
       )}
 
       {hasThresholds && alerts.data && alerts.data.total > 0 && (
         <StockAlertsCard alerts={alerts.data} showTable={false} />
+      )}
+
+      {hasDateWarnings && upcoming.data && upcoming.data.total > 0 && (
+        <UpcomingDatesCard upcoming={upcoming.data} showTable={false} />
       )}
 
       {table.recordCount === 0 ? (
