@@ -527,45 +527,6 @@
       }
     }
   },
-  "builtWith": {
-    "title": "Hecho como una aplicación de verdad",
-    "description": "Tablaria es un proyecto de portfolio, pero está construido y desplegado como un producto real: con pruebas, revisiones de seguridad y cada decisión documentada.",
-    "groups": {
-      "frontend": {
-        "title": "Frontend",
-        "items": [
-          "React 19 y TypeScript",
-          "TanStack Query y Table",
-          "Tailwind CSS 4 y shadcn/ui"
-        ]
-      },
-      "backend": {
-        "title": "Backend",
-        "items": [
-          "NestJS 11",
-          "PostgreSQL 16 con Prisma 7",
-          "Esquemas zod compartidos"
-        ]
-      },
-      "quality": {
-        "title": "Calidad",
-        "items": [
-          "Pruebas unitarias y e2e con Playwright",
-          "Auditorías OWASP Top 10",
-          "Accesibilidad WCAG 2.2"
-        ]
-      },
-      "production": {
-        "title": "En producción",
-        "items": [
-          "Render y Neon",
-          "Resend para el correo",
-          "Filebase y Groq"
-        ]
-      }
-    },
-    "author": "Más proyectos de Jonathan Morera"
-  },
   "faq": {
     "title": "Preguntas frecuentes",
     "items": {

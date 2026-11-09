@@ -1,5 +1,4 @@
 import { AssistantShowcase } from "@/features/landing/sections/AssistantShowcase";
-import { BuiltWith } from "@/features/landing/sections/BuiltWith";
 import { Comparison } from "@/features/landing/sections/Comparison";
 import { Faq } from "@/features/landing/sections/Faq";
 import { FeatureGrid } from "@/features/landing/sections/FeatureGrid";
@@ -22,7 +21,6 @@ const Home = () => {
         <AssistantShowcase />
         <Comparison />
         <UseCases />
-        <BuiltWith />
         <Faq />
         <FinalCta />
       </main>

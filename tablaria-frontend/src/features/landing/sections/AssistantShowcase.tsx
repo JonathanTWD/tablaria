@@ -87,11 +87,11 @@ export function AssistantShowcase() {
     <section
       id="asistente"
       aria-labelledby="asistente-title"
-      className="scroll-mt-16 bg-brand-navy text-brand-navy-foreground"
+      className="scroll-mt-16 border-t border-border bg-secondary/50"
     >
       <div className="mx-auto grid max-w-landing gap-12 px-4 py-20 sm:px-6 sm:py-28 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:items-center lg:gap-16">
         <div data-reveal>
-          <p className="flex items-center gap-2 text-sm font-semibold text-white/70">
+          <p className="flex items-center gap-2 text-sm font-semibold text-primary">
             <Sparkles aria-hidden="true" className="size-4" />
             {t("assistantShowcase.eyebrow")}
           </p>
@@ -101,14 +101,14 @@ export function AssistantShowcase() {
           >
             {t("assistantShowcase.title")}
           </h2>
-          <p className="mt-4 text-lg leading-8 text-white/75">{t("assistantShowcase.description")}</p>
+          <p className="mt-4 text-lg leading-8 text-muted-foreground">{t("assistantShowcase.description")}</p>
           <ul className="mt-8 space-y-4">
             {POINTS.map(({ key, icon: Icon }) => (
               <li key={key} className="flex gap-3">
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-white/10">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                   <Icon aria-hidden="true" className="size-4" />
                 </span>
-                <span className="pt-1 text-white/85">{t(`assistantShowcase.points.${key}`)}</span>
+                <span className="pt-1">{t(`assistantShowcase.points.${key}`)}</span>
               </li>
             ))}
           </ul>
@@ -122,7 +122,7 @@ export function AssistantShowcase() {
           <div
             ref={ref}
             aria-hidden="true"
-            className="rounded-2xl border border-white/10 bg-card p-4 text-card-foreground shadow-[0_40px_80px_-40px_rgb(0_0_0/0.6)] sm:p-6"
+            className="rounded-2xl border border-border bg-card p-4 text-card-foreground shadow-[0_24px_48px_-28px_rgb(21_22_58/0.35)] sm:p-6"
           >
             <div className="flex items-center gap-2 border-b border-border pb-3 text-sm font-medium">
               <Sparkles className="size-4 text-primary" />
@@ -184,8 +184,8 @@ export function AssistantShowcase() {
             aria-disabled={!done}
             onClick={() => done && replay()}
             className={cn(
-              "mt-4 inline-flex items-center gap-2 rounded-md px-2 py-1 text-sm text-white/75 transition-opacity focus-visible:outline-2 focus-visible:outline-white",
-              done ? "hover:text-white" : "cursor-default opacity-40",
+              "mt-4 inline-flex items-center gap-2 rounded-md px-2 py-1 text-sm text-muted-foreground transition-opacity focus-visible:outline-2 focus-visible:outline-ring",
+              done ? "hover:text-foreground" : "cursor-default opacity-40",
             )}
           >
             <RotateCcw aria-hidden="true" className="size-4" />
