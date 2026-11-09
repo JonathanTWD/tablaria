@@ -4,6 +4,7 @@ import babel from "@rolldown/plugin-babel";
 import { defineConfig, loadEnv } from "vite";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
+import { robotsTxt, sitemapXml } from "./src/public-paths.ts";
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
@@ -20,6 +21,15 @@ export default defineConfig(({ mode }) => {
         // Canonical URL and link previews need the public address, set per deployment.
         name: "site-url",
         transformIndexHtml: (html) => html.replaceAll("%SITE_URL%", SITE_URL.replace(/\/$/, "")),
+      },
+      {
+        // Search engines find the help and the legal pages, at the same public address.
+        name: "sitemap",
+        apply: "build",
+        generateBundle() {
+          this.emitFile({ type: "asset", fileName: "sitemap.xml", source: sitemapXml(SITE_URL) });
+          this.emitFile({ type: "asset", fileName: "robots.txt", source: robotsTxt(SITE_URL) });
+        },
       },
     ],
     resolve: {

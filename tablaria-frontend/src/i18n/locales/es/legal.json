@@ -1,0 +1,10 @@
+{
+  "updated": "Última actualización: {{date}}",
+  "contents": "Contenido",
+  "others": "Otras páginas legales",
+  "links": {
+    "privacy": "Privacidad",
+    "legal": "Aviso legal",
+    "cookies": "Cookies"
+  }
+}

@@ -24,6 +24,7 @@ const MetricsPage = lazy(() => import("@/pages/app/table/MetricsPage"));
 const LabelsPage = lazy(() => import("@/pages/app/table/LabelsPage"));
 const PublicTablePage = lazy(() => import("@/pages/PublicTablePage"));
 const DocsPage = lazy(() => import("@/pages/DocsPage"));
+const LegalPage = lazy(() => import("@/pages/LegalPage"));
 const InvitationPage = lazy(() => import("@/pages/InvitationPage"));
 const OrganizationPage = lazy(() => import("@/pages/app/OrganizationPage"));
 
@@ -70,6 +71,9 @@ const App = () => {
         {/* Public help: readable without an account, and by search engines. */}
         <Route path="ayuda" element={<DocsPage />} />
         <Route path="ayuda/:slug" element={<DocsPage />} />
+        <Route path="privacidad" element={<LegalPage page="privacy" />} />
+        <Route path="aviso-legal" element={<LegalPage page="legal" />} />
+        <Route path="cookies" element={<LegalPage page="cookies" />} />
 
         <Route path="*" element={<NotFound />} />
       </Routes>

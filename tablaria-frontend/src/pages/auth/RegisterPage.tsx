@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { registerSchema } from "@tablaria/shared";
 import { useForm } from "react-hook-form";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router";
 import type { z } from "zod";
 import { FieldGroup } from "@/components/ui/field";
@@ -17,6 +17,8 @@ import { SubmitButton } from "@/components/form/SubmitButton";
 import { emailErrorMessage, passwordErrorMessage } from "@/features/auth/field-errors";
 import { isInvitationPath, rememberAfterSignup } from "@/features/auth/redirect";
 import { apiErrorMessage } from "@/lib/error-message";
+
+const TERMS_LINK_CLASS = "font-medium text-primary underline underline-offset-4 hover:decoration-2";
 
 type RegisterForm = z.input<typeof registerSchema>;
 
@@ -87,6 +89,16 @@ export default function RegisterPage() {
           </FormField>
 
           <SubmitButton pending={register.isPending}>{t("register.submit")}</SubmitButton>
+          <p className="text-sm text-muted-foreground">
+            <Trans
+              t={t}
+              i18nKey="register.terms"
+              components={{
+                legal: <Link to="/aviso-legal" className={TERMS_LINK_CLASS} />,
+                privacy: <Link to="/privacidad" className={TERMS_LINK_CLASS} />,
+              }}
+            />
+          </p>
         </FieldGroup>
       </form>
 

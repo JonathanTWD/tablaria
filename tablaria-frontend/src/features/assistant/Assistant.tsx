@@ -131,7 +131,7 @@ function AssistantPanel({
   limit: number;
   onClose: () => void;
 }) {
-  const { t } = useTranslation(["assistant", "common"]);
+  const { t } = useTranslation(["assistant", "common", "docs"]);
   const id = useId();
   const ask = useAskAssistant();
   const tableId = useMatch("/app/tables/:tableId/*")?.params.tableId;
@@ -240,6 +240,15 @@ function AssistantPanel({
             <div className="flex flex-1 flex-col gap-4 p-4">
               <p className="text-sm">{t("notice.body")}</p>
               <p className="text-sm text-muted-foreground">{t("notice.limits")}</p>
+              <a
+                href="/privacidad#proveedores"
+                target="_blank"
+                rel="noopener"
+                className="self-start rounded-sm text-sm font-medium text-primary underline underline-offset-4 hover:decoration-2 focus-visible:outline-2 focus-visible:outline-ring"
+              >
+                {t("notice.privacy")}
+                <span className="sr-only"> ({t("docs:newTab")})</span>
+              </a>
               <Button
                 className="h-9 self-start"
                 onClick={() => {

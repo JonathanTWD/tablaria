@@ -54,3 +54,26 @@ describe("the Spanish help", () => {
     }
   });
 });
+
+describe("the sitemap", () => {
+  it("lists every guide and legal page", async () => {
+    const { HELP_SLUGS, LEGAL_PATHS } = await import("@/public-paths");
+    const { LEGAL_PAGES } = await import("@/features/legal/content");
+    expect(HELP_SLUGS).toEqual(DOCS_ES.flatMap(({ articles }) => articles.map(({ slug }) => slug)));
+    expect(LEGAL_PATHS).toEqual(Object.values(LEGAL_PAGES).map(({ path }) => path));
+  });
+
+  it("is not blocked by robots.txt", async () => {
+    const { PUBLIC_PATHS, robotsTxt } = await import("@/public-paths");
+    const rules = robotsTxt("https://tablaria.es")
+      .split("\n")
+      .filter((line) => line.startsWith("Disallow: "))
+      .map((line) => line.slice("Disallow: ".length));
+    // Prefix rules, or exact ones when they end in $, as crawlers read them.
+    const blocked = (path: string) =>
+      rules.some((rule) => (rule.endsWith("$") ? path === rule.slice(0, -1) : path.startsWith(rule)));
+    expect(PUBLIC_PATHS.filter(blocked)).toEqual([]);
+    expect(blocked("/p")).toBe(true);
+    expect(blocked("/app/tables/1")).toBe(true);
+  });
+});
