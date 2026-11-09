@@ -6,6 +6,7 @@ export * from "./tables.js";
 export * from "./templates.js";
 export * from "./records.js";
 export * from "./stock-alerts.js";
+export * from "./upcoming-dates.js";
 export * from "./stock-movements.js";
 export * from "./metrics.js";
 export * from "./sharing.js";

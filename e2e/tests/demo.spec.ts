@@ -8,6 +8,9 @@ test("a visitor tries the demo without signing up", async ({ page }) => {
   await expect(page).toHaveURL(/\/app$/);
   await expect(page.getByRole("heading", { level: 1, name: "Hola, visitante" })).toBeVisible();
   await expect(page.getByText("Estás en una cuenta de demostración")).toBeVisible();
+  // Deliveries and warranties coming soon greet the visitor.
+  const upcoming = page.getByRole("region", { name: "Próximamente" });
+  await expect(upcoming.getByRole("link", { name: /Pedidos · Entrega/ }).first()).toBeVisible();
 
   // The example tables are there, with their records and the columns worked out from them.
   await page.getByRole("link", { name: /^Productos/ }).first().click();

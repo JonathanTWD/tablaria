@@ -17,6 +17,7 @@ import { PrismaService } from '../database/prisma.service';
 import { MetricsService } from '../metrics/metrics.service';
 import { RecordsService } from '../records/records.service';
 import { StockAlertsService } from '../stock-alerts/stock-alerts.service';
+import { UpcomingDatesService } from '../upcoming-dates/upcoming-dates.service';
 import { StockMovementsService } from '../stock-movements/stock-movements.service';
 import { accessibleTables } from '../tables/table-access';
 import {
@@ -53,6 +54,7 @@ export class AssistantService {
     private readonly metrics: MetricsService,
     private readonly stockAlerts: StockAlertsService,
     private readonly stockMovements: StockMovementsService,
+    private readonly upcomingDates: UpcomingDatesService,
   ) {}
 
   async status(userId: string): Promise<AssistantStatus> {
@@ -99,6 +101,7 @@ export class AssistantService {
       metrics: this.metrics,
       stockAlerts: this.stockAlerts,
       stockMovements: this.stockMovements,
+      upcomingDates: this.upcomingDates,
       sources: [],
     };
     try {

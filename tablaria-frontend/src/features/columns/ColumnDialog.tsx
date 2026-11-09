@@ -360,6 +360,22 @@ function ColumnForm({
           </FormField>
         )}
 
+        {type === "date" && (
+          <FormField
+            id={`${ids}-due`}
+            label={t("columnForm.alertDaysBefore")}
+            description={t("columnForm.alertDaysBeforeHint")}
+            error={errors.alertDaysBefore && t("columnForm.errors.alertDaysBefore")}
+          >
+            <Input
+              inputMode="numeric"
+              autoComplete="off"
+              className="h-9 w-32"
+              {...form.register("alertDaysBefore")}
+            />
+          </FormField>
+        )}
+
         {type === "select" && (
           <fieldset className="flex flex-col gap-2">
             <legend className="mb-2 text-sm font-medium">{t("columnForm.choices")}</legend>

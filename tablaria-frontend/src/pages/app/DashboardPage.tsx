@@ -12,6 +12,8 @@ import { useSpace, useSpaceName } from "@/features/organizations/space-context";
 import { SharedTablesSection } from "@/features/sharing/SharedTablesSection";
 import { CreateTableDialog } from "@/features/tables/CreateTableDialog";
 import { tablesQuery } from "@/features/tables/queries";
+import { upcomingDatesQuery } from "@/features/upcoming-dates/queries";
+import { UpcomingDatesCard } from "@/features/upcoming-dates/UpcomingDatesCard";
 import { apiErrorMessage } from "@/lib/error-message";
 import { formatRelativeTime } from "@/lib/format";
 
@@ -144,6 +146,8 @@ function TablesOverview({
   personal: boolean;
 }) {
   const { t, i18n } = useTranslation(["app", "tables"]);
+  // Across every table the user can open: what comes soon matters wherever it lives.
+  const upcoming = useQuery(upcomingDatesQuery());
   const recordCount = tables.reduce((total, table) => total + table.recordCount, 0);
   const metrics = [
     { label: t("dashboard.metrics.tables"), value: tables.length.toLocaleString(i18n.language) },
@@ -172,6 +176,7 @@ function TablesOverview({
       </dl>
 
       <div className="mt-8 flex flex-col gap-10">
+          {!upcoming.isPending && <UpcomingDatesCard upcoming={upcoming.data} />}
           <section aria-labelledby="tables-title" className="@container/tables">
             <h2 id="tables-title" className="text-lg font-semibold tracking-tight">
               {personal ? t("dashboard.tablesTitle") : t("dashboard.organizationTablesTitle")}

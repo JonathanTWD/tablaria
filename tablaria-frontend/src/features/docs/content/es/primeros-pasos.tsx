@@ -100,7 +100,7 @@ export const primerosPasos: DocArticle = {
             </li>
             <li>
               <Ui>Calendario</Ui>: los registros en el día de sus fechas, si la tabla tiene columnas de fecha. Ver{" "}
-              <DocLink to="calendario">Calendario</DocLink>.
+              <DocLink to="calendario">Calendario y avisos de fechas</DocLink>.
             </li>
             <li>
               <Ui>Métricas</Ui>: totales y gráficos. Ver <DocLink to="metricas">Métricas</DocLink>.
@@ -110,8 +110,8 @@ export const primerosPasos: DocArticle = {
             </li>
           </ul>
           <p>
-            El <Ui>Inicio</Ui> resume todos los espacios: cuántas tablas y registros tienes, qué está{" "}
-            <Ui>Bajo mínimo</Ui> y las tablas que otras personas han compartido contigo.
+            El <Ui>Inicio</Ui> muestra las tablas del espacio elegido con sus cifras, las fechas que llegan pronto en{" "}
+            <Ui>Próximamente</Ui> y, en tu espacio personal, las tablas que otras personas han compartido contigo.
           </p>
         </>
       ),

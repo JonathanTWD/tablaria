@@ -1,14 +1,17 @@
 import {
   cellValueSchema,
+  dueSoon,
   type PresenceCell,
   stockLevel,
   type CellValue,
   type StockLevel,
   type TableColumn,
 } from "@tablaria/shared";
-import { CircleAlert, TriangleAlert, type LucideIcon } from "lucide-react";
+import { CalendarClock, CircleAlert, TriangleAlert, type LucideIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
+import { todayIso } from "@/features/calendar/calendar-dates";
 import { toast } from "sonner";
 import {
   Select,
@@ -65,6 +68,35 @@ const STOCK_ALERTS: Record<Exclude<StockLevel, "ok">, { icon: LucideIcon; classN
   low: { icon: TriangleAlert, className: "font-medium text-amber-700 dark:text-amber-400" },
   out: { icon: CircleAlert, className: "font-medium text-destructive" },
 };
+
+interface CellWarning {
+  icon: LucideIcon;
+  className: string;
+  /** The value with what the warning says, for screen readers. */
+  text: string;
+}
+
+/** A number below its threshold or a date within its warning (ADR-048), as the cell flags it. */
+function cellWarning(
+  column: TableColumn,
+  value: CellValue | undefined,
+  shown: string,
+  t: TFunction<"records">,
+): CellWarning | null {
+  const level = stockLevel(column, value);
+  if (level && level !== "ok") {
+    return { ...STOCK_ALERTS[level], text: t(`cell.stock.${level}`, { value: shown }) };
+  }
+  const days = dueSoon(column, value, todayIso());
+  if (days !== null) {
+    return {
+      icon: CalendarClock,
+      className: "font-medium text-amber-700 dark:text-amber-400",
+      text: t("cell.dueSoon", { count: days, value: shown }),
+    };
+  }
+  return null;
+}
 
 /**
  * A cell edited in place. Booleans and selects save on change; other types
@@ -251,10 +283,8 @@ function TextualCell({
     );
   }
 
-  const level = stockLevel(column, value);
-  const alertLevel = level === "ok" ? null : level;
-  const alert = alertLevel && STOCK_ALERTS[alertLevel];
   const shown = format(column, value) || t("cell.empty");
+  const alert = cellWarning(column, value, shown, t);
 
   return (
     <button
@@ -262,7 +292,7 @@ function TextualCell({
       // The name includes the value, which the visible text alone would not tie to its column.
       aria-label={t("cell.edit", {
         label,
-        value: alertLevel ? t(`cell.stock.${alertLevel}`, { value: shown }) : shown,
+        value: alert ? alert.text : shown,
       })}
       ref={(button) => {
         if (button && returnFocus.current) {
@@ -313,10 +343,8 @@ export function ReadOnlyCell({
       </span>
     );
   }
-  const level = stockLevel(column, value);
-  const alertLevel = level === "ok" ? null : level;
-  const alert = alertLevel && STOCK_ALERTS[alertLevel];
   const shown = format(column, value);
+  const alert = cellWarning(column, value, shown, t);
 
   return (
     <span
@@ -327,12 +355,10 @@ export function ReadOnlyCell({
       )}
     >
       {alert && <alert.icon aria-hidden="true" className="size-3.5 shrink-0" />}
-      <span className="truncate" aria-hidden={alertLevel ? true : undefined}>
+      <span className="truncate" aria-hidden={alert ? true : undefined}>
         {shown}
       </span>
-      {alertLevel && (
-        <span className="sr-only">{t(`cell.stock.${alertLevel}`, { value: shown })}</span>
-      )}
+      {alert && <span className="sr-only">{alert.text}</span>}
     </span>
   );
 }

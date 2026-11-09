@@ -400,8 +400,8 @@ export function demoTables(today: Date): DemoTable[] {
         { name: 'Pedido', type: 'text', required: true, unique: true },
         { name: 'Cliente', type: 'text' },
         { name: 'Fecha', type: 'date' },
-        // Upcoming deliveries fill the calendar of the current weeks.
-        { name: 'Entrega', type: 'date' },
+        // Upcoming deliveries fill the calendar and, a week ahead, "Próximamente".
+        { name: 'Entrega', type: 'date', options: { alertDaysBefore: 7 } },
         {
           name: 'Productos',
           type: 'relation',
@@ -585,7 +585,11 @@ export function demoTables(today: Date): DemoTable[] {
       // Warranties ending in the coming weeks show on the calendar.
       columns: [
         ...TABLE_TEMPLATES.assets,
-        { name: 'Fin de garantía', type: 'date' },
+        {
+          name: 'Fin de garantía',
+          type: 'date',
+          options: { alertDaysBefore: 15 },
+        },
       ],
       rows: [
         {

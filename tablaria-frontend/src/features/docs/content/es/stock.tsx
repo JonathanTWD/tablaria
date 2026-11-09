@@ -79,10 +79,8 @@ export const stock: DocArticle = {
               la celda se marca en la tabla, y como <Ui>agotado</Ui> si llega a cero;
             </li>
             <li>
-              aparece en el panel <Ui>Bajo mínimo</Ui> del inicio, con cuántos quedan y el mínimo;
-            </li>
-            <li>
-              se cuenta en las <DocLink to="metricas">métricas</DocLink> de la tabla.
+              aparece en las <DocLink to="metricas">métricas</DocLink> de la tabla: se cuenta en el resumen y se lista
+              en <Ui>Bajo mínimo</Ui>, con cuántos quedan y el mínimo.
             </li>
           </ul>
           <p>

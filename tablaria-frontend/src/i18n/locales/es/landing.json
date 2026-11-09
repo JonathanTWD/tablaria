@@ -413,8 +413,8 @@
         }
       },
       "calendar": {
-        "title": "Calendario de fechas",
-        "description": "Entregas, caducidades, garantías o revisiones: cualquier columna de fecha se ve en un calendario. Arrastra un registro a otro día para cambiar su fecha.",
+        "title": "Calendario y avisos de fechas",
+        "description": "Entregas, caducidades o garantías en un calendario, y un aviso días antes en «Próximamente». Arrastra un registro a otro día para cambiar su fecha.",
         "example": {
           "weekdays": [
             "L",
@@ -428,11 +428,11 @@
           "events": [
             [
               "PED-1041",
-              "Entrega"
+              "Entrega · mañana"
             ],
             [
               "Portátil Dell",
-              "Fin de garantía"
+              "Fin de garantía · en 4 días"
             ]
           ]
         }

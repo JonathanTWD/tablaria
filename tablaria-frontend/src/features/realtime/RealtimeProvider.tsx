@@ -9,6 +9,7 @@ import type {
 } from "@tablaria/shared";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { stockAlertsKey } from "@/features/stock-alerts/queries";
+import { upcomingDatesKey } from "@/features/upcoming-dates/queries";
 import { tableKeys } from "@/features/tables/queries";
 import { apiRequest } from "@/lib/api-client";
 import { RealtimeContext, type RealtimeStatus } from "./realtime-context";
@@ -27,6 +28,7 @@ function refresh(queryClient: QueryClient, tableId: string, scope: RealtimeScope
       tableKeys.movements(tableId),
       tableKeys.activity(tableId),
       stockAlertsKey,
+      upcomingDatesKey,
     );
   }
   if (scope === "records" || scope === "columns" || scope === "table") {
@@ -41,7 +43,13 @@ function refresh(queryClient: QueryClient, tableId: string, scope: RealtimeScope
   }
   if (scope === "deleted") {
     // The page refetches, gets a 404 and says the table is gone.
-    keys.push(tableKeys.detail(tableId), tableKeys.list(), tableKeys.shared(), stockAlertsKey);
+    keys.push(
+      tableKeys.detail(tableId),
+      tableKeys.list(),
+      tableKeys.shared(),
+      stockAlertsKey,
+      upcomingDatesKey,
+    );
   }
   for (const queryKey of keys) {
     void queryClient.invalidateQueries({ queryKey });

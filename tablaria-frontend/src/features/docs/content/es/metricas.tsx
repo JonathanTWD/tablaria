@@ -25,6 +25,10 @@ export const metricas: DocArticle = {
             <Ui>Bajo mínimo</Ui>: cuántos están por debajo del aviso de alguna columna, si la tabla tiene avisos.
           </li>
           <li>
+            <Ui>Fechas próximas</Ui>: cuántas fechas llegan dentro de su aviso, si alguna columna de fecha avisa. Debajo
+            se listan, de la más cercana a la más lejana.
+          </li>
+          <li>
             Un <Ui>Total</Ui> por cada columna de número o precio, con su media, su mínimo y su máximo.
           </li>
         </ul>
