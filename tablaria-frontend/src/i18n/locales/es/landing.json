@@ -1,7 +1,8 @@
 {
   "nav": {
     "label": "Navegación principal",
-    "howItWorks": "Cómo funciona",
+    "features": "Funciones",
+    "assistant": "Asistente",
     "useCases": "Casos de uso",
     "faq": "Preguntas",
     "login": "Entrar",
@@ -10,7 +11,7 @@
   },
   "hero": {
     "title": "Tu inventario, en tablas hechas a tu medida.",
-    "description": "Crea las columnas que necesita tu negocio y encuentra cualquier producto en segundos. Sin fórmulas ni hojas que se rompen.",
+    "description": "Crea las columnas que necesita tu negocio, enlaza tablas entre sí y encuentra cualquier producto en segundos. Sin hojas que se rompen ni copias por email.",
     "secondary": "Crear cuenta",
     "free": "La demo entra al instante con tablas de ejemplo, sin registrarte. Gratis y sin instalar nada."
   },
@@ -333,6 +334,142 @@
       "result": "2 resultados"
     }
   },
+  "features": {
+    "title": "Todo lo que tu inventario necesita, en un sitio",
+    "description": "Lo que empieza como una lista crece con tu negocio: proveedores, pedidos, etiquetas y un equipo que trabaja a la vez.",
+    "items": {
+      "relations": {
+        "title": "Tablas enlazadas y fórmulas",
+        "description": "Cada producto con su proveedor y cada pedido con sus productos. Trae datos de la tabla enlazada, súmalos y calcula columnas con fórmulas.",
+        "example": {
+          "product": "Producto",
+          "supplier": "Proveedor",
+          "stock": "Stock",
+          "value": "Valor",
+          "formula": "= {Precio} * {Stock}",
+          "rows": [
+            [
+              "Taladro percutor",
+              "Bricomarket",
+              "14",
+              "1.106 €"
+            ],
+            [
+              "Guantes de nitrilo",
+              "Suministros Norte",
+              "12",
+              "106,80 €"
+            ],
+            [
+              "Cinta métrica 5 m",
+              "Bricomarket",
+              "38",
+              "247 €"
+            ]
+          ]
+        }
+      },
+      "realtime": {
+        "title": "Tu equipo, a la vez",
+        "description": "Los cambios aparecen sin recargar y ves quién está editando cada celda. Cada persona, con su rol.",
+        "example": {
+          "editing": "Lucía",
+          "cell": "Stock: 30",
+          "change": "Javier ha cambiado el precio"
+        }
+      },
+      "metrics": {
+        "title": "Métricas al momento",
+        "description": "Totales, medias y gráficos por categoría o por mes, sin montar una tabla dinámica.",
+        "example": {
+          "total": "Valor del inventario",
+          "amount": "18.420 €",
+          "bars": [
+            "Herram.",
+            "Protec.",
+            "Embal.",
+            "Envíos",
+            "Ferret."
+          ]
+        }
+      },
+      "qr": {
+        "title": "Etiquetas QR y fotos",
+        "description": "Imprime etiquetas, pégalas en la estantería y escanéalas con el móvil para abrir la ficha, con sus fotos y documentos.",
+        "example": {
+          "name": "Taladro percutor",
+          "reference": "REF-0142",
+          "attachment": "factura.pdf"
+        }
+      },
+      "import": {
+        "title": "Excel de ida y vuelta",
+        "description": "Importa tu hoja tal como la tienes y exporta cualquier vista a Excel o CSV.",
+        "example": {
+          "file": "inventario.xlsx",
+          "columns": "6 columnas emparejadas",
+          "duplicates": "2 filas repetidas, se omiten",
+          "ready": "128 registros listos"
+        }
+      },
+      "batch": {
+        "title": "Cambios en lote y vistas guardadas",
+        "description": "Selecciona varios registros para cambiarlos o borrarlos de una vez, y guarda tus filtros favoritos con nombre.",
+        "example": {
+          "selected": "3 seleccionados",
+          "change": "Cambiar valor",
+          "delete": "Borrar",
+          "views": [
+            "Bajo mínimo",
+            "Pasillo B",
+            "Sin proveedor"
+          ]
+        }
+      },
+      "stock": {
+        "title": "Movimientos de stock",
+        "description": "Registra entradas y salidas con su motivo y consulta el historial de cada producto. Te avisa de lo que baja del mínimo.",
+        "example": {
+          "movements": [
+            [
+              "+50",
+              "Entrada · pedido 0231"
+            ],
+            [
+              "−12",
+              "Salida · obra Calle Mayor"
+            ],
+            [
+              "−3",
+              "Ajuste · recuento"
+            ]
+          ],
+          "low": "Bajo mínimo"
+        }
+      }
+    }
+  },
+  "assistantShowcase": {
+    "eyebrow": "Asistente de IA",
+    "title": "Pregúntale a tu inventario",
+    "description": "Escribe o dicta lo que quieres saber y el asistente lo busca en tus tablas, con enlaces a los registros de los que sale cada dato.",
+    "points": {
+      "readOnly": "Solo lee, y solo lo que tú puedes ver.",
+      "voice": "Por escrito o con la voz, desde cualquier pantalla con Ctrl + K.",
+      "sources": "Cada respuesta enlaza a los registros que ha consultado."
+    },
+    "panelLabel": "Ejemplo de conversación con el asistente",
+    "question": "¿Qué está bajo mínimo y a qué proveedor lo pido?",
+    "thinking": "Consultando Productos…",
+    "answer": "Hay 3 productos bajo mínimo: guantes de nitrilo (12 de 20), gafas de protección (7 de 20) y etiquetas térmicas, que están agotadas. Los guantes y las gafas se piden a Suministros Norte, y las etiquetas, a Envíos Rápidos.",
+    "sources": [
+      "Guantes de nitrilo",
+      "Gafas de protección",
+      "Etiquetas térmicas"
+    ],
+    "placeholder": "Pregunta lo que quieras…",
+    "replay": "Repetir el ejemplo"
+  },
   "comparison": {
     "title": "Lo que una hoja de cálculo no hace por ti",
     "caption": "Comparativa entre una hoja de cálculo y Tablaria",
@@ -401,17 +538,25 @@
         "question": "¿Quién ve mis datos?",
         "answer": "Tú y las personas a las que invites. Tus tablas son privadas hasta que las compartes, cada persona solo puede hacer lo que permite su rol, y la contraseña se guarda cifrada."
       },
+      "assistant": {
+        "question": "¿Qué hace el asistente con mis datos?",
+        "answer": "Solo los lee, y solo los de las tablas a las que tienes acceso: no puede cambiar nada y las conversaciones no se guardan. Para responder, envía tu pregunta y los datos que consulta a Groq, el proveedor del modelo de IA. Cada cuenta tiene 15 preguntas al día."
+      },
       "import": {
         "question": "¿Puedo usar mis datos en Excel?",
-        "answer": "Sí, en los dos sentidos. Cada tabla se exporta a CSV con la búsqueda, los filtros y el orden que tengas, y se abre directamente en Excel. Para traer tus datos, guarda tu hoja como CSV e impórtala: Tablaria empareja las columnas y te avisa de cada celda que no encaje antes de guardar nada."
+        "answer": "Sí, en los dos sentidos. Cada tabla se exporta a Excel (.xlsx) o a CSV con la búsqueda, los filtros y el orden que tengas. Para traer tus datos, sube tu hoja de Excel o un CSV: Tablaria empareja las columnas, te enseña una vista previa, omite las filas repetidas y te avisa de cada celda que no encaje antes de guardar nada."
+      },
+      "columns": {
+        "question": "¿Qué tipos de columna puedo usar?",
+        "answer": "Texto, número, fecha, sí / no, lista de opciones y precio. Además, puedes enlazar tablas entre sí (cada producto con su proveedor, por ejemplo), traer datos de la tabla enlazada, resumirlos y calcular columnas con fórmulas. El tipo de una columna se puede cambiar más adelante."
+      },
+      "labels": {
+        "question": "¿Puedo imprimir etiquetas?",
+        "answer": "Sí. Cada registro tiene su código QR, y puedes imprimir una hoja de etiquetas con los registros que filtres. Al escanear una con el móvil se abre su ficha; quien no tenga acceso a la tabla no ve nada."
       },
       "install": {
         "question": "¿Tengo que instalar algo?",
         "answer": "No. Tablaria funciona en el navegador, tanto en el ordenador como en el móvil."
-      },
-      "columns": {
-        "question": "¿Qué tipos de columna puedo usar?",
-        "answer": "Texto, número, fecha, sí / no, lista de opciones y precio. Puedes cambiar el tipo de una columna más adelante."
       },
       "team": {
         "question": "¿Puedo compartir una tabla con mi equipo?",
