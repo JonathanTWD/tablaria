@@ -16,10 +16,16 @@ import {
   ATTACHMENT_MAX_BYTES,
   type AttachmentType,
   MAX_ATTACHMENTS_PER_RECORD,
+  type RecordData,
   SPACE_ATTACHMENTS_MAX_BYTES,
 } from '@tablaria/shared';
+import { logActivity, recordLabel } from '../activity/activity-log';
+import { toTableColumn } from '../columns/column-mapper';
 import { PrismaService } from '../database/prisma.service';
-import type { Attachment as StoredAttachment } from '../generated/prisma/client';
+import type {
+  Prisma,
+  Attachment as StoredAttachment,
+} from '../generated/prisma/client';
 import { accessibleTables, touchTable } from '../tables/table-access';
 import { cleanFileName, detectAttachmentType } from './file-type';
 import { FileStorage } from './storage/file-storage';
@@ -104,11 +110,11 @@ export class AttachmentsService implements OnModuleInit, OnModuleDestroy {
       );
     }
 
-    const attachment = await this.prisma.$transaction(async (tx) => {
+    const { attachment, label } = await this.prisma.$transaction(async (tx) => {
       await touchTable(tx, userId, tableId, 'EDITOR');
       const record = await tx.record.findFirst({
         where: { id: recordId, tableId },
-        select: { table: { select: { organizationId: true } } },
+        select: { data: true, table: { select: { organizationId: true } } },
       });
       if (!record) {
         throw new NotFoundException('Record not found');
@@ -147,7 +153,7 @@ export class AttachmentsService implements OnModuleInit, OnModuleDestroy {
       if ((used ?? 0) + body.length > SPACE_ATTACHMENTS_MAX_BYTES) {
         throw new UnprocessableEntityException('Storage quota reached');
       }
-      return tx.attachment.create({
+      const created = await tx.attachment.create({
         data: {
           recordId,
           uploadedById: userId,
@@ -156,6 +162,10 @@ export class AttachmentsService implements OnModuleInit, OnModuleDestroy {
           size: body.length,
         },
       });
+      return {
+        attachment: created,
+        label: await labelOf(tx, tableId, record.data as RecordData),
+      };
     });
 
     try {
@@ -163,6 +173,22 @@ export class AttachmentsService implements OnModuleInit, OnModuleDestroy {
     } catch (error) {
       await this.prisma.attachment.delete({ where: { id: attachment.id } });
       throw error;
+    }
+    // Only once the file is stored: a failed upload leaves no trace in the history.
+    // The file is saved by now, so a history hiccup is logged, not reported as a failed upload.
+    try {
+      await logActivity(this.prisma, {
+        tableId,
+        userId,
+        action: 'attachment.added',
+        recordId,
+        label,
+        details: { file: attachment.name },
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Could not record the upload of attachment ${attachment.id}: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
     return toAttachment(attachment);
   }
@@ -197,14 +223,26 @@ export class AttachmentsService implements OnModuleInit, OnModuleDestroy {
   ): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
       await touchTable(tx, userId, tableId, 'EDITOR');
-      // Detached first: the file leaves storage below, or with the next cleanup.
-      const { count } = await tx.attachment.updateMany({
+      const attachment = await tx.attachment.findFirst({
         where: { id: attachmentId, recordId, record: { tableId } },
-        data: { recordId: null },
+        select: { name: true, record: { select: { data: true } } },
       });
-      if (count === 0) {
+      if (!attachment?.record) {
         throw new NotFoundException('Attachment not found');
       }
+      // Detached first: the file leaves storage below, or with the next cleanup.
+      await tx.attachment.update({
+        where: { id: attachmentId },
+        data: { recordId: null },
+      });
+      await logActivity(tx, {
+        tableId,
+        userId,
+        action: 'attachment.removed',
+        recordId,
+        label: await labelOf(tx, tableId, attachment.record.data as RecordData),
+        details: { file: attachment.name },
+      });
     });
     await this.removeOrphans({ ids: [attachmentId] });
   }
@@ -261,6 +299,19 @@ export class AttachmentsService implements OnModuleInit, OnModuleDestroy {
       throw new NotFoundException('Record not found');
     }
   }
+}
+
+/** The record's name as the history shows it (its first column). */
+async function labelOf(
+  tx: Prisma.TransactionClient,
+  tableId: string,
+  data: RecordData,
+): Promise<string | null> {
+  const first = await tx.column.findFirst({
+    where: { tableId },
+    orderBy: { position: 'asc' },
+  });
+  return recordLabel(first ? toTableColumn(first) : undefined, data);
 }
 
 function storageKey(attachmentId: string): string {

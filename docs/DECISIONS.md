@@ -1011,6 +1011,22 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 - Quien quiera ver también lo atrasado tiene el calendario o un filtro por fechas.
 - Si un día se avisan fechas pasadas, el campo `alertDaysBefore` se puede acompañar de otro sin romper lo guardado.
 
+## ADR-049: Adjuntos en el historial y límite de subidas antes de leer el archivo
+
+**Contexto**: dos avisos de seguridad de prioridad baja de la auditoría de la v1.9.0. Subir o quitar un adjunto no dejaba rastro en la actividad (ADR-025), así que un editor podía borrar la foto o la factura de un registro sin que nadie supiera quién. Y el límite de 20 subidas por minuto lo aplicaba el guard del limitador, que en NestJS corre después del body parser: cada subida de más se leía entera (hasta 5 MB) antes de rechazarse.
+
+**Decisión**:
+- **Dos acciones nuevas en la actividad:** `attachment.added` y `attachment.removed`, con el nombre del archivo en `details.file` y el registro como etiqueta. El enum de la base de datos crece con `ALTER TYPE … ADD VALUE`, sin tocar las filas.
+  - La subida se apunta solo cuando el archivo ya está guardado: una subida fallida no deja rastro.
+  - El borrado se apunta en la misma transacción que desengancha el archivo.
+- **El límite de subidas va en el middleware**, antes del parser del cuerpo (`app.setup.ts`). Cuenta por usuario, no por IP, en el mismo almacén del limitador global (`getStorageToken()`), con 20 por minuto (`upload-limit.ts`).
+  - Pasado el límite responde 429 con `Retry-After` y `Connection: close`, así que el resto del archivo no se lee.
+  - El guard global (100 peticiones por minuto por IP) sigue aplicándose después, como en el resto de rutas.
+
+**Consecuencias**:
+- Las subidas que fallan por otra causa (tipo no admitido, cupo lleno) también cuentan para el límite, igual que antes.
+- Si un día el limitador pasa a Redis, este middleware lo usa sin cambios, porque lee el almacén del módulo.
+
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
 Todas están especificadas en [MVP_PROMPT.md](MVP_PROMPT.md):

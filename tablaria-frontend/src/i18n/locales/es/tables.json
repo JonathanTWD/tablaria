@@ -339,6 +339,8 @@
       "columnUpdated": "Columna «{{label}}» modificada",
       "columnRenamed": "Columna «{{from}}» renombrada a «{{label}}»",
       "columnDeleted": "Columna «{{label}}» borrada",
+      "attachmentAdded": "Archivo «{{file}}» adjuntado a «{{label}}»",
+      "attachmentRemoved": "Archivo «{{file}}» quitado de «{{label}}»",
       "stock": {
         "in": "Entrada de {{quantity}} en {{column}} de «{{label}}»",
         "out": "Salida de {{quantity}} en {{column}} de «{{label}}»",

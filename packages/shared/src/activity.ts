@@ -12,6 +12,8 @@ export const ACTIVITY_ACTIONS = [
   "column.updated",
   "column.deleted",
   "stock.moved",
+  "attachment.added",
+  "attachment.removed",
 ] as const;
 export type ActivityAction = (typeof ACTIVITY_ACTIONS)[number];
 
@@ -35,6 +37,8 @@ export interface ActivityDetails {
   kind?: StockMovementKind;
   delta?: number;
   column?: string;
+  /** attachment.added / attachment.removed: the file's name. */
+  file?: string;
 }
 
 export interface ActivityEvent {

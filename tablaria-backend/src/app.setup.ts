@@ -1,6 +1,7 @@
 import type { Server } from 'node:http';
 import type { INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { getStorageToken, type ThrottlerStorage } from '@nestjs/throttler';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { ATTACHMENT_MAX_BYTES } from '@tablaria/shared';
 import cookieParser from 'cookie-parser';
@@ -14,6 +15,7 @@ import {
   urlencoded,
 } from 'express';
 import helmet from 'helmet';
+import { UPLOAD_LIMIT, UPLOAD_WINDOW_MS } from './attachments/upload-limit';
 import { ACCESS_COOKIE } from './auth/auth.constants';
 import { readCookie } from './auth/auth-cookies';
 import { SessionService } from './auth/session.service';
@@ -62,9 +64,48 @@ export function configureApp(app: INestApplication): void {
     app.use(path, importParser);
   }
   // An attachment is the raw body, whatever its declared type (ADR-039).
-  const uploadParser = forSignedIn(
-    raw({ ...parserOptions, type: () => true, limit: ATTACHMENT_MAX_BYTES }),
-  );
+  const rawUpload = raw({
+    ...parserOptions,
+    type: () => true,
+    limit: ATTACHMENT_MAX_BYTES,
+  });
+  const throttler = app.get<ThrottlerStorage>(getStorageToken());
+  // The upload limit is checked here, before a byte of the file is read: past
+  // it, the answer is a 429 and the connection closes instead of taking the file.
+  const uploadParser = (
+    request: Request,
+    response: Response,
+    next: NextFunction,
+  ) => {
+    sessions
+      .verifyAccessToken(readCookie(request, ACCESS_COOKIE) ?? '')
+      .then(
+        async ({ sub }) => {
+          const { isBlocked, timeToBlockExpire } = await throttler.increment(
+            `upload:${sub}`,
+            UPLOAD_WINDOW_MS,
+            UPLOAD_LIMIT,
+            UPLOAD_WINDOW_MS,
+            'upload',
+          );
+          if (isBlocked) {
+            response
+              .status(429)
+              .set({
+                'Retry-After': String(timeToBlockExpire),
+                Connection: 'close',
+              })
+              .json({ statusCode: 429, message: 'Too many uploads' });
+            return;
+          }
+          rawUpload(request, response, next);
+        },
+        // No session: the 100 KB parser and the auth guard answer it.
+        () => next(),
+      )
+      // A failing limiter store must not leave the request hanging.
+      .catch(next);
+  };
   app.use(
     `/${API_PREFIX}/tables/:tableId/records/:recordId/attachments`,
     (request: Request, response: Response, next: NextFunction) => {
