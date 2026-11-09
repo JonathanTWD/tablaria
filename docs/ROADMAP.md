@@ -18,6 +18,14 @@ La especificación completa del MVP está en [MVP_PROMPT.md](MVP_PROMPT.md).
 - [x] **Fase 8 — Exportar, alertas y gráficos** (v1.2.0): exportación CSV de la vista actual, alertas de stock bajo con tarjeta en el panel y resumen con gráfico de barras por columna. Falta la exportación a Excel.
 - [x] **Fase 8.5 — Pantallas grandes**: la app aprovecha el ancho (tabla a ancho completo, inicio con columna lateral) la landing se adapta a monitores de 27" y más, y la barra lateral se pliega a iconos.
 - [x] **Fase 9 — Trabajo en equipo** (v1.3.0): compartir tablas por email, organizaciones con roles, tiempo real y presencia.
+- [x] **Fase 10 — Ayuda, legal y fechas** (v1.10.0): centro de ayuda (ADR-045), páginas legales y sitemap (ADR-046), calendario (ADR-047), avisos de fechas próximas (ADR-048), logo propio y landing renovada.
+
+### Siguiente: v1.11
+
+1. Escáner de códigos de barras y QR con la cámara, para abrir o buscar registros desde el móvil.
+2. PWA instalable, con el logo nuevo.
+3. Tests de accesibilidad con axe en Playwright, y CodeQL en GitHub Actions.
+4. Actualizar minimatch (a partir del 11 de noviembre).
 
 ### Colaboración (en este orden)
 
@@ -50,7 +58,7 @@ Cada tarea indica qué modelo conviene: **Opus** para lo que toca seguridad, per
 - Movimientos de stock: entradas y salidas con histórico y quién las hizo (hecho, ADR-024).
 - Historial de actividad de cada tabla (hecho, ADR-025). Pendiente: reordenar columnas, renombrar la tabla y podar los eventos antiguos.
 - Enlaces públicos de solo lectura (hecho, ADR-026). Pendiente: caducidad opcional y elegir qué columnas se ven.
-- Adjuntos en cada registro (hecho, ADR-039). Pendiente: una columna con la foto principal en la tabla y subidas directas al bucket.
+- Adjuntos en cada registro (hecho, ADR-039; en el historial y con el límite de subidas antes de leer el archivo, ADR-049). Pendiente: una columna con la foto principal en la tabla y subidas directas al bucket.
 - API pública con tokens y webhooks.
 - Relaciones entre tablas (hechas las básicas, ADR-022; buscar, filtrar y ordenar por nombre, ADR-028; columnas de consulta, ADR-030; columnas de resumen, ADR-031; relaciones con varios registros, ADR-032; columnas de fórmula, ADR-033; ordenar y filtrar por resumen, ADR-034): ordenar y filtrar por fórmula, resúmenes con condición y consultas a través de relaciones múltiples.
 - Preguntas sobre los datos con IA (hecho, ADR-042, con el plan gratuito de Groq). Pendiente: acciones con confirmación, buscar en los PDF adjuntos y voz con ElevenLabs.
@@ -58,7 +66,8 @@ Cada tarea indica qué modelo conviene: **Opus** para lo que toca seguridad, per
 
 **Medias (básico, con cuidado; Opus si hay tiempo)**
 - Excel `.xlsx` para exportar e importar (hecho, ADR-043).
-- Parche de dependencias (~6-nov): body-parser ≥ 2.4.0, multer ≥ 2.5.0, qs ≥ 6.16.1, nodemailer ≥ 10.1.4, respetando los 14 días de pnpm.
+- Parche de dependencias: body-parser, multer, qs y nodemailer (hecho, v1.7.0). Pendiente: minimatch (v1.11).
+- Calendario por columnas de fecha (hecho, ADR-047) y avisos de fechas próximas (hecho, ADR-048). Pendiente: resumen por email cuando haya tareas programadas.
 - Selección múltiple como tipo de columna.
 - Vistas guardadas (búsqueda, filtros y orden con nombre) (hecho, ADR-041).
 - Edición en lote (hecho, ADR-040) y papelera recuperable.
@@ -71,7 +80,8 @@ Cada tarea indica qué modelo conviene: **Opus** para lo que toca seguridad, per
 **Fáciles (básico)**
 - Pegar celdas copiadas de Excel en el asistente de importación. (Hecho: vista previa y filas repetidas, ADR-044.)
 - Descargar una plantilla CSV con las columnas de la tabla.
-- Páginas legales: privacidad, aviso legal y cookies (el texto lo revisas tú).
+- Páginas legales: privacidad, aviso legal y cookies (hecho, ADR-046).
+- Centro de ayuda con una guía por función (hecho, ADR-045).
 - `pnpm audit --prod --audit-level=high` en el CI.
 - CodeQL, Codecov y Lighthouse CI en GitHub Actions, con sus badges en el README.
 - Tests de accesibilidad con axe en Playwright.
