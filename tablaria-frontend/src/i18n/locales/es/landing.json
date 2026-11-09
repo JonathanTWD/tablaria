@@ -412,6 +412,31 @@
           "ready": "128 registros listos"
         }
       },
+      "calendar": {
+        "title": "Calendario de fechas",
+        "description": "Entregas, caducidades, garantías o revisiones: cualquier columna de fecha se ve en un calendario. Arrastra un registro a otro día para cambiar su fecha.",
+        "example": {
+          "weekdays": [
+            "L",
+            "M",
+            "X",
+            "J",
+            "V",
+            "S",
+            "D"
+          ],
+          "events": [
+            [
+              "PED-1041",
+              "Entrega"
+            ],
+            [
+              "Portátil Dell",
+              "Fin de garantía"
+            ]
+          ]
+        }
+      },
       "batch": {
         "title": "Cambios en lote y vistas guardadas",
         "description": "Selecciona varios registros para cambiarlos o borrarlos de una vez, y guarda tus filtros favoritos con nombre.",

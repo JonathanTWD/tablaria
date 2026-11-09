@@ -88,7 +88,7 @@ export const primerosPasos: DocArticle = {
       title: "Las partes de una tabla",
       body: (
         <>
-          <p>Cada tabla tiene cuatro pestañas:</p>
+          <p>Cada tabla tiene estas pestañas:</p>
           <ul>
             <li>
               <Ui>Registros</Ui>: los datos, para buscarlos, filtrarlos y editarlos. Ver{" "}
@@ -97,6 +97,10 @@ export const primerosPasos: DocArticle = {
             <li>
               <Ui>Columnas</Ui>: qué datos guarda cada registro y de qué tipo. Ver{" "}
               <DocLink to="columnas">Columnas y tipos</DocLink>.
+            </li>
+            <li>
+              <Ui>Calendario</Ui>: los registros en el día de sus fechas, si la tabla tiene columnas de fecha. Ver{" "}
+              <DocLink to="calendario">Calendario</DocLink>.
             </li>
             <li>
               <Ui>Métricas</Ui>: totales y gráficos. Ver <DocLink to="metricas">Métricas</DocLink>.

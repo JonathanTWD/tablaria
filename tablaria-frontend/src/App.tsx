@@ -20,6 +20,7 @@ const RecordsPage = lazy(() => import("@/pages/app/table/RecordsPage"));
 const ColumnsPage = lazy(() => import("@/pages/app/table/ColumnsPage"));
 const ActivityPage = lazy(() => import("@/pages/app/table/ActivityPage"));
 // Recharts loads only with this page (ADR-035).
+const CalendarPage = lazy(() => import("@/pages/app/table/CalendarPage"));
 const MetricsPage = lazy(() => import("@/pages/app/table/MetricsPage"));
 const LabelsPage = lazy(() => import("@/pages/app/table/LabelsPage"));
 const PublicTablePage = lazy(() => import("@/pages/PublicTablePage"));
@@ -57,6 +58,7 @@ const App = () => {
             <Route path="tables/:tableId" element={<TablePage />}>
               <Route index element={<RecordsPage />} />
               <Route path="columns" element={<ColumnsPage />} />
+              <Route path="calendar" element={<CalendarPage />} />
               <Route path="metrics" element={<MetricsPage />} />
               <Route path="activity" element={<ActivityPage />} />
             </Route>

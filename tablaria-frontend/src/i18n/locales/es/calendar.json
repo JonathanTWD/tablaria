@@ -1,0 +1,34 @@
+{
+  "tab": "Calendario",
+  "previous": "Mes anterior",
+  "next": "Mes siguiente",
+  "today": "Hoy",
+  "dates": {
+    "label": "Fechas que se muestran",
+    "all": "Todas las fechas"
+  },
+  "color": {
+    "label": "Color de los registros",
+    "none": "Sin color",
+    "by": "Color por {{column}}"
+  },
+  "more_one": "+{{count}} más",
+  "more_other": "+{{count}} más",
+  "dayDialog": "Registros del {{day}}",
+  "todayLabel": "hoy",
+  "events_one": "{{count}} registro",
+  "events_other": "{{count}} registros",
+  "emptyMonth": "Ningún registro tiene fecha en {{month}}.",
+  "emptyMonthHint": "Cambia de mes o añade la fecha a tus registros.",
+  "truncated": "Este mes tiene demasiados registros para mostrarlos todos. Filtra la tabla en Registros para verlos.",
+  "loadError": "No se pudo cargar el calendario.",
+  "retry": "Reintentar",
+  "dragHint": "Arrastra un registro a otro día para cambiar su fecha.",
+  "moved": "{{record}}: {{column}} pasa al {{day}}",
+  "moveError": "No se pudo cambiar la fecha: {{message}}",
+  "noDates": {
+    "title": "Esta tabla no tiene columnas de fecha",
+    "description": "El calendario muestra los registros según una columna de fecha, como la entrega de un pedido, la caducidad de un lote o el fin de una garantía.",
+    "action": "Añadir una columna de fecha"
+  }
+}

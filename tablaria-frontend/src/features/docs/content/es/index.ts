@@ -1,6 +1,7 @@
 import type { DocGroup } from "../../types";
 import { asistente } from "./asistente";
 import { atajos } from "./atajos";
+import { calendario } from "./calendario";
 import { columnas } from "./columnas";
 import { compartir } from "./compartir";
 import { cuenta } from "./cuenta";
@@ -23,7 +24,7 @@ export const DOCS_ES: DocGroup[] = [
     title: "Tablas y datos",
     articles: [columnas, registros, vistasYLote, relaciones, formulas, importarExportar],
   },
-  { title: "Inventario", articles: [stock, metricas, etiquetasQr] },
+  { title: "Inventario", articles: [stock, metricas, calendario, etiquetasQr] },
   { title: "Trabajo en equipo", articles: [compartir, organizaciones, tiempoReal] },
   { title: "Asistente de IA", articles: [asistente] },
   { title: "Tu cuenta", articles: [cuenta, atajos] },
