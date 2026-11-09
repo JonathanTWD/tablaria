@@ -5,6 +5,25 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Landing sections rise in as they scroll into view. CSS only: browsers
+   without scroll-driven animations, and reduced motion, show them as they are. */
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(1.5rem);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    [data-reveal] {
+      animation: reveal linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 35%;
+    }
+  }
+}
+
 /* The assistant's "thinking" text (ADR-042). */
 @keyframes shimmer {
   from {

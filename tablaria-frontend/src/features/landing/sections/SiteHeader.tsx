@@ -7,7 +7,8 @@ import { ThemeToggle } from "@/features/theme/ThemeToggle";
 import { cn } from "@/lib/utils";
 
 const SECTION_LINKS = [
-  { href: "#como-funciona", label: "nav.howItWorks" },
+  { href: "#funciones", label: "nav.features" },
+  { href: "#asistente", label: "nav.assistant" },
   { href: "#casos", label: "nav.useCases" },
   { href: "#preguntas", label: "nav.faq" },
 ] as const;
@@ -40,7 +41,7 @@ export function SiteHeader() {
           <Logo />
         </Link>
 
-        <div className="hidden items-center gap-1 md:flex">
+        <div className="hidden items-center gap-1 lg:flex">
           {SECTION_LINKS.map(({ href, label }) => (
             <a
               key={href}
