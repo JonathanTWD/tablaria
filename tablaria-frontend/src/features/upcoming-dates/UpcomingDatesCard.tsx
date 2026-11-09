@@ -9,11 +9,17 @@ import { cn } from "@/lib/utils";
 export function UpcomingDatesCard({
   upcoming,
   showTable = true,
+  limit,
+  id,
   className,
 }: {
   upcoming: UpcomingDates | undefined;
   /** Off inside a table, where every date is of that table. */
   showTable?: boolean;
+  /** Fewer rows than the API sends, where space is short (Inicio). */
+  limit?: number;
+  /** Lets a link elsewhere on the page point at the card. */
+  id?: string;
   className?: string;
 }) {
   const { t } = useTranslation("app");
@@ -29,10 +35,15 @@ export function UpcomingDatesCard({
   if (upcoming.total === 0) {
     return null;
   }
-  const { items, total } = upcoming;
+  const { total } = upcoming;
+  const items = upcoming.items.slice(0, limit);
 
   return (
-    <section aria-labelledby={titleId} className={cn("rounded-xl border border-border bg-card", className)}>
+    <section
+      id={id}
+      aria-labelledby={titleId}
+      className={cn("scroll-mt-20 rounded-xl border border-border bg-card", className)}
+    >
       <div className="flex items-center gap-2 border-b border-border px-4 py-3 sm:px-5">
         <CalendarClock aria-hidden="true" className="size-4 text-primary" />
         <h2 id={titleId} className="font-semibold tracking-tight">
