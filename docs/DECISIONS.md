@@ -938,6 +938,23 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 - Comprobar e importar leen los datos de la tabla una vez más (como mucho 10.000 registros), un coste pequeño para el tamaño de las tablas.
 - Dos registros legítimamente iguales (por ejemplo, dos sillas idénticas sin número de serie) necesitan desactivar la opción. Se explica junto al interruptor.
 
+## ADR-045: Centro de ayuda
+
+**Contexto**: la aplicación ha crecido (relaciones, fórmulas, stock, QR, asistente…) y muchas funciones solo se descubren dentro de cada diálogo. Hacía falta una ayuda que se pueda leer sin cuenta, que encuentren los buscadores y que se enlace desde el sitio exacto donde surge la duda.
+
+**Decisión**:
+- **Rutas públicas** `/ayuda` (índice) y `/ayuda/:slug` (una guía por función), con la cabecera y el pie de la landing. Se cargan aparte (`lazy`), así que no pesan en la aplicación.
+- **Contenido en TSX, sin MDX.** Cada guía es un objeto `DocArticle` (título, descripción, palabras clave y secciones con `id`) cuyo texto es JSX semántico (`p`, `ul`, `ol`, `code`) con unos pocos componentes (`Ui`, `Kbd`, `Note`, `DocLink`, `DocTable`). El estilo lo pone un único `Prose`.
+  - MDX habría añadido un compilador y su cadena de dependencias para unas 16 páginas; con JSX, TypeScript comprueba el contenido y los enlaces internos se validan en un test.
+  - El índice, el menú, «En esta página» y anterior / siguiente salen de los datos, no del DOM.
+- **Idiomas:** el contenido va por idioma (`content/es`), con los mismos `slug` en cada uno; `docsFor(language)` elige el conjunto y vuelve al español si falta.
+- **Búsqueda en el navegador** sobre títulos, secciones, descripciones y palabras clave, sin acentos ni mayúsculas, con todas las palabras y el título por delante. No indexa el cuerpo: con las palabras clave basta y evita renderizar todo el contenido.
+- **Ayuda en contexto:** «¿Cómo funciona?» (`HelpLink`) en las fórmulas, las consultas, los resúmenes, la importación y el diálogo de compartir, y «Ayuda» en la barra lateral. Abren una pestaña nueva para no perder lo que se está rellenando.
+
+**Consecuencias**:
+- Cambiar una función obliga a revisar su guía: los textos citan los nombres de los botones tal cual (`Ui`).
+- Escribir una guía es escribir JSX; es más verboso que Markdown, pero no hay que mantener otra herramienta.
+
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
 Todas están especificadas en [MVP_PROMPT.md](MVP_PROMPT.md):

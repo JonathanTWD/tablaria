@@ -29,7 +29,7 @@
     "title": "Nueva tabla",
     "description": "Elige cómo empezar. Podrás cambiar las columnas cuando quieras.",
     "fromFileHint": "¿Ya tienes los datos en una hoja de cálculo?",
-    "fromFile": "Crear desde un archivo CSV",
+    "fromFile": "Crear desde un archivo",
     "template": "Punto de partida",
     "name": "Nombre de la tabla",
     "submit": "Crear tabla",

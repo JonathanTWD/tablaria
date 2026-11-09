@@ -23,6 +23,7 @@ const ActivityPage = lazy(() => import("@/pages/app/table/ActivityPage"));
 const MetricsPage = lazy(() => import("@/pages/app/table/MetricsPage"));
 const LabelsPage = lazy(() => import("@/pages/app/table/LabelsPage"));
 const PublicTablePage = lazy(() => import("@/pages/PublicTablePage"));
+const DocsPage = lazy(() => import("@/pages/DocsPage"));
 const InvitationPage = lazy(() => import("@/pages/InvitationPage"));
 const OrganizationPage = lazy(() => import("@/pages/app/OrganizationPage"));
 
@@ -65,6 +66,10 @@ const App = () => {
 
         {/* A read-only link: no account, the token after the # (ADR-026). */}
         <Route path="p" element={<PublicTablePage />} />
+
+        {/* Public help: readable without an account, and by search engines. */}
+        <Route path="ayuda" element={<DocsPage />} />
+        <Route path="ayuda/:slug" element={<DocsPage />} />
 
         <Route path="*" element={<NotFound />} />
       </Routes>

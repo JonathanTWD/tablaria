@@ -44,6 +44,7 @@ import { decodeText, parseCsv } from "./csv";
 import { isXlsx, parseXlsx } from "./xlsx";
 import { columnForFile, IMPORTABLE_TYPES, type ImportableType, inferType } from "./infer-column";
 import { type ImportBody, type ImportDestination, useCheckImport, useRunImport } from "./queries";
+import { HelpLink } from "@/features/docs/HelpLink";
 
 /** Above this the file can't fit the API's request limit for imports. */
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
@@ -523,7 +524,8 @@ function MappingStep({
       <fieldset className="flex flex-col gap-3">
         <legend className="mb-1 text-sm font-medium">{t("import.mapping")}</legend>
         <p className="text-xs leading-5 text-muted-foreground">
-          {canCreateColumns ? t("import.mappingHintNew") : t("import.mappingHint")}
+          {canCreateColumns ? t("import.mappingHintNew") : t("import.mappingHint")}{" "}
+          <HelpLink to="importar-exportar" section="valores" />
         </p>
         <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
           {headers.map((header, index) => {

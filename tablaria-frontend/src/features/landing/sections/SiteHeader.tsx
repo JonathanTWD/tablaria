@@ -13,8 +13,11 @@ const SECTION_LINKS = [
   { href: "#preguntas", label: "nav.faq" },
 ] as const;
 
+const NAV_LINK_CLASS =
+  "rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring";
+
 export function SiteHeader() {
-  const { t } = useTranslation(["landing", "common"]);
+  const { t } = useTranslation(["landing", "common", "docs"]);
   const { data: user } = useSession();
   const { pathname } = useLocation();
   const navigate = useNavigate();
@@ -45,12 +48,20 @@ export function SiteHeader() {
           {SECTION_LINKS.map(({ href, label }) => (
             <a
               key={href}
-              href={href}
-              className="rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+              // Away from the landing, the sections are on its page.
+              href={pathname === "/" ? href : `/${href}`}
+              className={NAV_LINK_CLASS}
             >
               {t(label)}
             </a>
           ))}
+          <Link
+            to="/ayuda"
+            aria-current={pathname.startsWith("/ayuda") ? "page" : undefined}
+            className={cn(NAV_LINK_CLASS, "aria-[current=page]:font-medium aria-[current=page]:text-foreground")}
+          >
+            {t("docs:link")}
+          </Link>
         </div>
 
         <div className="ml-auto flex items-center gap-1 sm:gap-2">

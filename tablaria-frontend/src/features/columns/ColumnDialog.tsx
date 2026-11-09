@@ -70,6 +70,7 @@ import {
 } from "./column-form";
 import { COLUMN_TYPE_ICONS, COMMON_CURRENCIES, SELECT_SWATCH_CLASSES } from "./column-ui";
 import { checkFormulaIn, type FormulaCheck } from "./formula-check";
+import { HelpLink } from "@/features/docs/HelpLink";
 
 interface ColumnDialogProps {
   tableId: string;
@@ -724,7 +725,9 @@ function LookupFields({
         {errors.relationColumnId ? (
           <FieldError id={`${id}-relation-hint`}>{t("columnForm.errors.lookup")}</FieldError>
         ) : (
-          <FieldDescription id={`${id}-relation-hint`}>{t("columnForm.lookupRelationHint")}</FieldDescription>
+          <FieldDescription id={`${id}-relation-hint`}>
+            {t("columnForm.lookupRelationHint")} <HelpLink to="relaciones" section="consulta" />
+          </FieldDescription>
         )}
       </Field>
       <Field data-invalid={Boolean(errors.targetColumnId)}>
@@ -841,7 +844,7 @@ function FormulaFields({
                 className="font-mono text-sm"
               />
               <FieldDescription id={`${id}-expression-hint`}>
-                {t("columnForm.formulaHint")} {t("columnForm.formulaExample")}
+                {t("columnForm.formulaHint")} {t("columnForm.formulaExample")} <HelpLink to="formulas" />
               </FieldDescription>
               <div id={`${id}-expression-status`} aria-live="polite">
                 {!check.ok && showError ? (
@@ -991,7 +994,9 @@ function RollupFields({
         {errors.relationColumnId ? (
           <FieldError id={`${id}-relation-hint`}>{t("columnForm.errors.rollup")}</FieldError>
         ) : (
-          <FieldDescription id={`${id}-relation-hint`}>{t("columnForm.rollupRelationHint")}</FieldDescription>
+          <FieldDescription id={`${id}-relation-hint`}>
+            {t("columnForm.rollupRelationHint")} <HelpLink to="relaciones" section="resumen" />
+          </FieldDescription>
         )}
       </Field>
       <Field>

@@ -45,6 +45,7 @@ import {
   useRevokeInvitation,
   useUpdateShare,
 } from "./queries";
+import { HelpLink } from "@/features/docs/HelpLink";
 
 interface ShareDialogProps {
   table: TableDetail;
@@ -63,7 +64,9 @@ export function ShareDialog({ table, open, onOpenChange }: ShareDialogProps) {
       >
         <DialogHeader>
           <DialogTitle>{t("share.title", { name: table.name })}</DialogTitle>
-          <DialogDescription>{t("share.description")}</DialogDescription>
+          <DialogDescription>
+            {t("share.description")} <HelpLink to="compartir" />
+          </DialogDescription>
         </DialogHeader>
         <InviteForm tableId={table.id} />
         <SharingLists tableId={table.id} />
