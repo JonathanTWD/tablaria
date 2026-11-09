@@ -569,5 +569,6 @@
     "description": "Crear una cuenta lleva menos de un minuto.",
     "action": "Crear cuenta gratis"
   },
-  "footer": "© {{year}} Tablaria"
+  "footer": "© {{year}} Tablaria",
+  "footerNav": "Enlaces del pie de página"
 }

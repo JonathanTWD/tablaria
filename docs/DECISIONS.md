@@ -955,6 +955,22 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 - Cambiar una función obliga a revisar su guía: los textos citan los nombres de los botones tal cual (`Ui`).
 - Escribir una guía es escribir JSX; es más verboso que Markdown, pero no hay que mantener otra herramienta.
 
+## ADR-046: Páginas legales y sitemap
+
+**Contexto**: Tablaria es pública y trata datos personales: cuentas, invitaciones, adjuntos en Filebase y preguntas que llegan a Groq. Necesitaba política de privacidad, aviso legal y política de cookies, y que Google encontrara la ayuda (ADR-045).
+
+**Decisión**:
+- **Tres rutas públicas**, `/privacidad`, `/aviso-legal` y `/cookies`, con el mismo formato que la ayuda (`DocArticle` y `Prose`), un índice numerado y la fecha de actualización.
+  - Quién es el responsable, el email de contacto y la fecha viven en un solo sitio (`features/legal/owner.ts`).
+- **Sin banner de cookies:** solo hay dos cookies técnicas de sesión (`tb_access`, `tb_refresh`) y preferencias en `localStorage`, exentas de consentimiento. La política de cookies las enumera.
+- **Dónde se enlazan:** el pie de página, el registro («Al crear tu cuenta aceptas…») y el aviso del asistente, que es donde se decide enviar datos a Groq.
+- **`sitemap.xml` y `robots.txt` generados al compilar** con `SITE_URL`, como las etiquetas `og:`. Las rutas públicas están en `public-paths.ts`, datos planos que `vite.config.ts` puede importar. Un test comprueba que coinciden con las guías y las páginas legales, y que ninguna regla de `robots.txt` las bloquea.
+  - `Disallow: /p$` lleva `$`: las reglas son prefijos, y `/p` a secas también bloquearía `/privacidad`.
+
+**Consecuencias**:
+- Cambiar un proveedor o lo que se guarda obliga a revisar la política de privacidad y su fecha.
+- Una guía nueva necesita su slug en `public-paths.ts`; el test avisa si falta.
+
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
 Todas están especificadas en [MVP_PROMPT.md](MVP_PROMPT.md):
