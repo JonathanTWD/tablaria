@@ -58,7 +58,7 @@
   "empty": {
     "noColumnsTitle": "Primero, define las columnas",
     "noColumnsDescription": "Las columnas indican qué datos guarda cada registro.",
-    "noColumnsDescriptionImport": "Las columnas indican qué datos guarda cada registro. Créalas a mano o importa un archivo CSV y se crearán a partir de su cabecera.",
+    "noColumnsDescriptionImport": "Las columnas indican qué datos guarda cada registro. Créalas a mano o importa un archivo de Excel o CSV y se crearán a partir de su cabecera.",
     "noColumnsAction": "Ir a columnas",
     "title": "Aún no hay registros",
     "description": "Añade el primero con el botón «Nuevo registro»; luego podrás editar cada celda directamente en la tabla.",
