@@ -1,5 +1,34 @@
 # Changelog
 
+## v1.10.0 — Calendario, ayuda y páginas legales
+
+- **Seguridad** (auditoría OWASP Top 10:2025 de la release):
+  - **Código:** sin hallazgos de gravedad media o alta. Se revisaron las fechas próximas (SQL parametrizado y las mismas reglas de acceso que los avisos de stock), su herramienta del asistente, el calendario, el límite de subidas, el historial de adjuntos y las páginas públicas nuevas.
+  - **Cerrados los 2 hallazgos bajos de la v1.8.0** (ADR-049): los adjuntos ya salen en el historial, y el límite de subidas actúa antes de leer el archivo.
+  - **Fechas del año 0:** se rechazan al guardar, porque PostgreSQL no puede convertirlas y una sola celda así rompía las consultas de fechas de toda la tabla. Queda una nota informativa: si alguna se guardó antes, conviene buscarla en la base de datos.
+  - **Dependencias:** los mismos 3 avisos que en la v1.9.0, ninguno alcanzable desde la app: `uuid` a través de ExcelJS (solo usa `v4()`), y minimatch y deepmerge, solo en la CLI de shadcn. minimatch se actualizará en la v1.11.
+- **Calendario** (ADR-047): pestaña nueva en cada tabla con columnas de fecha.
+  - **Vistas:** en escritorio, una rejilla mensual; en el móvil, una agenda por días.
+  - **Qué muestra:** todas las fechas a la vez o una columna, con el color de una lista de opciones y su leyenda.
+  - **Abrir un registro:** al pulsarlo se abre su ficha y se puede editar.
+  - **Arrastrar:** quien edita la tabla cambia una fecha arrastrando el registro a otro día.
+  - En la demo, los pedidos tienen entregas en las próximas semanas y los equipos, el fin de su garantía.
+- **Avisos de fechas próximas** (ADR-048): las columnas de fecha pueden «Avisar días antes».
+  - **Inicio:** una cifra «Fechas próximas» con la más cercana, y la lista «Próximamente» junto a las tablas.
+  - **Métricas:** cada tabla cuenta y lista las suyas.
+  - **Celdas:** las fechas dentro del aviso se marcan con los días que faltan.
+  - **Asistente:** responde «¿qué vence esta semana?».
+- **Centro de ayuda** (ADR-045): `/ayuda`, público, con una guía por función, buscador y enlaces «¿Cómo funciona?» desde los diálogos.
+- **Páginas legales y sitemap** (ADR-046):
+  - política de privacidad, aviso legal y política de cookies, enlazadas desde el pie, el registro y el aviso del asistente;
+  - el build genera `sitemap.xml` y `robots.txt`.
+- **Logo nuevo:** una T hecha de celdas de tabla. Sustituye al icono anterior en la app, el favicon, el icono para el móvil y la imagen que se ve al compartir el enlace.
+- **Landing renovada:**
+  - funciones con ejemplos de la interfaz y una demostración animada del asistente;
+  - preguntas frecuentes y un cierre con la demo;
+  - las tarjetas de funciones ya no dejan huecos en escritorio ni en tablet.
+- **Inicio con las tablas primero** y, en el móvil, las pestañas de cada tabla se desplazan en horizontal cuando no caben.
+
 ## v1.9.0 — Asistente de IA y productividad
 
 - **Seguridad** (auditoría OWASP Top 10:2025 de la release):
