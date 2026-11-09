@@ -10,10 +10,17 @@ const BARS = [72, 46, 88, 30, 58];
 
 function FeatureCard({
   feature,
+  wide,
   className,
   children,
 }: {
   feature: FeatureKey;
+  /**
+   * The example beside the text, for cards wider than they are tall: from
+   * tablets up ("md"), or on tablets only ("tablet"), where the card spans
+   * the row and goes back to a tall one on large screens.
+   */
+  wide?: "md" | "tablet";
   className?: string;
   children: ReactNode;
 }) {
@@ -21,12 +28,26 @@ function FeatureCard({
   return (
     <li
       data-reveal
-      className={cn("flex flex-col overflow-hidden rounded-2xl border border-border bg-card p-6", className)}
+      className={cn(
+        "flex flex-col overflow-hidden rounded-2xl border border-border bg-card p-6",
+        wide && "md:flex-row md:items-center md:gap-8",
+        wide === "tablet" && "lg:flex-col lg:items-stretch lg:gap-0",
+        className,
+      )}
     >
-      <h3 className="text-lg font-semibold tracking-tight">{t(`features.items.${feature}.title`)}</h3>
-      <p className="mt-2 leading-7 text-muted-foreground">{t(`features.items.${feature}.description`)}</p>
+      <div className={cn(wide && "md:flex-1", wide === "tablet" && "lg:flex-none")}>
+        <h3 className="text-lg font-semibold tracking-tight">{t(`features.items.${feature}.title`)}</h3>
+        <p className="mt-2 leading-7 text-muted-foreground">{t(`features.items.${feature}.description`)}</p>
+      </div>
       {/* A fragment of the real interface: decorative, the text above carries the meaning. */}
-      <div aria-hidden="true" className="mt-6 flex flex-1 flex-col justify-end text-sm">
+      <div
+        aria-hidden="true"
+        className={cn(
+          "mt-6 flex flex-1 flex-col justify-end text-sm",
+          wide && "md:mt-0 md:justify-center",
+          wide === "tablet" && "lg:mt-6 lg:justify-end",
+        )}
+      >
         {children}
       </div>
     </li>
@@ -364,13 +385,14 @@ export function FeatureGrid() {
           <FeatureCard feature="import" className="lg:col-span-2">
             <ImportExample />
           </FeatureCard>
-          <FeatureCard feature="calendar" className="lg:col-span-2">
+          {/* On large screens it's tall, spanning the two rows the wide batch and stock cards fill beside it. */}
+          <FeatureCard feature="calendar" wide="tablet" className="md:col-span-2 lg:col-span-2 lg:row-span-2">
             <CalendarExample />
           </FeatureCard>
-          <FeatureCard feature="batch" className="lg:col-span-2">
+          <FeatureCard feature="batch" wide="md" className="md:col-span-2 lg:col-span-4">
             <BatchExample />
           </FeatureCard>
-          <FeatureCard feature="stock" className="md:col-span-2 lg:col-span-2">
+          <FeatureCard feature="stock" wide="md" className="md:col-span-2 lg:col-span-4">
             <StockExample />
           </FeatureCard>
         </ul>
