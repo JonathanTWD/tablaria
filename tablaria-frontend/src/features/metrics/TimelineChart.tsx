@@ -114,7 +114,7 @@ export function TimelineChart({ table }: { table: TableDetail }) {
         <figure className="mt-5">
           <div aria-hidden="true">
             <ChartContainer className="aspect-auto h-60 w-full">
-              <AreaChart data={rows} margin={{ left: 4, right: 12, top: 8 }}>
+              <AreaChart data={rows} margin={{ left: 4, right: 12, top: 8 }} accessibilityLayer={false}>
                 <defs>
                   <linearGradient id={`${ids}-fill`} x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="var(--chart-1)" stopOpacity={0.35} />

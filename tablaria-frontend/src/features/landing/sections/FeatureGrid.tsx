@@ -102,9 +102,10 @@ function RealtimeExample() {
     <div className="space-y-3">
       <div className="flex -space-x-1">
         {[
-          ["LM", "bg-violet-500"],
-          ["JR", "bg-emerald-600"],
-          ["AP", "bg-amber-600"],
+          // Shades that keep white initials at 4.5:1 or more.
+          ["LM", "bg-violet-600"],
+          ["JR", "bg-emerald-700"],
+          ["AP", "bg-amber-700"],
         ].map(([initials, color]) => (
           <span
             key={initials}
@@ -115,10 +116,10 @@ function RealtimeExample() {
         ))}
       </div>
       <div className="relative w-fit pt-5">
-        <span className="absolute top-0 left-0 rounded-t-md bg-violet-500 px-1.5 py-0.5 text-[0.7rem] font-medium text-white">
+        <span className="absolute top-0 left-0 rounded-t-md bg-violet-600 px-1.5 py-0.5 text-[0.7rem] font-medium text-white">
           {t("features.items.realtime.example.editing")}
         </span>
-        <span className="block rounded-md rounded-tl-none px-3 py-1.5 ring-2 ring-violet-500">
+        <span className="block rounded-md rounded-tl-none px-3 py-1.5 ring-2 ring-violet-600">
           {t("features.items.realtime.example.cell")}
           <span className="ml-0.5 inline-block h-3.5 w-px translate-y-0.5 bg-foreground motion-safe:animate-pulse" />
         </span>

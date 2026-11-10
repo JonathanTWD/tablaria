@@ -27,7 +27,7 @@ La especificación completa del MVP está en [MVP_PROMPT.md](MVP_PROMPT.md).
 - [x] Documentación al día: README con capturas nuevas, guía de traspaso y diagrama de arquitectura.
 - [x] Escáner de códigos de barras y QR con la cámara, para abrir o buscar registros desde el móvil (ADR-051).
 - [x] PWA instalable, con el logo nuevo (ADR-051).
-- [ ] Tests de accesibilidad con axe en Playwright, y CodeQL en GitHub Actions.
+- [x] Tests de accesibilidad con axe en Playwright (WCAG 2.2 A y AA, en claro y oscuro), y CodeQL en GitHub Actions cuando el repositorio sea público.
 - [ ] Actualizar minimatch (a partir del 11 de noviembre).
 
 ### Colaboración (en este orden)
@@ -75,10 +75,10 @@ Cada tarea indica qué modelo conviene: **Opus** para lo que toca seguridad, per
 - Vistas guardadas (búsqueda, filtros y orden con nombre) (hecho, ADR-041).
 - Edición en lote (hecho, ADR-040) y papelera recuperable.
 - Tablas bloqueadas o archivadas de solo lectura.
-- Escáner de códigos de barras y QR con la cámara.
+- Escáner de códigos de barras y QR con la cámara (hecho, ADR-051).
 - Notificaciones (por ejemplo, resumen semanal de stock bajo por email).
 - Inglés: traducir los JSON de `src/i18n/locales/es` y añadir un selector de idioma.
-- PWA instalable.
+- PWA instalable (hecho, ADR-051).
 
 **Fáciles (básico)**
 - Pegar celdas copiadas de Excel en el asistente de importación. (Hecho: vista previa y filas repetidas, ADR-044.)
@@ -86,8 +86,8 @@ Cada tarea indica qué modelo conviene: **Opus** para lo que toca seguridad, per
 - Páginas legales: privacidad, aviso legal y cookies (hecho, ADR-046).
 - Centro de ayuda con una guía por función (hecho, ADR-045).
 - `pnpm audit --prod --audit-level=high` en el CI.
-- CodeQL, Codecov y Lighthouse CI en GitHub Actions, con sus badges en el README.
-- Tests de accesibilidad con axe en Playwright.
+- CodeQL en GitHub Actions (hecho, con su badge). Pendiente: Codecov y Lighthouse CI.
+- Tests de accesibilidad con axe en Playwright (hecho).
 - Navegación con teclado por la tabla.
 
 **Fuera del código (tú)**
@@ -100,7 +100,7 @@ Cada tarea indica qué modelo conviene: **Opus** para lo que toca seguridad, per
 
 - Integridad: tablas bloqueadas o archivadas de solo lectura.
 - Tipos de columna: selección múltiple, una columna de imagen con la foto principal, columnas calculadas, relaciones entre tablas.
-- Inventario: códigos de barras y QR.
+- Inventario: códigos de barras y QR (hecho, ADR-038 y ADR-051).
 - Productividad: vistas guardadas, edición en lote, navegación con teclado, deshacer, papelera recuperable. (Hecho: agrupar registros por una columna, ADR-029.)
 - Cuenta: cambiar email y contraseña, borrar la cuenta, cerrar sesión en todos los dispositivos.
 - Notificaciones, API pública con webhooks, inglés y PWA.

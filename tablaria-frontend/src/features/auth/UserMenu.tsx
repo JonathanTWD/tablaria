@@ -31,7 +31,6 @@ export function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        aria-label={t("userMenu.label")}
         className="flex w-full items-center gap-2.5 rounded-lg p-2 text-left text-sm transition-colors hover:bg-sidebar-accent focus-visible:outline-2 focus-visible:outline-ring group-data-[collapsible=icon]:p-0"
       >
         <Avatar className="size-8">
@@ -42,6 +41,8 @@ export function UserMenu() {
         <span className="min-w-0 flex-1 truncate group-data-[collapsible=icon]:hidden">
           {displayEmail(user)}
         </span>
+        {/* After the visible email, so the name contains what is shown (WCAG 2.5.3). */}
+        <span className="sr-only">, {t("userMenu.label")}</span>
         <ChevronsUpDown
           aria-hidden="true"
           className="size-4 text-muted-foreground group-data-[collapsible=icon]:hidden"

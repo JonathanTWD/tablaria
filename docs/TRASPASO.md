@@ -142,14 +142,14 @@ Las versiones son semánticas: funcionalidades nuevas suben la menor (1.6.0), ar
 
 ### Siguiente: v1.11
 
-1. Tests de accesibilidad con axe en Playwright, y CodeQL en GitHub Actions.
-2. Actualizar minimatch (sección 4).
+1. Actualizar minimatch (sección 4).
 
 Ya están en `develop` para la v1.11:
 - el SEO y el GEO (ADR-050);
 - la preparación para el código abierto;
 - esta documentación;
-- el escáner y la app instalable (ADR-051).
+- el escáner y la app instalable (ADR-051);
+- los tests de accesibilidad con axe (`e2e/tests/accessibility.spec.ts`) y CodeQL, que solo se ejecuta con el repositorio público.
 
 Al publicarla, hay que añadir `'wasm-unsafe-eval'` a la CSP de Render (sección 3).
 
