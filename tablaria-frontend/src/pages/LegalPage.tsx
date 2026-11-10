@@ -4,6 +4,7 @@ import { Prose } from "@/features/docs/prose";
 import { useScrollToSection } from "@/features/docs/use-scroll-to-section";
 import { SiteFooter } from "@/features/landing/sections/SiteFooter";
 import { SiteHeader } from "@/features/landing/sections/SiteHeader";
+import { PageMeta } from "@/features/seo/PageMeta";
 import { LEGAL_PAGES, type LegalPageId } from "@/features/legal/content";
 import { LEGAL_UPDATED } from "@/features/legal/owner";
 
@@ -20,7 +21,7 @@ const LegalPage = ({ page }: { page: LegalPageId }) => {
 
   return (
     <div className="min-h-dvh bg-background text-foreground">
-      <title>{`${article.title} | Tablaria`}</title>
+      <PageMeta title={`${article.title} | Tablaria`} description={article.description} path={LEGAL_PAGES[page].path} />
       <SiteHeader />
       <main id="main" className="mx-auto max-w-3xl px-4 py-14 sm:px-6 sm:py-20">
         <h1 className="text-4xl font-semibold tracking-[-0.03em] text-balance sm:text-5xl">{article.title}</h1>

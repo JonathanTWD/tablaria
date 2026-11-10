@@ -10,13 +10,20 @@ import type { DocArticle, DocGroup } from "@/features/docs/types";
 import { useScrollToSection } from "@/features/docs/use-scroll-to-section";
 import { SiteFooter } from "@/features/landing/sections/SiteFooter";
 import { SiteHeader } from "@/features/landing/sections/SiteHeader";
+import { PageMeta } from "@/features/seo/PageMeta";
+import { breadcrumbs, techArticle } from "@/features/seo/structured-data";
 import { cn } from "@/lib/utils";
 
 function DocsIndex({ groups }: { groups: DocGroup[] }) {
   const { t } = useTranslation("docs");
   return (
     <>
-      <title>{`${t("title")} | Tablaria`}</title>
+      <PageMeta
+        title={`${t("title")} | Tablaria`}
+        description={t("description")}
+        path="/ayuda"
+        structuredData={[breadcrumbs([{ name: t("title"), path: "/ayuda" }])]}
+      />
       <h1 className="text-4xl font-semibold tracking-[-0.03em] text-balance sm:text-5xl">{t("title")}</h1>
       <p className="mt-4 max-w-2xl text-lg leading-8 text-muted-foreground">{t("description")}</p>
       <div className="mt-12 space-y-12">
@@ -54,7 +61,23 @@ function ArticleView({ article, group, previous, next }: {
   const { t } = useTranslation("docs");
   return (
     <article>
-      <title>{`${article.title} · ${t("title")} | Tablaria`}</title>
+      <PageMeta
+        title={`${article.title} · ${t("title")} | Tablaria`}
+        description={article.description}
+        path={`/ayuda/${article.slug}`}
+        structuredData={[
+          techArticle({
+            title: article.title,
+            description: article.description,
+            path: `/ayuda/${article.slug}`,
+            sections: article.sections.map(({ title }) => title),
+          }),
+          breadcrumbs([
+            { name: t("title"), path: "/ayuda" },
+            { name: article.title, path: `/ayuda/${article.slug}` },
+          ]),
+        ]}
+      />
       <p className="text-sm font-semibold text-primary">{group}</p>
       <h1 className="mt-2 text-4xl font-semibold tracking-[-0.03em] text-balance sm:text-5xl">{article.title}</h1>
       <p className="mt-4 text-lg leading-8 text-muted-foreground">{article.description}</p>
@@ -179,6 +202,7 @@ const DocsPage = () => {
             ) : (
               <>
                 <title>{`${t("notFoundTitle")} | Tablaria`}</title>
+                <meta name="robots" content="noindex" />
                 <h1 className="text-3xl font-semibold tracking-tight">{t("notFoundTitle")}</h1>
                 <p className="mt-4 text-lg text-muted-foreground">{t("notFoundDescription")}</p>
                 <Link to="/ayuda" className={cn(buttonVariants(), "mt-8")}>

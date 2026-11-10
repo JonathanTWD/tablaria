@@ -1027,6 +1027,27 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 - Las subidas que fallan por otra causa (tipo no admitido, cupo lleno) también cuentan para el límite, igual que antes.
 - Si un día el limitador pasa a Redis, este middleware lo usa sin cambios, porque lee el almacén del módulo.
 
+## ADR-050: Páginas públicas prerenderizadas para SEO y GEO
+
+**Contexto**: Tablaria es una SPA: cada ruta servía el mismo `index.html`, casi vacío y con el `canonical` de la portada. Google tenía que ejecutar JavaScript para ver la ayuda o las páginas legales, que además le decían que eran la portada. Muchos rastreadores de asistentes de IA no ejecutan JavaScript, así que no veían nada. Y Google mostraba un globo en lugar del favicon.
+
+**Decisión**:
+- **Prerenderizar en el build las páginas públicas** (portada, ayuda y legales, las mismas de `public-paths.ts`) con `prerender` de `react-dom/static` y `StaticRouter`, que espera a las rutas `lazy`. `vite build --ssr src/entry-prerender.tsx` compila la entrada y `scripts/prerender.mjs` escribe un HTML por página (`ayuda/calendario/index.html` y `ayuda/calendario.html`). Nada se pide a la API: la cabecera sale como sin sesión.
+  - Render sirve un archivo que existe antes de aplicar la regla que manda todo a `index.html`, así que no hay que cambiar nada en el panel.
+  - **El navegador hidrata** (`hydrateRoot`) la página prerenderizada de su ruta. Para que el primer render coincida, lo que depende del navegador espera a montarse: el icono del tema lo elige la clase `dark` de `theme-init.js` por CSS, el tema del sistema tiene un valor de servidor, y la demostración del asistente empieza mostrando la conversación entera y se rebobina justo antes de verse.
+  - **`index.html` es la portada prerenderizada y también el fallback de las rutas de la app.** `theme-init.js` compara la ruta con `data-prerendered` antes de pintar: si no coincide, oculta el contenido (`html[data-shell] #root`) y `main.tsx` monta la app desde cero, sin el `canonical` de la portada.
+  - El build falla si una página pública no tiene `PageMeta`, y si se relanza el script sobre un `dist` ya prerenderizado.
+- **`PageMeta`** da a cada página su `<title>`, descripción, `canonical`, Open Graph y datos estructurados. React los coloca en `<head>` en el navegador, y el script los mueve allí en el HTML prerenderizado.
+  - **Datos estructurados (JSON-LD):** `WebSite`, `SoftwareApplication` (gratis) y `FAQPage` en la portada; `TechArticle` y `BreadcrumbList` en cada guía. El JSON escapa `<`, para que ningún texto pueda cerrar el `<script>`.
+  - **`__SITE_URL__`** (`define` de Vite) lleva la dirección pública al código, como ya hacían las etiquetas de `index.html`.
+- **GEO:** `llms.txt` (llmstxt.org) con qué es Tablaria y un enlace a cada guía y página legal, generado en el build desde las mismas guías.
+- **Favicons:** además del SVG, un PNG de 96 px y un `favicon.ico` de 16 a 48 px, que es lo que Google pide. Todos llevan `?v=2`, para que un cambio de logo llegue aunque los navegadores guarden el icono antiguo.
+
+**Consecuencias**:
+- Un componente de una página pública no puede leer `window`, `localStorage` ni la hora al renderizar: lo que dependa del navegador va en un efecto o con un valor de servidor. Si no, el build falla o el navegador avisa de un error de hidratación.
+- El build tarda un poco más (un segundo build de Vite y el render de 22 páginas).
+- La cabecera prerenderizada muestra «Entrar» y cambia a «Ir a mi cuenta» al cargar la sesión, igual que antes.
+
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
 Todas están especificadas en [MVP_PROMPT.md](MVP_PROMPT.md):

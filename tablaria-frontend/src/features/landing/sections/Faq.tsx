@@ -1,7 +1,6 @@
 import { Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
-
-const QUESTIONS = ["price", "privacy", "assistant", "import", "columns", "labels", "install", "team"] as const;
+import { FAQ_QUESTIONS } from "@/features/landing/faq-questions";
 
 export function Faq() {
   const { t } = useTranslation("landing");
@@ -16,7 +15,7 @@ export function Faq() {
           {t("faq.title")}
         </h2>
         <div className="border-t border-foreground/15">
-          {QUESTIONS.map((question) => (
+          {FAQ_QUESTIONS.map((question) => (
             <details key={question} className="group border-b border-border">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-6 rounded-md py-5 text-lg font-medium focus-visible:outline-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
                 {t(`faq.items.${question}.question`)}

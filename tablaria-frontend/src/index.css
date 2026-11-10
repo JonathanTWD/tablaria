@@ -188,4 +188,8 @@
   #root {
     min-height: 100%;
   }
+  /* A prerendered page served for another path stays hidden until the app renders (theme-init.js). */
+  html[data-shell] #root {
+    display: none;
+  }
 }

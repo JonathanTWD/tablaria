@@ -33,6 +33,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const systemTheme = useSyncExternalStore(
     subscribeToSystemTheme,
     getSystemTheme,
+    // Prerendered pages (ADR-050) start light; theme-init.js already painted the right one.
+    (): ResolvedTheme => "light",
   );
   const resolvedTheme = theme === "system" ? systemTheme : theme;
 
