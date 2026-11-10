@@ -1,5 +1,8 @@
 # Tablaria
 
+[![CI](https://github.com/JonathanTWD/tablaria/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/JonathanTWD/tablaria/actions/workflows/ci.yml)
+[![Licencia: MIT](https://img.shields.io/badge/licencia-MIT-blue.svg)](LICENSE)
+
 Gestión de inventario flexible: cada usuario crea sus propias tablas, define columnas con tipo y trabaja con sus registros como en una hoja de cálculo, pero con validación, búsqueda, filtros y orden en el servidor. Las tablas se comparten por email o dentro de organizaciones, y los cambios se ven en directo.
 
 **Demo en directo: [tablaria.es](https://tablaria.es).** Pulsa «Probar la demo» y entrarás sin registrarte en una cuenta temporal con tablas de ejemplo, que se borra a las 24 h.
@@ -163,3 +166,14 @@ GitHub Actions ejecuta en cada pull request el lint, el typecheck, el build y lo
 - [docs/arquitectura.html](docs/arquitectura.html): diagrama interactivo de la arquitectura.
 - [docs/TRASPASO.md](docs/TRASPASO.md): guía de traspaso: trabajo en local, releases, producción y tareas pendientes.
 - [AGENTS.md](AGENTS.md): reglas y convenciones del proyecto.
+
+## Contribuir
+
+Las contribuciones son bienvenidas. Antes de empezar:
+- [CONTRIBUTING.md](CONTRIBUTING.md) explica cómo arrancar el proyecto, cómo está organizado y qué se espera de una pull request.
+- Para avisar de una vulnerabilidad sin hacerla pública, sigue [SECURITY.md](SECURITY.md).
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) recoge las normas de convivencia.
+
+## Licencia
+
+[MIT](LICENSE) © 2026 Jonathan Morera.
