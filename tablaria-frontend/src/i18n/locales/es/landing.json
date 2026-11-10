@@ -1,4 +1,8 @@
 {
+  "meta": {
+    "title": "Tablaria | Tu inventario en tablas hechas a tu medida",
+    "description": "Crea tablas de inventario con las columnas que necesita tu negocio: tablas enlazadas, fórmulas, calendario, etiquetas QR, importación de Excel y un asistente de IA. Gratis; pruébalo al instante con datos de ejemplo."
+  },
   "nav": {
     "label": "Navegación principal",
     "features": "Funciones",

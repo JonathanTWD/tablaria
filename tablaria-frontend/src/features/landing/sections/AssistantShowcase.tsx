@@ -20,31 +20,45 @@ function prefersReducedMotion() {
 }
 
 /**
- * Plays the conversation once it scrolls into view. Without motion it shows
- * the end straight away. Returns the elapsed time and a way to replay it.
+ * Plays the conversation once it scrolls into view. It starts at the end, as
+ * the prerendered page shows it (ADR-050): crawlers, reduced motion and
+ * browsers without IntersectionObserver read the whole conversation. With
+ * motion it rewinds just before coming into view, then plays.
  */
 function usePlayback(total: number) {
   const ref = useRef<HTMLDivElement>(null);
-  const [still] = useState(prefersReducedMotion);
-  const [elapsed, setElapsed] = useState(still ? total : 0);
-  // Without an observer to wait for, it plays at once.
-  const [playing, setPlaying] = useState(!still && typeof IntersectionObserver === "undefined");
+  const [elapsed, setElapsed] = useState(total);
+  const [playing, setPlaying] = useState(false);
 
   useEffect(() => {
     const element = ref.current;
-    if (!element || still || typeof IntersectionObserver === "undefined") return;
-    const observer = new IntersectionObserver(
+    if (!element || prefersReducedMotion() || typeof IntersectionObserver === "undefined") return;
+    // Below the fold until the visitor scrolls: rewinding half a screen early is never seen.
+    const rewind = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          setElapsed(0);
+          rewind.disconnect();
+        }
+      },
+      { rootMargin: "0px 0px 50% 0px" },
+    );
+    const play = new IntersectionObserver(
       ([entry]) => {
         if (entry?.isIntersecting) {
           setPlaying(true);
-          observer.disconnect();
+          play.disconnect();
         }
       },
       { threshold: 0.4 },
     );
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, [still]);
+    rewind.observe(element);
+    play.observe(element);
+    return () => {
+      rewind.disconnect();
+      play.disconnect();
+    };
+  }, []);
 
   useEffect(() => {
     if (!playing) return;

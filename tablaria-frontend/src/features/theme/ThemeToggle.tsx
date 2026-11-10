@@ -15,8 +15,7 @@ import { isTheme, THEME_OPTIONS } from "./theme-options";
 
 export function ThemeToggle({ className }: { className?: string }) {
   const { t } = useTranslation();
-  const { theme, resolvedTheme, setTheme } = useTheme();
-  const CurrentIcon = resolvedTheme === "dark" ? Moon : Sun;
+  const { theme, setTheme } = useTheme();
 
   return (
     <DropdownMenu>
@@ -35,7 +34,10 @@ export function ThemeToggle({ className }: { className?: string }) {
             />
           }
         >
-          <CurrentIcon aria-hidden="true" />
+          {/* Picked by the class theme-init.js sets before the first paint, so a
+              prerendered page (ADR-050) and the app always draw the same icon. */}
+          <Sun aria-hidden="true" className="dark:hidden" />
+          <Moon aria-hidden="true" className="hidden dark:block" />
         </TooltipTrigger>
         <TooltipContent>{t("theme.label")}</TooltipContent>
       </Tooltip>
