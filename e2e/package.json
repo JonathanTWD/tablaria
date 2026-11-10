@@ -1,6 +1,7 @@
 {
   "name": "tablaria-e2e",
   "private": true,
+  "license": "MIT",
   "description": "End-to-end tests that drive the real frontend, API, database and Mailpit.",
   "type": "module",
   "scripts": {

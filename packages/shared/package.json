@@ -1,6 +1,7 @@
 {
   "name": "@tablaria/shared",
   "version": "0.0.0",
+  "license": "MIT",
   "private": true,
   "description": "Types, validation schemas and constants shared by the Tablaria frontend and backend.",
   "main": "./dist/cjs/index.js",

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Vulnerabilidad de seguridad
+    url: https://github.com/JonathanTWD/tablaria/security/advisories/new
+    about: Avísalo en privado, nunca en un issue público.
+  - name: Centro de ayuda
+    url: https://tablaria.es/ayuda
+    about: Guías de cada función de Tablaria.
