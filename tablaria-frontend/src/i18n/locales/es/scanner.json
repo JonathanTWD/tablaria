@@ -1,0 +1,21 @@
+{
+  "open": "Escanear un código",
+  "title": "Escanear un código",
+  "manual": "O escribe el código",
+  "submit": "Buscar",
+  "status": {
+    "starting": "Abriendo la cámara…",
+    "scanning": "Apunta la cámara al código de barras o a la etiqueta QR.",
+    "denied": "No hay permiso para usar la cámara. Actívalo en el navegador o escribe el código.",
+    "missing": "No se encontró ninguna cámara. Escribe el código.",
+    "insecure": "Este navegador no deja usar la cámara aquí. Escribe el código.",
+    "failed": "No se pudo abrir la cámara. Escribe el código."
+  },
+  "table": {
+    "description": "Una etiqueta QR abre su registro; cualquier otro código se busca en esta tabla."
+  },
+  "app": {
+    "description": "Escanea la etiqueta QR de un registro para abrirlo.",
+    "notALabel": "«{{code}}» no es una etiqueta de Tablaria. Para buscar un código de barras, escanéalo desde su tabla."
+  }
+}

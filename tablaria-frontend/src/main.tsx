@@ -3,6 +3,7 @@ import { createRoot, hydrateRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router";
 import "./index.css";
 import "./i18n";
+import "./features/pwa/install-prompt";
 import App from "./App.tsx";
 import { Providers } from "./app/Providers.tsx";
 

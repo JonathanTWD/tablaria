@@ -18,6 +18,14 @@ test("a visitor tries the demo without signing up", async ({ page }) => {
   await expect(page.getByRole("button", { name: /^Producto de Taladro percutor 750 W/ })).toBeVisible();
   await expect(page.getByRole("columnheader", { name: "Margen" })).toBeVisible();
 
+  // A product's barcode, scanned or typed, opens its sheet.
+  await page.getByRole("button", { name: "Escanear un código" }).click();
+  const scanner = page.getByRole("dialog", { name: "Escanear un código" });
+  await scanner.getByLabel("O escribe el código").fill("8436045100108");
+  await scanner.getByRole("button", { name: "Buscar", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Taladro percutor 750 W" })).toBeVisible();
+  await page.keyboard.press("Escape");
+
   // The orders fill the calendar (today's order is always in view), and each opens its record.
   await page.getByRole("link", { name: /^Pedidos/ }).first().click();
   await page.getByRole("link", { name: "Calendario" }).click();

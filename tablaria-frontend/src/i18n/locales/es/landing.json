@@ -398,8 +398,8 @@
         }
       },
       "qr": {
-        "title": "Etiquetas QR y fotos",
-        "description": "Imprime etiquetas, pégalas en la estantería y escanéalas con el móvil para abrir la ficha, con sus fotos y documentos.",
+        "title": "Etiquetas QR, escáner y fotos",
+        "description": "Imprime etiquetas para la estantería y escanéalas, o el código de barras de un producto, con la cámara desde la propia app: se abre su ficha, con sus fotos y documentos.",
         "example": {
           "name": "Taladro percutor",
           "reference": "REF-0142",
@@ -585,7 +585,7 @@
       },
       "install": {
         "question": "¿Tengo que instalar algo?",
-        "answer": "No. Tablaria funciona en el navegador, tanto en el ordenador como en el móvil."
+        "answer": "No hace falta. Tablaria funciona en el navegador, en el ordenador y en el móvil. Si quieres, se instala como una app, con su icono: desde el menú de tu cuenta en Chrome o Edge, o con «Añadir a pantalla de inicio» en el iPhone."
       },
       "team": {
         "question": "¿Puedo compartir una tabla con mi equipo?",

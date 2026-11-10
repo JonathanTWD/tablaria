@@ -49,6 +49,29 @@ export const cuenta: DocArticle = {
       ),
     },
     {
+      id: "instalar",
+      title: "Instalar la app",
+      body: (
+        <>
+          <p>
+            Tablaria se puede instalar como una app, con su icono y su propia ventana, para abrirla más rápido y escanear
+            códigos en el almacén:
+          </p>
+          <ul>
+            <li>
+              <strong>Chrome o Edge</strong> (ordenador o Android): en el menú de tu cuenta, abajo en la barra lateral,
+              pulsa <Ui>Instalar la app</Ui>. Si no aparece, ya está instalada o el navegador no lo permite.
+            </li>
+            <li>
+              <strong>iPhone o iPad:</strong> en Safari, pulsa <Ui>Compartir</Ui> y después <Ui>Añadir a pantalla de
+              inicio</Ui>.
+            </li>
+          </ul>
+          <p>La app instalada es la misma web: necesita conexión y se actualiza sola.</p>
+        </>
+      ),
+    },
+    {
       id: "tus-datos",
       title: "Descargar tus datos",
       body: (

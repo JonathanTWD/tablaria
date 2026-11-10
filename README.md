@@ -36,13 +36,17 @@ Gestión de inventario flexible: cada usuario crea sus propias tablas, define co
   - las invitaciones caducan, son de un solo uso y tienen límites contra el spam;
   - enlaces públicos de solo lectura.
 - **Tiempo real y presencia**: los cambios de otras personas aparecen sin recargar, y se ve quién tiene la tabla abierta y qué celda está editando. Cada tabla guarda el historial de quién cambió qué.
-- **Etiquetas QR y adjuntos**: etiquetas para imprimir que abren la ficha del registro al escanearlas, y fotos y PDF en cada ficha, guardados en un bucket privado compatible con S3.
+- **Etiquetas QR, escáner y adjuntos**:
+  - etiquetas para imprimir que abren la ficha del registro al escanearlas;
+  - un escáner en la app que lee etiquetas QR y códigos de barras con la cámara, y busca el producto por su código;
+  - fotos y PDF en cada ficha, guardados en un bucket privado compatible con S3.
 - **Asistente de IA**: preguntas sobre los datos, por escrito o con voz («¿qué está bajo mínimo?», «¿qué vence esta semana?»). Las responde un modelo de Groq que consulta las tablas con herramientas de solo lectura y con los permisos del usuario.
 - **Métricas de cada tabla**: totales y medias, avisos, gráficos por grupos (barras o dona) y evolución en el tiempo.
 - **Centro de ayuda y páginas legales**: una guía pública por función en `/ayuda`, y las páginas de privacidad, aviso legal y cookies.
 - **SEO y GEO**:
   - las páginas públicas se prerenderizan en el build, cada una con su título, su `canonical` y datos estructurados;
   - `sitemap.xml`, `robots.txt` y `llms.txt` se generan en el build.
+- **App instalable** en el móvil y el ordenador, desde el menú de la cuenta o con «Añadir a pantalla de inicio».
 - **Interfaz**: tema claro u oscuro, en español y preparada para más idiomas, adaptada a móvil y a pantallas grandes, y accesible con teclado y lector de pantalla.
 - **Demo pública** con cuentas temporales: una ferretería con productos, proveedores y pedidos enlazados, con entregas y garantías próximas, historial de stock y actividad, y una organización con compañeros ficticios.
 
@@ -168,7 +172,7 @@ Así está publicada la demo; los motivos están en [ADR-013](docs/DECISIONS.md)
   - **Rewrites:**
     - `/api/*` → `https://<api>.onrender.com/api/*`, de tipo Rewrite y la primera de la lista;
     - `/*` → `/index.html`.
-  - **Cabeceras:** las mismas que [nginx.conf.template](tablaria-frontend/nginx.conf.template), con la CSP incluida. Añade `wss://<api>.onrender.com` a `connect-src` para el tiempo real, y el origen de `STORAGE_ENDPOINT` (`https://s3.filebase.io`) a `img-src` para las miniaturas de los adjuntos: tiene que coincidir exactamente, o el navegador las bloquea.
+  - **Cabeceras:** las mismas que [nginx.conf.template](tablaria-frontend/nginx.conf.template), con la CSP incluida. Añade `wss://<api>.onrender.com` a `connect-src` para el tiempo real, y el origen de `STORAGE_ENDPOINT` (`https://s3.filebase.io`) a `img-src` para las miniaturas de los adjuntos: tiene que coincidir exactamente, o el navegador las bloquea. `script-src` lleva `'wasm-unsafe-eval'` para el lector de códigos en Safari y Firefox ([ADR-051](docs/DECISIONS.md)).
 - **Dominio** (`tablaria.es`, en Hostalia):
   - **Raíz:** un registro `A` a la IP que indica Render.
   - **`www`:** un `CNAME` al Static Site.

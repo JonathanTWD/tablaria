@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createColumnHelper,
   rowSortingFeature,
@@ -35,7 +35,7 @@ import {
 } from "lucide-react";
 import { type FocusEvent, Fragment, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useSearchParams } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { FormAlert } from "@/components/form/FormAlert";
 import { Button } from "@/components/ui/button";
@@ -60,6 +60,8 @@ import { EditableCell, ReadOnlyCell } from "./EditableCell";
 import { ExportButton } from "./ExportButton";
 import { MoreActionsMenu } from "./MoreActionsMenu";
 import { ImportDialog } from "@/features/imports/ImportDialog";
+import { interpretScan } from "@/features/scanner/scan-result";
+import { ScanButton } from "@/features/scanner/ScanButton";
 import { FiltersSheet } from "./FiltersSheet";
 import { GroupBySelect } from "./GroupBySelect";
 import { groupValueOf } from "./record-groups";
@@ -71,7 +73,7 @@ import { shownColumn } from "./shown-column";
 import { RecordsPagination } from "./RecordsPagination";
 import { recordsQuery, useUpdateRecord } from "./queries";
 import { StockDialog } from "@/features/stock-movements/StockDialog";
-import { applicableView, useRecordsView } from "./records-view";
+import { applicableView, useRecordsView, viewSearchParams } from "./records-view";
 
 // Sorting runs on the server; TanStack Table only tracks which header is active.
 const recordTableFeatures = tableFeatures({ rowSortingFeature });
@@ -241,6 +243,39 @@ export function RecordsTable({ table }: { table: TableDetail }) {
       }
       return next;
     });
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const { t: tScanner } = useTranslation("scanner");
+  // A record's label opens it; any other code is searched for, and a single match opens (ADR-051).
+  const handleScan = async (raw: string) => {
+    const scanned = interpretScan(raw);
+    if (scanned.kind === "record") {
+      if (scanned.tableId === table.id) {
+        showRecord(scanned.recordId);
+      } else {
+        void navigate(scanned.path);
+      }
+      return;
+    }
+    let single: string | undefined;
+    try {
+      const found = await queryClient.fetchQuery(
+        recordsQuery(table.id, { ...view, search: scanned.value, page: 1 }),
+      );
+      single = found.meta.total === 1 ? found.data[0]?.id : undefined;
+    } catch {
+      // The search is applied either way; the list then shows its own loading error.
+    }
+    // One URL change for both: a second setParams would start from the stale URL and drop the search.
+    setParams((current) => {
+      const next = viewSearchParams(current, { search: scanned.value });
+      if (single) {
+        next.set("record", single);
+      }
+      return next;
+    });
+  };
+
   const labelsParams = new URLSearchParams(params);
   labelsParams.delete("record");
   const labelsUrl = `/app/tables/${table.id}/labels${labelsParams.size > 0 ? `?${labelsParams}` : ""}`;
@@ -291,6 +326,7 @@ export function RecordsTable({ table }: { table: TableDetail }) {
           initial={view.search}
           onSearch={(search) => setView({ search }, { replace: true })}
         />
+        <ScanButton description={tScanner("table.description")} onScan={(value) => void handleScan(value)} />
         <FiltersSheet
           columns={columns
             .filter((column) =>

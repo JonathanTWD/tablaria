@@ -1048,6 +1048,32 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 - El build tarda un poco más (un segundo build de Vite y el render de 22 páginas).
 - La cabecera prerenderizada muestra «Entrar» y cambia a «Ir a mi cuenta» al cargar la sesión, igual que antes.
 
+## ADR-051: Escáner de códigos con la cámara y app instalable
+
+**Contexto**: las etiquetas QR (ADR-038) ya abrían la ficha con la cámara del móvil, pero desde la app no se podía escanear nada. Además, en un almacén lo habitual es buscar un producto por el código de barras de su caja. Para usar Tablaria así en el móvil, conviene poder instalarla como una app.
+
+**Decisión**:
+- **Lector:** el `BarcodeDetector` del navegador donde lee QR (Chrome y Android). Si no lo hay (Safari en iPhone, Firefox, Chrome en Windows), `barcode-detector` (ZXing compilado a WebAssembly, unos 950 KB).
+  - El respaldo se carga solo al abrir el escáner en esos navegadores.
+  - Su `.wasm` se sirve desde nuestro dominio con `?url` de Vite, sin el CDN que usa la librería por defecto.
+  - La CSP necesita `'wasm-unsafe-eval'` en `script-src` para compilarlo: permite WebAssembly, no `eval` de JavaScript.
+  - Formatos: QR, EAN-13/8, UPC-A/E, Code 128, Code 39, ITF y Data Matrix.
+- **Qué hace un código:**
+  - **En una tabla:** una etiqueta QR de este mismo sitio (`/app/tables/:id?record=…`) abre su registro, y cualquier otro código se busca. Si solo hay un resultado, se abre su ficha; la búsqueda y la ficha van en un solo cambio de URL.
+  - **En la barra superior** (fuera de las tablas): solo abre etiquetas, porque un código de barras necesita una tabla donde buscarse.
+  - Un QR de otro dominio nunca navega: se trata como texto.
+- **Accesibilidad:** el código también se puede escribir, por si no hay cámara, no hay permiso o se usa el teclado. En pantallas táctiles el foco empieza en el visor, para que el teclado no tape la cámara. La cámara se apaga en cuanto se cierra el diálogo.
+- **App instalable (PWA):**
+  - `manifest.webmanifest` con `start_url: /app` e iconos de 192 y 512 px, uno de ellos *maskable*.
+  - **Sin service worker:** Chrome ya no lo exige para instalar (desde la versión 108 en móvil y la 112 en escritorio), y el modo sin conexión queda fuera del alcance (AGENTS.md).
+  - Chrome y Edge ofrecen «Instalar la app» en el menú de la cuenta (`beforeinstallprompt`); en el iPhone se usa «Añadir a pantalla de inicio».
+- **Demo:** los productos tienen una columna «Código de barras» con EAN-13 válidos, para buscar uno escaneándolo o escribiéndolo.
+
+**Consecuencias**:
+- **CSP en producción:** hay que añadir `'wasm-unsafe-eval'` a la del Static Site de Render; la de `nginx.conf.template` ya lo lleva. Sin él, el escáner sigue funcionando en Chrome y Android, pero no en el iPhone.
+- **Dependencias nuevas:** `barcode-detector` y `zxing-wasm`, fijadas a una versión.
+- **Buscar por código:** solo encuentra registros cuyo código esté en una columna de texto incluida en la búsqueda.
+
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
 Todas están especificadas en [MVP_PROMPT.md](MVP_PROMPT.md):

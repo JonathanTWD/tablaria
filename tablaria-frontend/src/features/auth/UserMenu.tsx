@@ -1,4 +1,4 @@
-import { ChevronsUpDown, LogOut, Settings } from "lucide-react";
+import { ChevronsUpDown, Download, LogOut, Settings } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
@@ -10,6 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useInstallApp } from "@/features/pwa/install-prompt";
 import { displayEmail, displayName } from "./display-name";
 import { useLogout, useSession } from "./session";
 
@@ -18,6 +19,7 @@ export function UserMenu() {
   const { data: user } = useSession();
   const logout = useLogout();
   const navigate = useNavigate();
+  const installApp = useInstallApp();
 
   if (!user) {
     return null;
@@ -50,6 +52,12 @@ export function UserMenu() {
           <Settings aria-hidden="true" />
           {t("userMenu.settings")}
         </DropdownMenuItem>
+        {installApp && (
+          <DropdownMenuItem onClick={() => void installApp()}>
+            <Download aria-hidden="true" />
+            {t("userMenu.install")}
+          </DropdownMenuItem>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={signOut} disabled={logout.isPending}>
           <LogOut aria-hidden="true" />
