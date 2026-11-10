@@ -100,6 +100,11 @@ function toSearchParams(view: RecordsView): URLSearchParams {
   );
 }
 
+/** The URL of the view with a change, back on page 1 unless the page itself changes. Drops `record`. */
+export function viewSearchParams(current: URLSearchParams, patch: Partial<RecordsView>): URLSearchParams {
+  return toSearchParams({ ...parseRecordsView(current), page: 1, ...patch });
+}
+
 /**
  * The current view and a setter. Changes merge into the URL as it is when they
  * apply (not as it was when the caller rendered), so a delayed update such as
@@ -111,9 +116,7 @@ export function useRecordsView() {
   const view = parseRecordsView(params);
 
   const update = (patch: Partial<RecordsView>, { replace = false } = {}) => {
-    setParams((current) => toSearchParams({ ...parseRecordsView(current), page: 1, ...patch }), {
-      replace,
-    });
+    setParams((current) => viewSearchParams(current, patch), { replace });
   };
 
   return [view, update] as const;

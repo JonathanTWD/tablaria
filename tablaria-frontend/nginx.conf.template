@@ -15,7 +15,8 @@ server {
     # Scripts, data and fonts only from this origin. Inline styles stay allowed:
     # React style props and the UI library's positioning rely on them.
     # Images may also come from the attachments bucket, where the API redirects (ADR-039).
-    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: ${STORAGE_ORIGIN}; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" always;
+    # 'wasm-unsafe-eval' lets the barcode reader's fallback compile its WebAssembly (ADR-051).
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: ${STORAGE_ORIGIN}; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" always;
 
     # Realtime updates: a WebSocket, so the upgrade headers must be passed on
     # and the connection may stay idle (the API pings every 30 s).

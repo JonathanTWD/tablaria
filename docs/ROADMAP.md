@@ -25,8 +25,8 @@ La especificación completa del MVP está en [MVP_PROMPT.md](MVP_PROMPT.md).
 - [x] SEO y GEO: páginas públicas prerenderizadas con sus etiquetas y datos estructurados, `llms.txt` y favicons para Google (ADR-050).
 - [x] Repositorio listo para código abierto: licencia MIT, guía de contribución, política de seguridad, código de conducta y plantillas.
 - [x] Documentación al día: README con capturas nuevas, guía de traspaso y diagrama de arquitectura.
-- [ ] Escáner de códigos de barras y QR con la cámara, para abrir o buscar registros desde el móvil.
-- [ ] PWA instalable, con el logo nuevo.
+- [x] Escáner de códigos de barras y QR con la cámara, para abrir o buscar registros desde el móvil (ADR-051).
+- [x] PWA instalable, con el logo nuevo (ADR-051).
 - [ ] Tests de accesibilidad con axe en Playwright, y CodeQL en GitHub Actions.
 - [ ] Actualizar minimatch (a partir del 11 de noviembre).
 

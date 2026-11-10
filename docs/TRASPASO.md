@@ -104,9 +104,9 @@ Las versiones son semánticas: funcionalidades nuevas suben la menor (1.6.0), ar
   - `X-Content-Type-Options: nosniff`
   - `X-Frame-Options: DENY`
   - `Referrer-Policy: strict-origin-when-cross-origin`
-  - `Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://s3.filebase.io; font-src 'self' data:; connect-src 'self' wss://tablaria.onrender.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'`
+  - `Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://s3.filebase.io; font-src 'self' data:; connect-src 'self' wss://tablaria.onrender.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'`
 
-  `img-src` incluye el origen del bucket (Filebase) para las miniaturas de los adjuntos: tiene que coincidir exactamente con `STORAGE_ENDPOINT`.
+  `img-src` incluye el origen del bucket (Filebase) para las miniaturas de los adjuntos: tiene que coincidir exactamente con `STORAGE_ENDPOINT`. `'wasm-unsafe-eval'` deja compilar el lector de códigos de respaldo (ZXing en WebAssembly) en Safari y Firefox (ADR-051); sin él, el escáner solo funciona donde el navegador trae el suyo.
 
   El tiempo real va por WebSocket **directo a la API** (la rewrite no lleva WebSockets), por eso `connect-src` incluye la URL `wss://` de la API. Si la demo no dice «En directo», revisa esto primero.
 
@@ -142,12 +142,16 @@ Las versiones son semánticas: funcionalidades nuevas suben la menor (1.6.0), ar
 
 ### Siguiente: v1.11
 
-1. Escáner de códigos de barras y QR con la cámara, para abrir o buscar registros desde el móvil.
-2. PWA instalable, con el logo y los iconos nuevos.
-3. Tests de accesibilidad con axe en Playwright, y CodeQL en GitHub Actions.
-4. Actualizar minimatch (sección 4).
+1. Tests de accesibilidad con axe en Playwright, y CodeQL en GitHub Actions.
+2. Actualizar minimatch (sección 4).
 
-Ya están en `develop` para la v1.11: el SEO y el GEO (ADR-050), la preparación para el código abierto y esta documentación.
+Ya están en `develop` para la v1.11:
+- el SEO y el GEO (ADR-050);
+- la preparación para el código abierto;
+- esta documentación;
+- el escáner y la app instalable (ADR-051).
+
+Al publicarla, hay que añadir `'wasm-unsafe-eval'` a la CSP de Render (sección 3).
 
 ### Otras tareas difíciles
 
