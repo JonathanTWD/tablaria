@@ -11,22 +11,42 @@ Gestión de inventario flexible: cada usuario crea sus propias tablas, define co
 
 ## Funcionalidades
 
-- **Cuentas**: registro con verificación por email, inicio de sesión, recuperación de contraseña y sesiones con cookies httpOnly y refresh tokens rotatorios.
-- **Tablas**: crear en blanco o desde plantilla (inventario básico, catálogo de productos, equipos y activos), renombrar y borrar.
-- **Columnas** de seis tipos: texto, número, fecha, sí/no, lista de opciones con colores y precio en cualquier moneda. Se pueden marcar como obligatorias, tener valor por defecto, reordenarse y cambiar de tipo convirtiendo los valores guardados.
-- **Registros**: edición directa en la celda (Enter guarda, Escape cancela), formulario completo, búsqueda, filtros por tipo, orden y paginación. La vista vive en la URL, así que se puede compartir. Varios registros se pueden seleccionar para cambiarles un valor o borrarlos a la vez, y cada combinación de búsqueda, filtros y orden se puede guardar como una vista con nombre.
-- **Exportar, importar y avisos**:
-  - exportación de la vista actual a Excel (.xlsx, con números, precios y fechas de verdad) o a CSV;
-  - importación de Excel o CSV con un asistente que empareja columnas y valida cada celda antes de guardar nada;
-  - alertas de stock bajo por columna y resumen con gráfico de barras.
-- **Compartir y organizaciones**: invitar por email a una tabla como lector o editor, u organizaciones con miembros y roles (lector, editor, administrador y propietario) que ven todas sus tablas. Las invitaciones caducan, son de un solo uso y tienen límites contra el spam.
-- **Tiempo real y presencia**: los cambios de otras personas aparecen sin recargar, y se ve quién tiene la tabla abierta y qué celda está editando.
-- **Etiquetas QR** para imprimir y pegar: al escanearlas se abre la ficha del registro.
-- **Adjuntos**: fotos y PDF en la ficha de cada registro, guardados en un bucket privado compatible con S3.
-- **Asistente de IA**: preguntas sobre los datos, por escrito o con voz («¿qué está bajo mínimo?»), respondidas por un modelo de Groq que consulta las tablas con herramientas de solo lectura y los permisos del usuario.
-- **Métricas de cada tabla**: totales y medias, registros bajo mínimo, gráficos por grupos (barras o dona) y evolución en el tiempo.
-- **Dashboard** con cifras generales, tablas recientes y selector de espacio, tema claro u oscuro, interfaz en español preparada para más idiomas y diseño adaptado a móvil y a pantallas grandes.
-- **Demo pública** con cuentas temporales: una ferretería con productos, proveedores y pedidos enlazados, con consultas, resúmenes, fórmulas, historial de stock y actividad, y una organización con compañeros ficticios.
+- **Cuentas**: registro con verificación por email, inicio de sesión, recuperación de contraseña y sesiones con cookies httpOnly y refresh tokens rotatorios. Desde Ajustes se cambia la contraseña, se cierran todas las sesiones, se exportan los datos o se borra la cuenta.
+- **Tablas**: crear en blanco, desde plantilla (inventario básico, catálogo de productos o equipos) o desde un archivo de Excel o CSV; renombrar y borrar.
+- **Columnas**:
+  - **Tipos:** texto, número, fecha, sí/no, lista de opciones con colores y precio en cualquier moneda.
+  - **Opciones:** obligatorias, de valor único, con valor por defecto, reordenables, y con cambio de tipo convirtiendo los valores guardados.
+- **Relaciones entre tablas**: enlazar cada producto con su proveedor o cada pedido con varios productos. Además, consultas que traen datos del registro enlazado, resúmenes (cuántos, suma, media…) de lo que enlaza con cada registro, y fórmulas.
+- **Registros**:
+  - **Edición:** directa en la celda (Enter guarda, Escape cancela) o en un formulario completo.
+  - **Encontrar:** búsqueda, filtros por tipo, orden, agrupación y paginación en el servidor. La vista vive en la URL, así que se puede compartir.
+  - **Varios a la vez:** seleccionar registros para cambiarles un valor o borrarlos.
+  - **Vistas guardadas:** cada combinación de búsqueda, filtros y orden se guarda con un nombre.
+- **Calendario**: cada tabla con fechas tiene su calendario mensual (en el móvil, una agenda), con los registros coloreados por una lista de opciones. Arrastrando un registro a otro día se cambia su fecha.
+- **Avisos**:
+  - **Stock bajo:** por columna numérica.
+  - **Fechas próximas:** un número de días antes de cada fecha. Salen en «Próximamente» en el Inicio, en las métricas y marcadas en las celdas.
+- **Stock**: entradas, salidas y recuentos con su motivo, quién los hizo y el historial de cada registro.
+- **Excel y CSV**:
+  - **Exportar:** la vista actual, con números, precios y fechas de verdad.
+  - **Importar:** un asistente que empareja columnas, enseña una vista previa, omite las filas repetidas y valida cada celda antes de guardar nada.
+- **Compartir y organizaciones**:
+  - invitar por email a una tabla como lector o editor;
+  - organizaciones con miembros y roles (lector, editor, administrador y propietario) que ven todas sus tablas;
+  - las invitaciones caducan, son de un solo uso y tienen límites contra el spam;
+  - enlaces públicos de solo lectura.
+- **Tiempo real y presencia**: los cambios de otras personas aparecen sin recargar, y se ve quién tiene la tabla abierta y qué celda está editando. Cada tabla guarda el historial de quién cambió qué.
+- **Etiquetas QR y adjuntos**: etiquetas para imprimir que abren la ficha del registro al escanearlas, y fotos y PDF en cada ficha, guardados en un bucket privado compatible con S3.
+- **Asistente de IA**: preguntas sobre los datos, por escrito o con voz («¿qué está bajo mínimo?», «¿qué vence esta semana?»). Las responde un modelo de Groq que consulta las tablas con herramientas de solo lectura y con los permisos del usuario.
+- **Métricas de cada tabla**: totales y medias, avisos, gráficos por grupos (barras o dona) y evolución en el tiempo.
+- **Centro de ayuda y páginas legales**: una guía pública por función en `/ayuda`, y las páginas de privacidad, aviso legal y cookies.
+- **SEO y GEO**:
+  - las páginas públicas se prerenderizan en el build, cada una con su título, su `canonical` y datos estructurados;
+  - `sitemap.xml`, `robots.txt` y `llms.txt` se generan en el build.
+- **Interfaz**: tema claro u oscuro, en español y preparada para más idiomas, adaptada a móvil y a pantallas grandes, y accesible con teclado y lector de pantalla.
+- **Demo pública** con cuentas temporales: una ferretería con productos, proveedores y pedidos enlazados, con entregas y garantías próximas, historial de stock y actividad, y una organización con compañeros ficticios.
+
+![Inicio de la demo: cifras generales, las tablas y las fechas próximas](docs/screenshots/inicio.png)
 
 ## Un caso de uso: etiquetas QR en el almacén
 
@@ -45,6 +65,10 @@ El QR solo lleva el enlace, no los datos. Si alguien ajeno escanea una etiqueta,
 | ![Hoja con las etiquetas QR de los productos, tres por fila](docs/screenshots/etiquetas-qr.png) | <img src="docs/screenshots/ficha-movil.png" alt="Ficha del taladro en el móvil, con su QR, botones para imprimir o editar y todas sus columnas" width="260"> |
 
 El mismo esquema sirve para los equipos de una oficina (a quién está asignado cada portátil), material que se presta o las cajas de un trastero.
+
+### Calendario de entregas
+
+![Calendario de noviembre de la tabla de pedidos, con la fecha de cada pedido y su entrega, coloreados por estado](docs/screenshots/calendario.png)
 
 ### Métricas de cada tabla
 
@@ -138,7 +162,7 @@ Así está publicada la demo; los motivos están en [ADR-013](docs/DECISIONS.md)
   - **Migraciones:** el contenedor aplica las pendientes antes de arrancar.
   - **Tiempo real:** `REALTIME_URL=wss://<api>.onrender.com/api/realtime`. La rewrite del Static Site no transporta WebSockets de forma fiable, así que el navegador se conecta directamente a la API ([ADR-020](docs/DECISIONS.md)).
 - **Web (Render Static Site)**:
-  - **Build:** `corepack enable && pnpm install --frozen-lockfile && pnpm --filter @tablaria/shared build && pnpm --filter tablaria-frontend build`.
+  - **Build:** `corepack enable && pnpm install --frozen-lockfile && pnpm --filter @tablaria/shared build && pnpm --filter tablaria-frontend build`. El build de la web también prerenderiza las páginas públicas y genera `sitemap.xml`, `robots.txt` y `llms.txt` ([ADR-050](docs/DECISIONS.md)). Render sirve esos archivos antes de aplicar la regla `/*`.
   - **Variable `SITE_URL`:** la URL pública de la web, sin barra final (por ejemplo `https://tablaria.es`). Se escribe al compilar en la URL canónica y en la vista previa al compartir de `index.html`.
   - **Publicación:** carpeta `tablaria-frontend/dist`, con `NODE_VERSION=22`.
   - **Rewrites:**
@@ -154,8 +178,14 @@ Así está publicada la demo; los motivos están en [ADR-013](docs/DECISIONS.md)
 
 - **Backend, unitarios (Jest)**: conversión de valores entre tipos, construcción segura de consultas, validación de entorno, filtro de errores.
 - **Backend, e2e (Jest + supertest)**: autenticación completa (incluidos la reutilización de refresh tokens y el rate limiting), tablas, columnas y registros, y que ningún usuario pueda leer ni modificar los datos de otro en ningún endpoint. Usan su propia base de datos (`TEST_DATABASE_URL`, que debe terminar en `_test`) y leen los correos desde Mailpit.
-- **Frontend (Vitest + Testing Library)**: formularios de acceso, edición en celda, vista de registros en la URL y tema.
-- **Playwright (`e2e/`)**: registro, verificación por email, crear una tabla desde plantilla, añadir una columna, crear, editar, filtrar, ordenar y borrar registros, y cerrar sesión. Reutiliza `pnpm dev` si ya está en marcha; `E2E_BASE_URL` permite lanzarlo contra otra instancia, como el stack de Docker.
+- **Frontend (Vitest + Testing Library)**:
+  - formularios de acceso y de columnas, edición en celda, vista de registros en la URL y tema;
+  - asistente, importación, calendario, actividad, métricas y etiquetas QR;
+  - la búsqueda de la ayuda, el sitemap y las etiquetas de SEO.
+- **Playwright (`e2e/`)**:
+  - **Flujo completo:** registro, verificación por email, crear una tabla desde plantilla, añadir una columna, crear, editar, filtrar, ordenar y borrar registros, y cerrar sesión.
+  - **La demo:** sus tablas, «Próximamente» y el calendario.
+  - **Cómo se lanza:** reutiliza `pnpm dev` si ya está en marcha, y `E2E_BASE_URL` permite lanzarlo contra otra instancia, como el stack de Docker.
 
 GitHub Actions ejecuta en cada pull request el lint, el typecheck, el build y los tests unitarios, los e2e del backend con PostgreSQL y Mailpit, y el flujo de Playwright.
 
