@@ -1,6 +1,7 @@
 # Tablaria
 
 [![CI](https://github.com/JonathanTWD/tablaria/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/JonathanTWD/tablaria/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/JonathanTWD/tablaria/actions/workflows/codeql.yml/badge.svg?branch=develop)](https://github.com/JonathanTWD/tablaria/actions/workflows/codeql.yml)
 [![Licencia: MIT](https://img.shields.io/badge/licencia-MIT-blue.svg)](LICENSE)
 
 Gestión de inventario flexible: cada usuario crea sus propias tablas, define columnas con tipo y trabaja con sus registros como en una hoja de cálculo, pero con validación, búsqueda, filtros y orden en el servidor. Las tablas se comparten por email o dentro de organizaciones, y los cambios se ven en directo.
@@ -191,7 +192,11 @@ Así está publicada la demo; los motivos están en [ADR-013](docs/DECISIONS.md)
   - **La demo:** sus tablas, «Próximamente» y el calendario.
   - **Cómo se lanza:** reutiliza `pnpm dev` si ya está en marcha, y `E2E_BASE_URL` permite lanzarlo contra otra instancia, como el stack de Docker.
 
-GitHub Actions ejecuta en cada pull request el lint, el typecheck, el build y los tests unitarios, los e2e del backend con PostgreSQL y Mailpit, y el flujo de Playwright.
+GitHub Actions ejecuta en cada pull request el lint, el typecheck, el build y los tests unitarios, los e2e del backend con PostgreSQL y Mailpit, y Playwright:
+- el flujo completo y la demo;
+- **accesibilidad con axe** (WCAG 2.2 A y AA) en las páginas públicas, en tema claro y oscuro, y en las de la app con sus diálogos.
+
+**CodeQL** analiza el código en busca de fallos de seguridad en cada pull request y cada semana, cuando el repositorio es público.
 
 ## Documentación
 

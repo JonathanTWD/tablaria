@@ -49,7 +49,6 @@ export function SpaceSwitcher({ onNavigate }: { onNavigate: () => void }) {
           <SidebarMenuButton
             size="lg"
             tooltip={label}
-            aria-label={label}
             render={<DropdownMenuTrigger />}
           >
             <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/12 text-primary">
@@ -61,6 +60,8 @@ export function SpaceSwitcher({ onNavigate }: { onNavigate: () => void }) {
                 {t(`roles.${space.role}`)}
               </span>
             </span>
+            {/* Named by what it shows, plus what it does (WCAG 2.5.3). */}
+            <span className="sr-only">, {t("switcher.title")}</span>
             <ChevronsUpDown aria-hidden="true" className="ml-auto size-4 text-muted-foreground" />
           </SidebarMenuButton>
           <DropdownMenuContent align="start" className="w-(--anchor-width) min-w-60">
