@@ -1,5 +1,36 @@
 # Changelog
 
+## v1.11.0 — Escáner, app instalable y buscadores
+
+- **Seguridad** (auditoría OWASP Top 10:2025 de la release):
+  - **Código:** sin hallazgos. Se revisaron estas partes:
+    - el escáner: solo abre registros de etiquetas de este mismo sitio, y cualquier otro código se trata como texto que buscar;
+    - las páginas prerenderizadas y sus datos estructurados, donde se escapa `<` para que ningún valor pueda cerrar el script;
+    - el `try_files` de nginx y el manifiesto de la app.
+  - **Política de contenido (CSP):** añade `'wasm-unsafe-eval'` para que el lector de respaldo compile su WebAssembly. Solo permite compilar WebAssembly, no `eval` de JavaScript, y los scripts siguen limitados al propio dominio.
+  - **CodeQL:** las acciones de GitHub están fijadas por SHA.
+  - **Historial de Git:** antes de abrir el código se comprobó que no hay secretos ni archivos `.env`, solo los de ejemplo.
+  - **Dependencias:**
+    - actualizados minimatch, glob y fast-uri, que llegaban a través de la CLI de Nest y de la cobertura de Jest; de 10 avisos se pasa a 2;
+    - siguen `uuid`, a través de ExcelJS (solo usa `v4()`), y deepmerge, aún sin versión corregida; ninguno es alcanzable desde la app.
+- **Escáner de códigos con la cámara** (ADR-051):
+  - **Etiqueta QR de un registro:** abre su ficha.
+  - **Código de barras:** busca el producto en la tabla, y si solo hay uno, lo abre.
+  - **Sin cámara o en iPhone:** funciona con un lector de respaldo, y el código también se puede escribir a mano.
+  - En la demo, los productos tienen una columna «Código de barras».
+- **App instalable (PWA)** (ADR-051): «Instalar la app» en el menú de usuario, con el logo nuevo y abriendo directamente en el inicio.
+- **SEO y GEO** (ADR-050):
+  - la portada, la ayuda y las páginas legales se sirven ya prerenderizadas, con su título, descripción, enlace canónico y datos estructurados;
+  - `llms.txt` para los asistentes de IA;
+  - favicons en los tamaños que pide Google.
+- **Código abierto:**
+  - licencia MIT, guía de contribución, política de seguridad, código de conducta y plantillas de issues y PR;
+  - CodeQL en GitHub Actions cuando el repositorio sea público.
+- **Accesibilidad:**
+  - tests con axe (WCAG 2.2 A y AA, en tema claro y oscuro) para las páginas públicas y la app de la demo;
+  - arreglados los avisos que encontraron: contrastes de la landing, nombres accesibles del menú de usuario y del selector de espacio, y la celda de stock.
+- **Documentación al día:** README con capturas nuevas, guía de traspaso y diagrama de arquitectura.
+
 ## v1.10.0 — Calendario, ayuda y páginas legales
 
 - **Seguridad** (auditoría OWASP Top 10:2025 de la release):

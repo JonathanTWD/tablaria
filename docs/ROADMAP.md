@@ -19,8 +19,9 @@ La especificación completa del MVP está en [MVP_PROMPT.md](MVP_PROMPT.md).
 - [x] **Fase 8.5 — Pantallas grandes**: la app aprovecha el ancho (tabla a ancho completo, inicio con columna lateral) la landing se adapta a monitores de 27" y más, y la barra lateral se pliega a iconos.
 - [x] **Fase 9 — Trabajo en equipo** (v1.3.0): compartir tablas por email, organizaciones con roles, tiempo real y presencia.
 - [x] **Fase 10 — Ayuda, legal y fechas** (v1.10.0): centro de ayuda (ADR-045), páginas legales y sitemap (ADR-046), calendario (ADR-047), avisos de fechas próximas (ADR-048), logo propio y landing renovada.
+- [x] **Fase 11 — Móvil, buscadores y código abierto** (v1.11.0): escáner de códigos y app instalable (ADR-051), páginas públicas prerenderizadas para buscadores e IA (ADR-050), repositorio preparado para código abierto (MIT) y tests de accesibilidad con axe.
 
-### Siguiente: v1.11
+### v1.11 (publicada)
 
 - [x] SEO y GEO: páginas públicas prerenderizadas con sus etiquetas y datos estructurados, `llms.txt` y favicons para Google (ADR-050).
 - [x] Repositorio listo para código abierto: licencia MIT, guía de contribución, política de seguridad, código de conducta y plantillas.
@@ -28,7 +29,7 @@ La especificación completa del MVP está en [MVP_PROMPT.md](MVP_PROMPT.md).
 - [x] Escáner de códigos de barras y QR con la cámara, para abrir o buscar registros desde el móvil (ADR-051).
 - [x] PWA instalable, con el logo nuevo (ADR-051).
 - [x] Tests de accesibilidad con axe en Playwright (WCAG 2.2 A y AA, en claro y oscuro), y CodeQL en GitHub Actions cuando el repositorio sea público.
-- [ ] Actualizar minimatch (a partir del 11 de noviembre).
+- [x] Parche de minimatch, glob y fast-uri en las herramientas de desarrollo.
 
 ### Colaboración (en este orden)
 
@@ -69,7 +70,7 @@ Cada tarea indica qué modelo conviene: **Opus** para lo que toca seguridad, per
 
 **Medias (básico, con cuidado; Opus si hay tiempo)**
 - Excel `.xlsx` para exportar e importar (hecho, ADR-043).
-- Parche de dependencias: body-parser, multer, qs y nodemailer (hecho, v1.7.0). Pendiente: minimatch (v1.11).
+- Parche de dependencias: body-parser, multer, qs y nodemailer (hecho, v1.7.0). Hechos también minimatch, glob y fast-uri (v1.11.0).
 - Calendario por columnas de fecha (hecho, ADR-047) y avisos de fechas próximas (hecho, ADR-048). Pendiente: resumen por email cuando haya tareas programadas.
 - Selección múltiple como tipo de columna.
 - Vistas guardadas (búsqueda, filtros y orden con nombre) (hecho, ADR-041).
