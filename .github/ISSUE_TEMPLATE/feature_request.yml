@@ -1,0 +1,20 @@
+name: Idea o mejora
+description: Propón una función nueva o un cambio.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Qué necesitas resolver
+      description: El problema o la situación, antes que la solución.
+      placeholder: Al hacer inventario tengo que…
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Cómo lo imaginas
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Qué haces ahora en su lugar

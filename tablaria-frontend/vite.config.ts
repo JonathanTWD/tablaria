@@ -13,6 +13,8 @@ export default defineConfig(({ mode }) => {
     loadEnv(mode, process.cwd(), "");
 
   return {
+    // The public address in the app itself: canonical links and structured data (ADR-050).
+    define: { __SITE_URL__: JSON.stringify(SITE_URL.replace(/\/$/, "")) },
     plugins: [
       react(),
       babel({ presets: [reactCompilerPreset()] }),

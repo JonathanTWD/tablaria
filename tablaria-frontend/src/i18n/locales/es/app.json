@@ -13,6 +13,7 @@
   "userMenu": {
     "label": "Menú de la cuenta",
     "settings": "Ajustes",
+    "install": "Instalar la app",
     "logout": "Cerrar sesión"
   },
   "dashboard": {

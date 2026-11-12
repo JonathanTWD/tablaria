@@ -1,0 +1,42 @@
+name: Error
+description: Algo no funciona como debería.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: "Si es una vulnerabilidad de seguridad, no abras un issue: sigue SECURITY.md."
+  - type: textarea
+    id: what
+    attributes:
+      label: Qué pasa
+      description: Qué ocurre y qué esperabas que ocurriera.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Pasos para reproducirlo
+      placeholder: |
+        1. Abre la tabla «Productos» de la demo
+        2. Pulsa…
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: Dónde
+      options:
+        - tablaria.es o la demo
+        - Instalación local con pnpm dev
+        - Docker (docker-compose.prod.yml)
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Navegador y dispositivo
+      placeholder: Chrome 140 en Windows, Safari en iPhone…
+  - type: textarea
+    id: extra
+    attributes:
+      label: Capturas o errores de la consola

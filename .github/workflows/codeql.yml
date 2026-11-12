@@ -1,0 +1,45 @@
+name: CodeQL
+
+# Static security analysis of the TypeScript in every package (API, web,
+# shared and tests), with GitHub's own queries.
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
+  schedule:
+    # Weekly, so new queries also run on code nobody touched.
+    - cron: "17 4 * * 1"
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: Analyze (javascript-typescript)
+    # Code scanning is free for public repositories; a private one would need
+    # GitHub Advanced Security, so the job waits until the repository is public.
+    if: github.event.repository.visibility == 'public'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          languages: javascript-typescript
+          # The extended suite adds more security queries to the default ones.
+          queries: security-extended
+          config: |
+            paths-ignore:
+              - "**/node_modules"
+              - "**/dist"
+              - "tablaria-backend/src/generated"
+      - uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          category: "/language:javascript-typescript"

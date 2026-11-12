@@ -163,7 +163,7 @@ export function GroupsChart({ table }: { table: TableDetail }) {
                 className="aspect-auto w-full"
                 style={{ height: rows.length * 36 + 16 }}
               >
-                <BarChart data={rows} layout="vertical" margin={{ left: 0, right: 16 }}>
+                <BarChart data={rows} layout="vertical" margin={{ left: 0, right: 16 }} accessibilityLayer={false}>
                   <XAxis type="number" hide />
                   <YAxis
                     type="category"
@@ -186,7 +186,7 @@ export function GroupsChart({ table }: { table: TableDetail }) {
             ) : (
               <div className="grid items-center gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
                 <ChartContainer className="aspect-square max-h-60 w-full">
-                  <PieChart>
+                  <PieChart accessibilityLayer={false}>
                     <ChartTooltip content={<ChartTooltipContent title={measure.label} />} />
                     <Pie data={rows} dataKey="value" nameKey="label" innerRadius="55%" strokeWidth={2}>
                       {rows.map((row) => (

@@ -1027,6 +1027,53 @@ Registro breve de decisiones (formato ADR). Cada entrada indica contexto, decisi
 - Las subidas que fallan por otra causa (tipo no admitido, cupo lleno) también cuentan para el límite, igual que antes.
 - Si un día el limitador pasa a Redis, este middleware lo usa sin cambios, porque lee el almacén del módulo.
 
+## ADR-050: Páginas públicas prerenderizadas para SEO y GEO
+
+**Contexto**: Tablaria es una SPA: cada ruta servía el mismo `index.html`, casi vacío y con el `canonical` de la portada. Google tenía que ejecutar JavaScript para ver la ayuda o las páginas legales, que además le decían que eran la portada. Muchos rastreadores de asistentes de IA no ejecutan JavaScript, así que no veían nada. Y Google mostraba un globo en lugar del favicon.
+
+**Decisión**:
+- **Prerenderizar en el build las páginas públicas** (portada, ayuda y legales, las mismas de `public-paths.ts`) con `prerender` de `react-dom/static` y `StaticRouter`, que espera a las rutas `lazy`. `vite build --ssr src/entry-prerender.tsx` compila la entrada y `scripts/prerender.mjs` escribe un HTML por página (`ayuda/calendario/index.html` y `ayuda/calendario.html`). Nada se pide a la API: la cabecera sale como sin sesión.
+  - Render sirve un archivo que existe antes de aplicar la regla que manda todo a `index.html`, así que no hay que cambiar nada en el panel.
+  - **El navegador hidrata** (`hydrateRoot`) la página prerenderizada de su ruta. Para que el primer render coincida, lo que depende del navegador espera a montarse: el icono del tema lo elige la clase `dark` de `theme-init.js` por CSS, el tema del sistema tiene un valor de servidor, y la demostración del asistente empieza mostrando la conversación entera y se rebobina justo antes de verse.
+  - **`index.html` es la portada prerenderizada y también el fallback de las rutas de la app.** `theme-init.js` compara la ruta con `data-prerendered` antes de pintar: si no coincide, oculta el contenido (`html[data-shell] #root`) y `main.tsx` monta la app desde cero, sin el `canonical` de la portada.
+  - El build falla si una página pública no tiene `PageMeta`, y si se relanza el script sobre un `dist` ya prerenderizado.
+- **`PageMeta`** da a cada página su `<title>`, descripción, `canonical`, Open Graph y datos estructurados. React los coloca en `<head>` en el navegador, y el script los mueve allí en el HTML prerenderizado.
+  - **Datos estructurados (JSON-LD):** `WebSite`, `SoftwareApplication` (gratis) y `FAQPage` en la portada; `TechArticle` y `BreadcrumbList` en cada guía. El JSON escapa `<`, para que ningún texto pueda cerrar el `<script>`.
+  - **`__SITE_URL__`** (`define` de Vite) lleva la dirección pública al código, como ya hacían las etiquetas de `index.html`.
+- **GEO:** `llms.txt` (llmstxt.org) con qué es Tablaria y un enlace a cada guía y página legal, generado en el build desde las mismas guías.
+- **Favicons:** además del SVG, un PNG de 96 px y un `favicon.ico` de 16 a 48 px, que es lo que Google pide. Todos llevan `?v=2`, para que un cambio de logo llegue aunque los navegadores guarden el icono antiguo.
+
+**Consecuencias**:
+- Un componente de una página pública no puede leer `window`, `localStorage` ni la hora al renderizar: lo que dependa del navegador va en un efecto o con un valor de servidor. Si no, el build falla o el navegador avisa de un error de hidratación.
+- El build tarda un poco más (un segundo build de Vite y el render de 22 páginas).
+- La cabecera prerenderizada muestra «Entrar» y cambia a «Ir a mi cuenta» al cargar la sesión, igual que antes.
+
+## ADR-051: Escáner de códigos con la cámara y app instalable
+
+**Contexto**: las etiquetas QR (ADR-038) ya abrían la ficha con la cámara del móvil, pero desde la app no se podía escanear nada. Además, en un almacén lo habitual es buscar un producto por el código de barras de su caja. Para usar Tablaria así en el móvil, conviene poder instalarla como una app.
+
+**Decisión**:
+- **Lector:** el `BarcodeDetector` del navegador donde lee QR (Chrome y Android). Si no lo hay (Safari en iPhone, Firefox, Chrome en Windows), `barcode-detector` (ZXing compilado a WebAssembly, unos 950 KB).
+  - El respaldo se carga solo al abrir el escáner en esos navegadores.
+  - Su `.wasm` se sirve desde nuestro dominio con `?url` de Vite, sin el CDN que usa la librería por defecto.
+  - La CSP necesita `'wasm-unsafe-eval'` en `script-src` para compilarlo: permite WebAssembly, no `eval` de JavaScript.
+  - Formatos: QR, EAN-13/8, UPC-A/E, Code 128, Code 39, ITF y Data Matrix.
+- **Qué hace un código:**
+  - **En una tabla:** una etiqueta QR de este mismo sitio (`/app/tables/:id?record=…`) abre su registro, y cualquier otro código se busca. Si solo hay un resultado, se abre su ficha; la búsqueda y la ficha van en un solo cambio de URL.
+  - **En la barra superior** (fuera de las tablas): solo abre etiquetas, porque un código de barras necesita una tabla donde buscarse.
+  - Un QR de otro dominio nunca navega: se trata como texto.
+- **Accesibilidad:** el código también se puede escribir, por si no hay cámara, no hay permiso o se usa el teclado. En pantallas táctiles el foco empieza en el visor, para que el teclado no tape la cámara. La cámara se apaga en cuanto se cierra el diálogo.
+- **App instalable (PWA):**
+  - `manifest.webmanifest` con `start_url: /app` e iconos de 192 y 512 px, uno de ellos *maskable*.
+  - **Sin service worker:** Chrome ya no lo exige para instalar (desde la versión 108 en móvil y la 112 en escritorio), y el modo sin conexión queda fuera del alcance (AGENTS.md).
+  - Chrome y Edge ofrecen «Instalar la app» en el menú de la cuenta (`beforeinstallprompt`); en el iPhone se usa «Añadir a pantalla de inicio».
+- **Demo:** los productos tienen una columna «Código de barras» con EAN-13 válidos, para buscar uno escaneándolo o escribiéndolo.
+
+**Consecuencias**:
+- **CSP en producción:** hay que añadir `'wasm-unsafe-eval'` a la del Static Site de Render; la de `nginx.conf.template` ya lo lleva. Sin él, el escáner sigue funcionando en Chrome y Android, pero no en el iPhone.
+- **Dependencias nuevas:** `barcode-detector` y `zxing-wasm`, fijadas a una versión.
+- **Buscar por código:** solo encuentra registros cuyo código esté en una columna de texto incluida en la búsqueda.
+
 ## Decisiones aceptadas para el MVP (se detallarán al implementarse)
 
 Todas están especificadas en [MVP_PROMPT.md](MVP_PROMPT.md):

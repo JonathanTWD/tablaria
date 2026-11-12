@@ -205,6 +205,8 @@ export function demoTables(today: Date): DemoTable[] {
           },
         },
         { name: 'Destacado', type: 'boolean', defaultValue: false },
+        // The EAN-13 on each box: the in-app scanner finds a product by it (ADR-051).
+        { name: 'Código de barras', type: 'text', unique: true },
         {
           name: 'Pedidos',
           type: 'rollup',
@@ -765,6 +767,22 @@ export function demoTables(today: Date): DemoTable[] {
   ];
 }
 
+/** Valid EAN-13 codes (Spanish 84 prefix), one per demo product. */
+const BARCODES: Record<string, string> = {
+  'Taladro percutor 750 W': '8436045100108',
+  'Atornillador a batería 12 V': '8436045100177',
+  'Sierra de calar': '8436045100245',
+  'Martillo de carpintero': '8436045100313',
+  'Juego de destornilladores (8 pzas)': '8436045100382',
+  'Llave inglesa 250 mm': '8436045100450',
+  'Cinta métrica 5 m': '8436045100528',
+  'Nivel de burbuja 60 cm': '8436045100597',
+  'Caja de tornillos 4×40 (200 u.)': '8436045100665',
+  'Tacos de nailon 8 mm (100 u.)': '8436045100733',
+  'Silicona neutra transparente': '8436045100801',
+  'Escalera de aluminio 5 peldaños': '8436045100870',
+};
+
 function product(
   name: string,
   reference: string,
@@ -786,6 +804,7 @@ function product(
     Stock: stock,
     Estado: status,
     Destacado: featured,
+    'Código de barras': BARCODES[name] ?? null,
   };
 }
 

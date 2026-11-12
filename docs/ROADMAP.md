@@ -19,13 +19,17 @@ La especificación completa del MVP está en [MVP_PROMPT.md](MVP_PROMPT.md).
 - [x] **Fase 8.5 — Pantallas grandes**: la app aprovecha el ancho (tabla a ancho completo, inicio con columna lateral) la landing se adapta a monitores de 27" y más, y la barra lateral se pliega a iconos.
 - [x] **Fase 9 — Trabajo en equipo** (v1.3.0): compartir tablas por email, organizaciones con roles, tiempo real y presencia.
 - [x] **Fase 10 — Ayuda, legal y fechas** (v1.10.0): centro de ayuda (ADR-045), páginas legales y sitemap (ADR-046), calendario (ADR-047), avisos de fechas próximas (ADR-048), logo propio y landing renovada.
+- [x] **Fase 11 — Móvil, buscadores y código abierto** (v1.11.0): escáner de códigos y app instalable (ADR-051), páginas públicas prerenderizadas para buscadores e IA (ADR-050), repositorio preparado para código abierto (MIT) y tests de accesibilidad con axe.
 
-### Siguiente: v1.11
+### v1.11 (publicada)
 
-1. Escáner de códigos de barras y QR con la cámara, para abrir o buscar registros desde el móvil.
-2. PWA instalable, con el logo nuevo.
-3. Tests de accesibilidad con axe en Playwright, y CodeQL en GitHub Actions.
-4. Actualizar minimatch (a partir del 11 de noviembre).
+- [x] SEO y GEO: páginas públicas prerenderizadas con sus etiquetas y datos estructurados, `llms.txt` y favicons para Google (ADR-050).
+- [x] Repositorio listo para código abierto: licencia MIT, guía de contribución, política de seguridad, código de conducta y plantillas.
+- [x] Documentación al día: README con capturas nuevas, guía de traspaso y diagrama de arquitectura.
+- [x] Escáner de códigos de barras y QR con la cámara, para abrir o buscar registros desde el móvil (ADR-051).
+- [x] PWA instalable, con el logo nuevo (ADR-051).
+- [x] Tests de accesibilidad con axe en Playwright (WCAG 2.2 A y AA, en claro y oscuro), y CodeQL en GitHub Actions cuando el repositorio sea público.
+- [x] Parche de minimatch, glob y fast-uri en las herramientas de desarrollo.
 
 ### Colaboración (en este orden)
 
@@ -66,16 +70,16 @@ Cada tarea indica qué modelo conviene: **Opus** para lo que toca seguridad, per
 
 **Medias (básico, con cuidado; Opus si hay tiempo)**
 - Excel `.xlsx` para exportar e importar (hecho, ADR-043).
-- Parche de dependencias: body-parser, multer, qs y nodemailer (hecho, v1.7.0). Pendiente: minimatch (v1.11).
+- Parche de dependencias: body-parser, multer, qs y nodemailer (hecho, v1.7.0). Hechos también minimatch, glob y fast-uri (v1.11.0).
 - Calendario por columnas de fecha (hecho, ADR-047) y avisos de fechas próximas (hecho, ADR-048). Pendiente: resumen por email cuando haya tareas programadas.
 - Selección múltiple como tipo de columna.
 - Vistas guardadas (búsqueda, filtros y orden con nombre) (hecho, ADR-041).
 - Edición en lote (hecho, ADR-040) y papelera recuperable.
 - Tablas bloqueadas o archivadas de solo lectura.
-- Escáner de códigos de barras y QR con la cámara.
+- Escáner de códigos de barras y QR con la cámara (hecho, ADR-051).
 - Notificaciones (por ejemplo, resumen semanal de stock bajo por email).
 - Inglés: traducir los JSON de `src/i18n/locales/es` y añadir un selector de idioma.
-- PWA instalable.
+- PWA instalable (hecho, ADR-051).
 
 **Fáciles (básico)**
 - Pegar celdas copiadas de Excel en el asistente de importación. (Hecho: vista previa y filas repetidas, ADR-044.)
@@ -83,8 +87,8 @@ Cada tarea indica qué modelo conviene: **Opus** para lo que toca seguridad, per
 - Páginas legales: privacidad, aviso legal y cookies (hecho, ADR-046).
 - Centro de ayuda con una guía por función (hecho, ADR-045).
 - `pnpm audit --prod --audit-level=high` en el CI.
-- CodeQL, Codecov y Lighthouse CI en GitHub Actions, con sus badges en el README.
-- Tests de accesibilidad con axe en Playwright.
+- CodeQL en GitHub Actions (hecho, con su badge). Pendiente: Codecov y Lighthouse CI.
+- Tests de accesibilidad con axe en Playwright (hecho).
 - Navegación con teclado por la tabla.
 
 **Fuera del código (tú)**
@@ -97,7 +101,7 @@ Cada tarea indica qué modelo conviene: **Opus** para lo que toca seguridad, per
 
 - Integridad: tablas bloqueadas o archivadas de solo lectura.
 - Tipos de columna: selección múltiple, una columna de imagen con la foto principal, columnas calculadas, relaciones entre tablas.
-- Inventario: códigos de barras y QR.
+- Inventario: códigos de barras y QR (hecho, ADR-038 y ADR-051).
 - Productividad: vistas guardadas, edición en lote, navegación con teclado, deshacer, papelera recuperable. (Hecho: agrupar registros por una columna, ADR-029.)
 - Cuenta: cambiar email y contraseña, borrar la cuenta, cerrar sesión en todos los dispositivos.
 - Notificaciones, API pública con webhooks, inglés y PWA.

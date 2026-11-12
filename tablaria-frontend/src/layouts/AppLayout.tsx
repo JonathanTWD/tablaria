@@ -3,7 +3,8 @@ import { hasRole } from "@tablaria/shared";
 import { CircleHelp, House, Plus, Settings, Table2, Users } from "lucide-react";
 import { type CSSProperties, type RefObject, Suspense, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, Outlet, useLocation } from "react-router";
+import { Link, Outlet, useLocation, useMatch, useNavigate } from "react-router";
+import { toast } from "sonner";
 import { FullPageLoader } from "@/components/FullPageLoader";
 import { Logo } from "@/components/Logo";
 import {
@@ -43,6 +44,8 @@ import { CreateTableDialog } from "@/features/tables/CreateTableDialog";
 import { tablesQuery } from "@/features/tables/queries";
 import { AssistantButton, AssistantProvider } from "@/features/assistant/Assistant";
 import { ThemeToggle } from "@/features/theme/ThemeToggle";
+import { interpretScan } from "@/features/scanner/scan-result";
+import { ScanButton } from "@/features/scanner/ScanButton";
 
 const NAV_ITEMS = [
   { to: "/app", end: true, icon: House, label: "nav.dashboard" },
@@ -332,8 +335,20 @@ function AppSidebar() {
 }
 
 function AppHeader({ triggerRef }: { triggerRef: RefObject<HTMLButtonElement | null> }) {
-  const { t } = useTranslation(["app", "common"]);
+  const { t } = useTranslation(["app", "common", "scanner"]);
   const { open, openMobile, isMobile } = useSidebar();
+  const navigate = useNavigate();
+  // A table has its own scanner, which also searches it: one button there, not two that differ.
+  const inTable = useMatch("/app/tables/:tableId/*") !== null;
+  // From anywhere else, a record's QR label opens it (ADR-051); a barcode needs its table to be searched.
+  const openLabel = (raw: string) => {
+    const scanned = interpretScan(raw);
+    if (scanned.kind === "record") {
+      void navigate(scanned.path);
+    } else {
+      toast(t("scanner:app.notALabel", { code: scanned.value }));
+    }
+  };
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border bg-background/90 px-3 backdrop-blur sm:px-6">
@@ -347,6 +362,7 @@ function AppHeader({ triggerRef }: { triggerRef: RefObject<HTMLButtonElement | n
         <Logo />
       </Link>
       <div className="ml-auto flex items-center gap-2">
+        {!inTable && <ScanButton description={t("scanner:app.description")} onScan={openLabel} />}
         <AssistantButton />
         <ThemeToggle />
       </div>

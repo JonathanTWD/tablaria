@@ -71,13 +71,14 @@ export function StockCell({ value, lowStock, edited, label, onChange }: StockCel
         }
       }}
       type="button"
-      aria-label={`${label}: ${formatted}`}
       onClick={() => setDraft(String(value))}
       className={cn(
         "inline-flex h-8 items-center justify-end gap-2 rounded-md px-2 tabular-nums transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring",
         edited && "bg-accent text-accent-foreground hover:bg-accent",
       )}
     >
+      {/* The action first, then what is visible: the accessible name contains the visible text (WCAG 2.5.3). */}
+      <span className="sr-only">{label}: </span>
       {status === "out" ? (
         <span className="font-medium text-destructive">{t("demo.outOfStock")}</span>
       ) : (
