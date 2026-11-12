@@ -106,7 +106,7 @@ Las versiones son semánticas: funcionalidades nuevas suben la menor (1.6.0), ar
   - `Referrer-Policy: strict-origin-when-cross-origin`
   - `Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://s3.filebase.io; font-src 'self' data:; connect-src 'self' wss://tablaria.onrender.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'`
 
-  `img-src` incluye el origen del bucket (Filebase) para las miniaturas de los adjuntos: tiene que coincidir exactamente con `STORAGE_ENDPOINT`. `'wasm-unsafe-eval'` deja compilar el lector de códigos de respaldo (ZXing en WebAssembly) en Safari y Firefox (ADR-051); sin él, el escáner solo funciona donde el navegador trae el suyo.
+  `img-src` incluye el origen del bucket (Filebase) para las miniaturas de los adjuntos: tiene que coincidir exactamente con `STORAGE_ENDPOINT`. `'wasm-unsafe-eval'` deja compilar el lector de códigos de respaldo (ZXing en WebAssembly) en Safari y Firefox (ADR-051); sin él, el escáner solo funciona donde el navegador trae el suyo. Esta política es la misma que la de `tablaria-frontend/nginx.conf.template` (Docker): si cambias una, cambia la otra.
 
   El tiempo real va por WebSocket **directo a la API** (la rewrite no lleva WebSockets), por eso `connect-src` incluye la URL `wss://` de la API. Si la demo no dice «En directo», revisa esto primero.
 
@@ -131,27 +131,23 @@ Las versiones son semánticas: funcionalidades nuevas suben la menor (1.6.0), ar
 
 ---
 
-## 4. Pendiente con fecha
+## 4. Dependencias con aviso
 
-- **Desde el 11 de noviembre de 2026: actualizar minimatch** (≥ 11.0.1), cuando la versión supere los 14 días de antigüedad mínima. Hoy solo llega a través de la CLI de shadcn, que no forma parte de la app, pero `pnpm audit --prod` lo sigue marcando.
-- **Avisos de dependencias que no hace falta tocar:** `uuid` a través de ExcelJS (solo usa `v4()`, que no está afectado) y deepmerge, en la CLI de shadcn. Revísalos en cada auditoría por si dejan de ser inalcanzables.
+- **Overrides en `pnpm-workspace.yaml`:** fuerzan versiones corregidas de paquetes que llegan a través de Express y Nest (`body-parser`, `multer`, `qs`), de la CLI de Nest (`fast-uri`) y de la cobertura de Jest (`glob`, `minimatch`). Los de `glob` y `minimatch` solo afectan a los rangos vulnerables. Quita cada uno cuando su paquete padre ya exija la versión corregida.
+- **Avisos que no hace falta tocar:** `uuid` a través de ExcelJS (solo usa `v4()`, que no está afectado) y `deepmerge`, en la CLI de Nest, que aún no tiene versión corregida. Revísalos en cada auditoría por si dejan de ser inalcanzables.
+- **Antigüedad mínima:** pnpm rechaza versiones con menos de 14 días. Si un parche es muy reciente, toca esperar.
 
 ---
 
 ## 5. Lo que queda por hacer
 
-### Siguiente: v1.11
+### Siguiente: abrir el código
 
-1. Actualizar minimatch (sección 4).
-
-Ya están en `develop` para la v1.11:
-- el SEO y el GEO (ADR-050);
-- la preparación para el código abierto;
-- esta documentación;
-- el escáner y la app instalable (ADR-051);
-- los tests de accesibilidad con axe (`e2e/tests/accessibility.spec.ts`) y CodeQL, que solo se ejecuta con el repositorio público.
-
-Al publicarla, hay que añadir `'wasm-unsafe-eval'` a la CSP de Render (sección 3).
+La v1.11.0 está publicada. Para hacer público el repositorio, en GitHub:
+1. Settings → General → Change visibility → Public. CodeQL empieza a ejecutarse solo.
+2. Settings → Code security: activar el aviso privado de vulnerabilidades (lo enlaza `SECURITY.md`), las alertas de Dependabot y el escaneo de secretos con protección al hacer push.
+3. Settings → Branches: proteger `main` y `develop` (PR obligatoria y CI en verde).
+4. En tu cuenta, Settings → Emails: activar «Keep my email private».
 
 ### Otras tareas difíciles
 
