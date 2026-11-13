@@ -31,6 +31,7 @@ import {
   type ChatToolCall,
   ModelUnavailableError,
 } from './chat-model';
+import { toPlainText } from './plain-text';
 
 /** Rounds of tool calls per question: enough to find, then summarize (ADR-042). */
 const MAX_TOOL_ROUNDS = 4;
@@ -138,7 +139,7 @@ export class AssistantService {
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
       const completion = await this.model.complete(messages, tools);
       if (completion.toolCalls.length === 0) {
-        return completion.content?.trim() || NO_ANSWER;
+        return toPlainText(completion.content?.trim() ?? '') || NO_ANSWER;
       }
       messages.push({
         role: 'assistant',
@@ -161,7 +162,7 @@ export class AssistantService {
         'Ya no puedes usar más herramientas: responde ahora con lo que has encontrado.',
     });
     const last = await this.model.complete(messages, []);
-    return last.content?.trim() || NO_ANSWER;
+    return toPlainText(last.content?.trim() ?? '') || NO_ANSWER;
   }
 
   /**
