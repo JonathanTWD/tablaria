@@ -43,6 +43,18 @@ const TOOL_CALL_ATTEMPTS = 2;
  */
 class ToolCallRejectedError extends Error {}
 
+/** The `error.code` of an OpenAI-style error body, if it has one. */
+function errorCode(body: string): string | undefined {
+  try {
+    const parsed = JSON.parse(body) as { error?: { code?: unknown } };
+    return typeof parsed.error?.code === 'string'
+      ? parsed.error.code
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * Any OpenAI-compatible chat completions API (Groq by default, ADR-042).
  * Tests replace `complete` with a script, so they never reach a provider.
@@ -109,8 +121,9 @@ export class ChatModel {
     }
     if (!response.ok) {
       // The body explains the error; it holds no secrets, but is not shown to users.
-      const detail = (await response.text().catch(() => '')).slice(0, 300);
-      if (response.status === 400 && detail.includes('"tool_use_failed"')) {
+      const text = await response.text().catch(() => '');
+      const detail = text.slice(0, 300);
+      if (response.status === 400 && errorCode(text) === 'tool_use_failed') {
         throw new ToolCallRejectedError(`Model answered 400: ${detail}`);
       }
       throw new Error(`Model answered ${response.status}: ${detail}`);

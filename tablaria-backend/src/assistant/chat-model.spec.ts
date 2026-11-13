@@ -4,7 +4,7 @@ const rejected = () =>
   new Response(
     JSON.stringify({
       error: {
-        message: 'Tool call validation failed',
+        message: `Tool call validation failed: ${'x'.repeat(400)}`,
         code: 'tool_use_failed',
       },
     }),
