@@ -1,5 +1,19 @@
 # Changelog
 
+## v1.11.1 — Asistente más fiable
+
+- **Asistente de IA:**
+  - **Llamadas rechazadas:** Groq comprueba cada llamada a herramienta contra su esquema y rechaza las que traen un valor no permitido (`400 tool_use_failed`). Antes llegaba al usuario como «Algo ha fallado en el servidor». Ahora se repite una vez, y si vuelve a fallar se avisa de que el asistente está ocupado y se devuelve la pregunta al cupo diario.
+  - **Contar por grupos:** `resumir` acepta `funcion: count`, el caso que más rechazos provocaba («¿qué proveedor tiene más productos?»).
+  - **Saludos:** a un «hola» responde directamente, sin consultar las tablas.
+  - **Texto plano:** se quitan las marcas de Markdown (`**negrita**`, código, títulos) que el modelo añade a veces, en el panel y en la lectura en voz alta.
+- **shadcn** pasa a dependencia de desarrollo del frontend: solo es la CLI que añade componentes.
+- **Seguridad** (auditoría OWASP Top 10:2025 de la release):
+  - **Código:** sin hallazgos. Los errores del proveedor solo se registran en el log; al cliente le llega un 503 genérico. El esquema de las herramientas sigue validado con zod en el backend.
+  - **Dependencias:** 9 avisos, ninguno alcanzable desde la app:
+    - los 2 de la v1.11.0: `uuid` a través de ExcelJS (solo usa `v4()`) y deepmerge, aún sin versión corregida;
+    - 7 nuevos en `hono` y `@hono/node-server`, que solo usa el servidor MCP de la CLI de shadcn. Las versiones corregidas (hono 4.13.16 y node-server 2.1.6) aún no cumplen los 14 días de antigüedad mínima; se actualizarán en la próxima release.
+
 ## v1.11.0 — Escáner, app instalable y buscadores
 
 - **Seguridad** (auditoría OWASP Top 10:2025 de la release):
