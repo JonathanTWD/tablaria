@@ -222,7 +222,12 @@ export const ASSISTANT_TOOLS: Record<string, Tool> = {
           type: 'string',
           description: 'Columna numérica a medir en cada grupo',
         },
-        funcion: { type: 'string', enum: ['sum', 'avg', 'min', 'max'] },
+        funcion: {
+          type: 'string',
+          enum: ['count', 'sum', 'avg', 'min', 'max'],
+          description:
+            'Al agrupar: count (por defecto) cuenta registros; las demás miden la columna de medir',
+        },
       },
       required: ['tabla'],
     },
@@ -232,7 +237,7 @@ export const ASSISTANT_TOOLS: Record<string, Tool> = {
           tabla: z.uuid(),
           agrupar_por: z.string().optional(),
           medir: z.string().optional(),
-          funcion: z.enum(['sum', 'avg', 'min', 'max']).optional(),
+          funcion: z.enum(['count', 'sum', 'avg', 'min', 'max']).optional(),
         }),
         rawArgs,
       );
@@ -260,13 +265,14 @@ export const ASSISTANT_TOOLS: Record<string, Tool> = {
           })),
         };
       }
+      // Counting is what every group returns anyway: no column to measure.
+      const medir = args.funcion === 'count' ? undefined : args.medir;
+      const fn = args.funcion === 'count' ? undefined : args.funcion;
       const groups = await asTool(() =>
         context.metrics.groups(context.userId, table.id, {
           groupBy: findColumn(table.columns, args.agrupar_por ?? '').id,
-          column: args.medir
-            ? findColumn(table.columns, args.medir).id
-            : undefined,
-          fn: args.funcion ?? 'sum',
+          column: medir ? findColumn(table.columns, medir).id : undefined,
+          fn: fn ?? 'sum',
         }),
       );
       return {
@@ -277,7 +283,7 @@ export const ASSISTANT_TOOLS: Record<string, Tool> = {
               ? '(vacío)'
               : (groups.labels[String(group.value)] ?? group.value),
           registros: group.count,
-          ...(args.medir && { medida: group.measure }),
+          ...(medir && { medida: group.measure }),
         })),
         otros: groups.others && {
           grupos: groups.others.groupCount,
