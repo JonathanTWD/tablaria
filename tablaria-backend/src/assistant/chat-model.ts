@@ -33,6 +33,15 @@ export interface ChatModelSettings {
 const TIMEOUT_MS = 30_000;
 /** Answers are a few sentences: this keeps the free plan's token budget (ADR-042). */
 const MAX_ANSWER_TOKENS = 700;
+/** Tries per completion when the provider rejects a tool call the model wrote. */
+const TOOL_CALL_ATTEMPTS = 2;
+
+/**
+ * The provider checks tool calls against their schema and rejects a malformed
+ * one (Groq: 400 `tool_use_failed`). It is a one-off slip of the model, not
+ * a bad request of ours, so it is worth asking again.
+ */
+class ToolCallRejectedError extends Error {}
 
 /**
  * Any OpenAI-compatible chat completions API (Groq by default, ADR-042).
@@ -47,6 +56,22 @@ export class ChatModel {
 
   /** With no `tools`, the model can only answer in words. */
   async complete(
+    messages: ChatMessage[],
+    tools: ChatTool[],
+  ): Promise<ChatCompletion> {
+    for (let attempt = 1; ; attempt++) {
+      try {
+        return await this.request(messages, tools);
+      } catch (error) {
+        if (!(error instanceof ToolCallRejectedError)) throw error;
+        if (attempt >= TOOL_CALL_ATTEMPTS) {
+          throw new ModelUnavailableError(error.message);
+        }
+      }
+    }
+  }
+
+  private async request(
     messages: ChatMessage[],
     tools: ChatTool[],
   ): Promise<ChatCompletion> {
@@ -85,6 +110,9 @@ export class ChatModel {
     if (!response.ok) {
       // The body explains the error; it holds no secrets, but is not shown to users.
       const detail = (await response.text().catch(() => '')).slice(0, 300);
+      if (response.status === 400 && detail.includes('"tool_use_failed"')) {
+        throw new ToolCallRejectedError(`Model answered 400: ${detail}`);
+      }
       throw new Error(`Model answered ${response.status}: ${detail}`);
     }
     const body = (await response.json()) as {
