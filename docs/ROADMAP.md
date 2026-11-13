@@ -31,6 +31,11 @@ La especificación completa del MVP está en [MVP_PROMPT.md](MVP_PROMPT.md).
 - [x] Tests de accesibilidad con axe en Playwright (WCAG 2.2 A y AA, en claro y oscuro), y CodeQL en GitHub Actions cuando el repositorio sea público.
 - [x] Parche de minimatch, glob y fast-uri en las herramientas de desarrollo.
 
+### v1.11.1 (publicada)
+
+- [x] Asistente más fiable: reintento cuando Groq rechaza una llamada a herramienta, contar por grupos, saludos sin herramientas y respuestas sin Markdown.
+- [ ] Actualizar hono y @hono/node-server (CLI de shadcn) cuando sus versiones corregidas cumplan 14 días.
+
 ### Colaboración (en este orden)
 
 1. **Compartir tablas y organizaciones** (hecho, fase 9, ADR-019): sirve tanto a particulares como a equipos. Se entregó en este orden:
